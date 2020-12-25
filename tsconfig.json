@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"composite": true,
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"outDir": "./build/",
+		"rootDir": "./source/",
+		"strict": true,
+		"target": "es6"
+	},
+	"include": [],
+	"references": [
+		{
+			"path": "./source/client/"
+		},
+		{
+			"path": "./source/server/"
+		},
+		{
+			"path": "./source/shared/"
+		}
+	]
+}

@@ -1495,11 +1495,11 @@ let entities: Array<Entity> = [
 	{ name: "Necrolyte", script: 13, sprite: 292 },
 	{ name: "Medivh", script: 14, sprite: 293 },
 	{ name: "Sir Lothar", script: 15, sprite: 294 },
-
+	{ name: "Grunt (copy)", script: 16, sprite: 280 },
 	{ name: "Griselda", script: 17, sprite: 296 },
 	{ name: "Garona", script: 18, sprite: 296 },
 	{ name: "Ogre", script: 19, sprite: 297 },
-
+	{ name: "Ogre (copy)", script: 20, sprite: 297 },
 	{ name: "Spider", script: 21, sprite: 298 },
 	{ name: "Slime", script: 22, sprite: 299 },
 	{ name: "Fire Elemental", script: 23, sprite: 300 },
@@ -1508,8 +1508,8 @@ let entities: Array<Entity> = [
 	{ name: "Skeleton", script: 26, sprite: 303 },
 	{ name: "Skeleton", script: 27, sprite: 304 },
 	{ name: "Daemon", script: 28, sprite: 305 },
-
-	{ name: "Wounded", script: 30, sprite: 295 }, // broken
+	{ name: "Ogre (copy 2)", script: 29, sprite: 297 },
+	{ name: "Ogre (copy 3)", script: 30, sprite: 297 },
 	{ name: "Water Elemental", script: 31, sprite: 306 },
 	{ name: "Farm", script: 32, sprite: 307 },
 	{ name: "Farm", script: 33, sprite: 308 },
@@ -1530,7 +1530,6 @@ let entities: Array<Entity> = [
 	{ name: "Stormwind Keep", script: 48, sprite: 323 },
 	{ name: "Black Rock Spire", script: 49, sprite: 324 },
 	{ name: "Gold Mine", script: 50, sprite: 325 },
-
 	{ name: "Blob", script: 0, type: "effect", sprite: 347 },
 	{ name: "Fire Ball", script: 1, type: "effect", sprite: 348 },
 	{ name: "Spear", script: 2, type: "effect", sprite: 349 },
@@ -1544,6 +1543,9 @@ let entities: Array<Entity> = [
 	{ name: "Water Elemental", script: 10, type: "effect", sprite: 357 },
 	{ name: "Fire Elemental", script: 11, type: "effect", sprite: 358 },
 ];
+
+// spider, daemon, scorpion, wounded, wounded lothar, corpse?
+
 let textures = new Array<WebGLTexture>();
 let entity = 0;
 let offset: number | undefined;

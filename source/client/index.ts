@@ -1456,6 +1456,13 @@ async function load(dataProvider: DataProvider): Promise<void> {
 	palette.updateTexture(paletteTexture);
 	context.activeTexture(context.TEXTURE1);
 	context.bindTexture(context.TEXTURE_2D, paletteTexture);
+	try {
+		await loadUnitScript(archive);
+	} catch (error) {
+		try {
+			await loadParticleScript(archive);
+		} catch (error) {}
+	}
 /* 			let voc = await new VocFile().load(await archive.getRecord(503));
 	await voc.play(); */
 /* 			let wave = await new WavFile().load(await archive.getRecord(504));
@@ -1464,6 +1471,7 @@ async function load(dataProvider: DataProvider): Promise<void> {
 type Entity = {
 	name: string,
 	script: number,
+	type?: "effect",
 	sprite: number
 };
 let entities: Array<Entity> = [
@@ -1523,18 +1531,18 @@ let entities: Array<Entity> = [
 	{ name: "Black Rock Spire", script: 49, sprite: 324 },
 	{ name: "Gold Mine", script: 50, sprite: 325 },
 
-	{ name: "Blob", script: 0, sprite: 347 },
-	{ name: "Fire Ball", script: 1, sprite: 348 },
-	{ name: "Spear", script: 2, sprite: 349 },
-	{ name: "Poison Cloud", script: 3, sprite: 350 },
-	{ name: "Catapult Projectile", script: 4, sprite: 351 },
-	{ name: "Burning Small", script: 5, sprite: 352 },
-	{ name: "Burning Medium", script: 6, sprite: 353 },
-	{ name: "Explosion", script: 7, sprite: 354 },
-	{ name: "Sparkle", script: 8, sprite: 355 },
-	{ name: "Building Collapse", script: 9, sprite: 356 },
-	{ name: "Water Elemental", script: 10, sprite: 357 },
-	{ name: "Fire Elemental", script: 11, sprite: 358 },
+	{ name: "Blob", script: 0, type: "effect", sprite: 347 },
+	{ name: "Fire Ball", script: 1, type: "effect", sprite: 348 },
+	{ name: "Spear", script: 2, type: "effect", sprite: 349 },
+	{ name: "Poison Cloud", script: 3, type: "effect", sprite: 350 },
+	{ name: "Catapult Projectile", script: 4, type: "effect", sprite: 351 },
+	{ name: "Burning Small", script: 5, type: "effect", sprite: 352 },
+	{ name: "Burning Medium", script: 6, type: "effect", sprite: 353 },
+	{ name: "Explosion", script: 7, type: "effect", sprite: 354 },
+	{ name: "Sparkle", script: 8, type: "effect", sprite: 355 },
+	{ name: "Building Collapse", script: 9, type: "effect", sprite: 356 },
+	{ name: "Water Elemental", script: 10, type: "effect", sprite: 357 },
+	{ name: "Fire Elemental", script: 11, type: "effect", sprite: 358 },
 ];
 let textures = new Array<WebGLTexture>();
 let entity = 0;
@@ -1543,6 +1551,45 @@ let delay = 0;
 let direction = 0;
 let frame = 0;
 let view: DataView | undefined;
+async function loadUnitScript(archive: Archive): Promise<wc1.UnitScriptHeader> {
+	let entitydata = entities[entity];
+	let sprite = await new wc1.Sprite(endianness).load(await archive.getRecord(entitydata.sprite));
+	textures = await sprite.makeTextures(context);
+	let script = await new wc1.Script(endianness).load(await archive.getRecord(212));
+	let us = script.getUnitScript(entitydata.script);
+	console.log([
+		entitydata,
+		us.header.spawnOffset.value,
+		us.header.deathOffset.value,
+		us.header.idleOffset.value,
+		us.header.movementOffset.value,
+		us.header.actionOffset.value,
+		us.header.trainOffset.value
+	]);
+	view = new DataView(us.buffer);
+	frame = 0;
+	offset = us.header.movementOffset.value;
+	delay = 0;
+	return us.header;
+}
+async function loadParticleScript(archive: Archive): Promise<wc1.ParticleScriptHeader> {
+	let entitydata = entities[entity];
+	let sprite = await new wc1.Sprite(endianness).load(await archive.getRecord(entitydata.sprite));
+	textures = await sprite.makeTextures(context);
+	let script = await new wc1.Script(endianness).load(await archive.getRecord(212));
+	let us = script.getParticle(entitydata.script);
+	console.log([
+		entitydata,
+		us.header.spawnOffset.value,
+		us.header.movementOffset.value,
+		us.header.hitOffset.value
+	]);
+	view = new DataView(us.buffer);
+	frame = 0;
+	offset = us.header.movementOffset.value;
+	delay = 0;
+	return us.header;
+}
 function render(ms: number): void {
 	context.clear(context.COLOR_BUFFER_BIT);
 	if (is.present(offset) && is.present(view)) {
@@ -1567,9 +1614,9 @@ function render(ms: number): void {
 			} else if (opcode === 7) {
 				delay = view.getUint8(offset++);
 			} else if (opcode === 8) {
-				// play sound
+				console.log("sound!");
 			} else if (opcode === 9) {
-				// deal damage
+				console.log("damage!");
 			} else if (opcode === 10) {
 				delay = view.getUint8(offset++);
 			} else {
@@ -1578,7 +1625,7 @@ function render(ms: number): void {
 		}
 		let index = direction < 5 ? frame + direction : frame + 8 - direction;
 		if (index >= textures.length) {
-			console.log({index, unit: entity});
+			//console.log({index, unit: entity});
 		}
 		context.uniform2f(anchorLocation, 0.5, 0.5);
 		context.uniform2f(quadLocation, 48, 48);
@@ -1610,28 +1657,6 @@ window.addEventListener("keyup", async (event) => {
 	} else if (event.key === "7") {
 		direction = 7;
 	}
-	async function loadUnitScript(archive: Archive): Promise<wc1.UnitScriptHeader> {
-		let entitydata = entities[entity];
-		let sprite = await new wc1.Sprite(endianness).load(await archive.getRecord(entitydata.sprite));
-		textures = await sprite.makeTextures(context);
-		let script = await new wc1.Script(endianness).load(await archive.getRecord(212));
-		let us = script.getUnitScript(entitydata.script);
-		view = new DataView(us.buffer);
-		offset = us.header.movementOffset.value;
-		delay = 0;
-		return us.header;
-	}
-	async function loadParticleScript(archive: Archive): Promise<wc1.ParticleScriptHeader> {
-		let entitydata = entities[entity];
-		let sprite = await new wc1.Sprite(endianness).load(await archive.getRecord(entitydata.sprite));
-		textures = await sprite.makeTextures(context);
-		let script = await new wc1.Script(endianness).load(await archive.getRecord(212));
-		let us = script.getParticle(entitydata.script);
-		view = new DataView(us.buffer);
-		offset = us.header.movementOffset.value;
-		delay = 0;
-		return us.header;
-	}
 	if (is.present(archive)) {
 		try {
 			if (false) {
@@ -1655,20 +1680,20 @@ window.addEventListener("keyup", async (event) => {
 				offset = (await loadParticleScript(archive)).hitOffset.value;
 			} else if (event.key === "ArrowUp") {
 				entity = (((entity - 1) % entities.length) + entities.length) % entities.length;
-				try {
-					await loadUnitScript(archive);
-				} catch (error) {}
-				try {
+				let ed = entities[entity];
+				if (ed.type === "effect") {
 					await loadParticleScript(archive);
-				} catch (error) {}
+				} else {
+					await loadUnitScript(archive);
+				}
 			} else if (event.key === "ArrowDown") {
 				entity = (((entity + 1) % entities.length) + entities.length) % entities.length;
-				try {
-					await loadUnitScript(archive);
-				} catch (error) {}
-				try {
+				let ed = entities[entity];
+				if (ed.type === "effect") {
 					await loadParticleScript(archive);
-				} catch (error) {}
+				} else {
+					await loadUnitScript(archive);
+				}
 			}
 		} catch (error) {}
 	}

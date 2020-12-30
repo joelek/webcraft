@@ -1264,12 +1264,12 @@ namespace wc1 {
 			return texture;
 		}
 
-		updateTexture(texture: WebGLTexture): this {
+		updateTexture(texture: WebGLTexture, start: number): this {
 			let w = this.buffer.byteLength / 3;
 			let h = 1;
 			context.activeTexture(context.TEXTURE0);
 			context.bindTexture(context.TEXTURE_2D, texture);
-			context.texSubImage2D(context.TEXTURE_2D, 0, 0, 0, w, h, context.RGB, context.UNSIGNED_BYTE, new Uint8Array(this.buffer));
+			context.texSubImage2D(context.TEXTURE_2D, 0, start, 0, w, h, context.RGB, context.UNSIGNED_BYTE, new Uint8Array(this.buffer));
 			return this;
 		}
 	};
@@ -1450,10 +1450,10 @@ let endianness: Endianness = "LittleEndian";
 let archive: Archive | undefined;
 async function load(dataProvider: DataProvider): Promise<void> {
 	archive = new Archive(dataProvider, endianness);
-	let base_palette = await new wc1.Palette(endianness).load(await archive.getRecord(217));
+	let base_palette = await new wc1.Palette(endianness).load(await archive.getRecord(191));
 	let paletteTexture = await base_palette.makeTexture(context);
-	let palette = await new wc1.Palette(endianness).load(await archive.getRecord(191));
-	palette.updateTexture(paletteTexture);
+	let palette = await new wc1.Palette(endianness).load(await archive.getRecord(210));
+	palette.updateTexture(paletteTexture, 128);
 	context.activeTexture(context.TEXTURE1);
 	context.bindTexture(context.TEXTURE_2D, paletteTexture);
 	try {

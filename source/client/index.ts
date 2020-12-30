@@ -1381,6 +1381,7 @@ if (is.absent(fragmentShader)) {
 context.shaderSource(fragmentShader, `#version 300 es
 	precision highp float;
 	uniform int transparentIndex;
+	uniform sampler2D colorCycleSampler;
 	uniform sampler2D paletteSampler;
 	uniform sampler2D textureSampler;
 	in vec2 textureCoordinates;
@@ -1391,7 +1392,8 @@ context.shaderSource(fragmentShader, `#version 300 es
 		if (indexInt == transparentIndex) {
 			discard;
 		}
-		vec3 color = texture(paletteSampler, vec2(index, 0.0)).rgb * 4.0;
+		float shiftedIndex = texture(colorCycleSampler, vec2(index, 0.0)).x;
+		vec3 color = texture(paletteSampler, vec2(shiftedIndex, 0.0)).rgb * 4.0;
 		fragmentColor = vec4(color, 1.0);
 	}
 `);
@@ -1418,6 +1420,8 @@ let textureSamplerocation = context.getUniformLocation(program, "textureSampler"
 context.uniform1i(textureSamplerocation, 0);
 let paletteSamplerLocation = context.getUniformLocation(program, "paletteSampler");
 context.uniform1i(paletteSamplerLocation, 1);
+let colorCycleSamplerLocation = context.getUniformLocation(program, "colorCycleSampler");
+context.uniform1i(colorCycleSamplerLocation, 2);
 let vertexPosition = context.getAttribLocation(program, "vertexPosition");
 context.enableVertexAttribArray(vertexPosition);
 let vertexTexture = context.getAttribLocation(program, "vertexTexture");
@@ -1448,6 +1452,7 @@ canvas.addEventListener("dragover", async (event) => {
 });
 let endianness: Endianness = "LittleEndian";
 let archive: Archive | undefined;
+
 async function load(dataProvider: DataProvider): Promise<void> {
 	archive = new Archive(dataProvider, endianness);
 	let base_palette = await new wc1.Palette(endianness).load(await archive.getRecord(191));
@@ -1544,7 +1549,33 @@ let entities: Array<Entity> = [
 	{ name: "Fire Elemental", script: 11, type: "effect", sprite: 358 },
 ];
 
-// spider, daemon, scorpion, wounded, wounded lothar, corpse?
+let w = 256;
+let h = 1;
+let colorCycleTexture = context.createTexture();
+let colorCycleBuffer = new Uint8Array(w * h);
+for (let i = 0; i < 256; i++) {
+	colorCycleBuffer[i] = i;
+}
+if (is.absent(colorCycleTexture)) {
+	throw `Expected a texture!`;
+}
+context.activeTexture(context.TEXTURE2);
+context.bindTexture(context.TEXTURE_2D, colorCycleTexture);
+context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);
+context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);
+context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);
+context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);
+context.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, 256, 1, 0, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer);
+function updateCycle() {
+	let first = colorCycleBuffer[112];
+	for (let i = 112; i < 112 + 8 - 1; i++) {
+		colorCycleBuffer[i] = colorCycleBuffer[i+1];
+	}
+	colorCycleBuffer[112 + 8 - 1] = first;
+	context.activeTexture(context.TEXTURE2);
+	context.bindTexture(context.TEXTURE_2D, colorCycleTexture);
+	context.texSubImage2D(context.TEXTURE_2D, 0, 112, 0, 8, 1, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer, 112);
+}
 
 let textures = new Array<WebGLTexture>();
 let entity = 0;
@@ -1594,6 +1625,7 @@ async function loadParticleScript(archive: Archive): Promise<wc1.ParticleScriptH
 }
 function render(ms: number): void {
 	context.clear(context.COLOR_BUFFER_BIT);
+	updateCycle();
 	if (is.present(offset) && is.present(view)) {
 		if (delay > 0) {
 			delay -= 1;

@@ -1487,21 +1487,21 @@ let entities: Array<Entity> = [
 	{ name: "Necrolyte", script: 13, sprite: 292 },
 	{ name: "Medivh", script: 14, sprite: 293 },
 	{ name: "Sir Lothar", script: 15, sprite: 294 },
-	{ name: "Wounded", script: 16, sprite: 295 }, // broken
-	{ name: "Griselda", script: 17, sprite: 296 }, // ok at 18, 17
 
+	{ name: "Griselda", script: 17, sprite: 296 },
+	{ name: "Garona", script: 18, sprite: 296 },
 	{ name: "Ogre", script: 19, sprite: 297 },
 
 	{ name: "Spider", script: 21, sprite: 298 },
 	{ name: "Slime", script: 22, sprite: 299 },
-	{ name: "Fire Elemental", script: 23, sprite: 300 }, // broken?
+	{ name: "Fire Elemental", script: 23, sprite: 300 },
 	{ name: "Scorpion", script: 24, sprite: 301 },
 	{ name: "Brigand", script: 25, sprite: 302 },
 	{ name: "Skeleton", script: 26, sprite: 303 },
 	{ name: "Skeleton", script: 27, sprite: 304 },
 	{ name: "Daemon", script: 28, sprite: 305 },
 
-
+	{ name: "Wounded", script: 30, sprite: 295 }, // broken
 	{ name: "Water Elemental", script: 31, sprite: 306 },
 	{ name: "Farm", script: 32, sprite: 307 },
 	{ name: "Farm", script: 33, sprite: 308 },
@@ -1522,21 +1522,33 @@ let entities: Array<Entity> = [
 	{ name: "Stormwind Keep", script: 48, sprite: 323 },
 	{ name: "Black Rock Spire", script: 49, sprite: 324 },
 	{ name: "Gold Mine", script: 50, sprite: 325 },
+
+	{ name: "Blob", script: 0, sprite: 347 },
+	{ name: "Fire Ball", script: 1, sprite: 348 },
+	{ name: "Spear", script: 2, sprite: 349 },
+	{ name: "Poison Cloud", script: 3, sprite: 350 },
+	{ name: "Catapult Projectile", script: 4, sprite: 351 },
+	{ name: "Burning Small", script: 5, sprite: 352 },
+	{ name: "Burning Medium", script: 6, sprite: 353 },
+	{ name: "Explosion", script: 7, sprite: 354 },
+	{ name: "Sparkle", script: 8, sprite: 355 },
+	{ name: "Building Collapse", script: 9, sprite: 356 },
+	{ name: "Water Elemental", script: 10, sprite: 357 },
+	{ name: "Fire Elemental", script: 11, sprite: 358 },
 ];
 let textures = new Array<WebGLTexture>();
-let unit = 0;
+let entity = 0;
 let offset: number | undefined;
 let delay = 0;
 let direction = 0;
 let frame = 0;
-let animation: { header: wc1.UnitScriptHeader, buffer: ArrayBuffer };
+let view: DataView | undefined;
 function render(ms: number): void {
 	context.clear(context.COLOR_BUFFER_BIT);
-	if (is.present(offset)) {
+	if (is.present(offset) && is.present(view)) {
 		if (delay > 0) {
 			delay -= 1;
 		} else {
-			let view = new DataView(animation.buffer);
 			let opcode = view.getUint8(offset++);
 			if (opcode === 0) {
 			} else if (opcode === 1) {
@@ -1566,7 +1578,7 @@ function render(ms: number): void {
 		}
 		let index = direction < 5 ? frame + direction : frame + 8 - direction;
 		if (index >= textures.length) {
-			console.log({index, unit});
+			console.log({index, unit: entity});
 		}
 		context.uniform2f(anchorLocation, 0.5, 0.5);
 		context.uniform2f(quadLocation, 48, 48);
@@ -1598,49 +1610,67 @@ window.addEventListener("keyup", async (event) => {
 	} else if (event.key === "7") {
 		direction = 7;
 	}
-	if (is.present(animation)) {
-		if (false) {
-		} else if (event.key === "a") {
-			offset = animation.header.actionOffset.value;
-			delay = 0;
-		} else if (event.key === "d") {
-			offset = animation.header.deathOffset.value;
-			delay = 0;
-		} else if (event.key === "i") {
-			offset = animation.header.idleOffset.value;
-			delay = 0;
-		} else if (event.key === "m") {
-			offset = animation.header.movementOffset.value;
-			delay = 0;
-		} else if (event.key === "s") {
-			offset = animation.header.spawnOffset.value;
-			delay = 0;
-		} else if (event.key === "t") {
-			offset = animation.header.trainOffset.value;
-			delay = 0;
-		}
+	async function loadUnitScript(archive: Archive): Promise<wc1.UnitScriptHeader> {
+		let entitydata = entities[entity];
+		let sprite = await new wc1.Sprite(endianness).load(await archive.getRecord(entitydata.sprite));
+		textures = await sprite.makeTextures(context);
+		let script = await new wc1.Script(endianness).load(await archive.getRecord(212));
+		let us = script.getUnitScript(entitydata.script);
+		view = new DataView(us.buffer);
+		offset = us.header.movementOffset.value;
+		delay = 0;
+		return us.header;
+	}
+	async function loadParticleScript(archive: Archive): Promise<wc1.ParticleScriptHeader> {
+		let entitydata = entities[entity];
+		let sprite = await new wc1.Sprite(endianness).load(await archive.getRecord(entitydata.sprite));
+		textures = await sprite.makeTextures(context);
+		let script = await new wc1.Script(endianness).load(await archive.getRecord(212));
+		let us = script.getParticle(entitydata.script);
+		view = new DataView(us.buffer);
+		offset = us.header.movementOffset.value;
+		delay = 0;
+		return us.header;
 	}
 	if (is.present(archive)) {
-		if (false) {
-		} else if (event.key === "ArrowUp") {
-			unit = (((unit - 1) % entities.length) + entities.length) % entities.length;
-			let entity = entities[unit];
-			let sprite = await new wc1.Sprite(endianness).load(await archive.getRecord(entity.sprite));
-			textures = await sprite.makeTextures(context);
-			let script = await new wc1.Script(endianness).load(await archive.getRecord(212));
-			animation = script.getUnitScript(entity.script);
-			offset = animation.header.idleOffset.value;
-			delay = 0;
-		} else if (event.key === "ArrowDown") {
-			unit = (((unit + 1) % entities.length) + entities.length) % entities.length;
-			let entity = entities[unit];
-			let sprite = await new wc1.Sprite(endianness).load(await archive.getRecord(entity.sprite));
-			textures = await sprite.makeTextures(context);
-			let script = await new wc1.Script(endianness).load(await archive.getRecord(212));
-			animation = script.getUnitScript(entity.script);
-			offset = animation.header.idleOffset.value;
-			delay = 0;
-		}
+		try {
+			if (false) {
+			} else if (event.key === "a") {
+				offset = (await loadUnitScript(archive)).actionOffset.value;
+			} else if (event.key === "d") {
+				offset = (await loadUnitScript(archive)).deathOffset.value;
+			} else if (event.key === "i") {
+				offset = (await loadUnitScript(archive)).idleOffset.value;
+			} else if (event.key === "m") {
+				offset = (await loadUnitScript(archive)).movementOffset.value;
+			} else if (event.key === "s") {
+				offset = (await loadUnitScript(archive)).spawnOffset.value;
+			} else if (event.key === "t") {
+				offset = (await loadUnitScript(archive)).trainOffset.value;
+			} else if (event.key === "z") {
+				offset = (await loadParticleScript(archive)).spawnOffset.value;
+			} else if (event.key === "x") {
+				offset = (await loadParticleScript(archive)).movementOffset.value;
+			} else if (event.key === "c") {
+				offset = (await loadParticleScript(archive)).hitOffset.value;
+			} else if (event.key === "ArrowUp") {
+				entity = (((entity - 1) % entities.length) + entities.length) % entities.length;
+				try {
+					await loadUnitScript(archive);
+				} catch (error) {}
+				try {
+					await loadParticleScript(archive);
+				} catch (error) {}
+			} else if (event.key === "ArrowDown") {
+				entity = (((entity + 1) % entities.length) + entities.length) % entities.length;
+				try {
+					await loadUnitScript(archive);
+				} catch (error) {}
+				try {
+					await loadParticleScript(archive);
+				} catch (error) {}
+			}
+		} catch (error) {}
 	}
 });
 canvas.addEventListener("drop", async (event) => {

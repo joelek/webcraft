@@ -1,3 +1,5 @@
+import * as shared from "../shared";
+
 namespace is {
 	export function absent<A>(subject: A | null | undefined): subject is null | undefined {
 		return subject == null;
@@ -1483,11 +1485,7 @@ let entities: Array<Entity> = [
 	{ name: "Footman", script: 0, sprite: 279 },
 	{ name: "Grunt", script: 1, sprite: 280 },
 	{ name: "Peasant", script: 2, sprite: 281 },
-	{ name: "Peasant", script: 2, sprite: 327 },
-	{ name: "Peasant", script: 2, sprite: 329 },
 	{ name: "Peon", script: 3, sprite: 282 },
-	{ name: "Peon", script: 3, sprite: 328 },
-	{ name: "Peon", script: 3, sprite: 330 },
 	{ name: "Catapult", script: 4, sprite: 283 },
 	{ name: "Catapult", script: 5, sprite: 284 },
 	{ name: "Knight", script: 6, sprite: 285 },
@@ -1547,6 +1545,10 @@ let entities: Array<Entity> = [
 	{ name: "Building Collapse", script: 9, type: "effect", sprite: 356 },
 	{ name: "Water Elemental", script: 10, type: "effect", sprite: 357 },
 	{ name: "Fire Elemental", script: 11, type: "effect", sprite: 358 },
+	{ name: "Peasant", script: 2, sprite: 327 },
+	{ name: "Peasant", script: 2, sprite: 329 },
+	{ name: "Peon", script: 3, sprite: 328 },
+	{ name: "Peon", script: 3, sprite: 330 },
 ];
 
 let w = 256;
@@ -1590,15 +1592,19 @@ async function loadUnitScript(archive: Archive): Promise<wc1.UnitScriptHeader> {
 	textures = await sprite.makeTextures(context);
 	let script = await new wc1.Script(endianness).load(await archive.getRecord(212));
 	let us = script.getUnitScript(entitydata.script);
-	console.log([
-		entitydata,
-		us.header.spawnOffset.value,
-		us.header.deathOffset.value,
-		us.header.idleOffset.value,
-		us.header.movementOffset.value,
-		us.header.actionOffset.value,
-		us.header.trainOffset.value
-	]);
+	console.log(JSON.stringify({
+		...entitydata,
+		armor: shared.armor[entity],
+		armorPiercingDamage: shared.armorPiercingDamage[entity],
+		damage: shared.damage[entity],
+		goldCost: shared.goldCost[entity] * 10,
+		health: shared.health[entity],
+		timeCost: shared.timeCost[entity] * 10,
+		range: shared.range[entity],
+		unknownUnitData: shared.unknownUnitData[entity],
+		unknownEntityData: shared.unknownEntityData[entity],
+		woodCost: shared.woodCost[entity] * 10,
+	}, null, "\t"));
 	view = new DataView(us.buffer);
 	frame = 0;
 	offset = us.header.movementOffset.value;
@@ -1611,12 +1617,9 @@ async function loadParticleScript(archive: Archive): Promise<wc1.ParticleScriptH
 	textures = await sprite.makeTextures(context);
 	let script = await new wc1.Script(endianness).load(await archive.getRecord(212));
 	let us = script.getParticle(entitydata.script);
-	console.log([
-		entitydata,
-		us.header.spawnOffset.value,
-		us.header.movementOffset.value,
-		us.header.hitOffset.value
-	]);
+	console.log({
+		...entitydata
+	});
 	view = new DataView(us.buffer);
 	frame = 0;
 	offset = us.header.movementOffset.value;

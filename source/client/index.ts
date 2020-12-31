@@ -11,6 +11,12 @@ namespace is {
 };
 
 namespace assert {
+	export function assert(assertion: boolean): void {
+		if (!assertion) {
+			throw `Assertion failed!`;
+		}
+	}
+
 	export function between(min: number, value: number, max: number): void {
 		if ((value < min) || (value > max)) {
 			throw `Expected ${value} to be an integer between ${min} and ${max}!`;
@@ -909,6 +915,55 @@ class WavFile {
 }
 
 namespace wc1 {
+	export class TileHeader {
+		private buffer: ArrayBuffer;
+		readonly inverted: pi16;
+		readonly mirrored: pi16;
+		readonly index: pi16;
+
+		constructor(endianness: Endianness) {
+			this.buffer = new ArrayBuffer(2);
+			let integer = new ui16(endianness, this.buffer, 0);
+			this.inverted = new pi16(integer, 0, 1);
+			this.mirrored = new pi16(integer, 1, 1);
+			this.index = new pi16(integer, 5, 11);
+		}
+
+		async load(cursor: number, dataProvider: DataProvider): Promise<number> {
+			let length = 0;
+			length += await dataProvider.read(cursor + length, this.buffer);
+			return length;
+		}
+	};
+
+	export class TilesetHeader {
+		readonly headers: [
+			[TileHeader, TileHeader],
+			[TileHeader, TileHeader]
+		];
+
+		constructor(endianness: Endianness) {
+			let a = new TileHeader(endianness);
+			let b = new TileHeader(endianness);
+			let c = new TileHeader(endianness);
+			let d = new TileHeader(endianness);
+			this.headers = [
+				[a, b],
+				[c, d]
+			];
+		}
+
+		async load(cursor: number, dataProvider: DataProvider): Promise<number> {
+			let length = 0;
+			for (let y = 0; y < this.headers.length; y++) {
+				for (let x = 0; x < this.headers[y].length; x++) {
+					length += await this.headers[y][x].load(cursor + length, dataProvider);
+				}
+			}
+			return length;
+		}
+	};
+
 	export class UnitScriptHeader {
 		private buffer: ArrayBuffer;
 		readonly spawnOffset: ui16;
@@ -1475,6 +1530,14 @@ async function load(dataProvider: DataProvider): Promise<void> {
 /* 			let wave = await new WavFile().load(await archive.getRecord(504));
 	await wave.play(); */
 }
+async function loadForest(archive: Archive): Promise<void> {
+	let tilesetData = await archive.getRecord(189);
+	assert.assert((tilesetData.size() % (8)) === 0);
+	let tileData = await archive.getRecord(190);
+	assert.assert((tilesetData.size() % (8 * 8)) === 0);
+
+}
+
 type Entity = {
 	name: string,
 	script: number,
@@ -1601,8 +1664,6 @@ async function loadUnitScript(archive: Archive): Promise<wc1.UnitScriptHeader> {
 		health: shared.health[entity],
 		timeCost: shared.timeCost[entity] * 10,
 		range: shared.range[entity],
-		unknownUnitData: shared.unknownUnitData[entity],
-		unknownEntityData: shared.unknownEntityData[entity],
 		woodCost: shared.woodCost[entity] * 10,
 	}, null, "\t"));
 	view = new DataView(us.buffer);

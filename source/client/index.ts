@@ -364,17 +364,17 @@ class pi08 {
 	private length: number;
 
 	get value(): number {
-		let a = 8 - (this.offset + this.length);
-		let b = 8 - (this.length);
+		let a = 32 - (this.offset + this.length);
+		let b = 32 - (this.length);
 		return (this.integer.value << a) >>> b;
 	}
 
 	set value(next: number) {
 		let last = this.integer.value;
 		let a = this.offset;
-		let b = 8 - (this.length);
-		let c = 8 - (this.offset + this.length);
-		let m = ((0xFF >> a) << b) >>> c;
+		let b = 32 - (this.length);
+		let c = 32 - (this.offset + this.length);
+		let m = ((0xFFFFFFFF >> a) << b) >>> c;
 		this.integer.value = ((this.integer.value & ~m) | ((next << a) & m)) >>> 0;
 		if (this.value !== next) {
 			this.integer.value = last;
@@ -397,17 +397,17 @@ class pi16 {
 	private length: number;
 
 	get value(): number {
-		let a = 16 - (this.offset + this.length);
-		let b = 16 - (this.length);
+		let a = 32 - (this.offset + this.length);
+		let b = 32 - (this.length);
 		return (this.integer.value << a) >>> b;
 	}
 
 	set value(next: number) {
 		let last = this.integer.value;
 		let a = this.offset;
-		let b = 16 - (this.length);
-		let c = 16 - (this.offset + this.length);
-		let m = ((0xFFFF >> a) << b) >>> c;
+		let b = 32 - (this.length);
+		let c = 32 - (this.offset + this.length);
+		let m = ((0xFFFFFFFF >> a) << b) >>> c;
 		this.integer.value = ((this.integer.value & ~m) | ((next << a) & m)) >>> 0;
 		if (this.value !== next) {
 			this.integer.value = last;
@@ -430,17 +430,17 @@ class pi24 {
 	private length: number;
 
 	get value(): number {
-		let a = 24 - (this.offset + this.length);
-		let b = 24 - (this.length);
+		let a = 32 - (this.offset + this.length);
+		let b = 32 - (this.length);
 		return (this.integer.value << a) >>> b;
 	}
 
 	set value(next: number) {
 		let last = this.integer.value;
 		let a = this.offset;
-		let b = 24 - (this.length);
-		let c = 24 - (this.offset + this.length);
-		let m = ((0xFFFFFF >> a) << b) >>> c;
+		let b = 32 - (this.length);
+		let c = 32 - (this.offset + this.length);
+		let m = ((0xFFFFFFFF >> a) << b) >>> c;
 		this.integer.value = ((this.integer.value & ~m) | ((next << a) & m)) >>> 0;
 		if (this.value !== next) {
 			this.integer.value = last;
@@ -923,7 +923,7 @@ namespace wc1 {
 
 		constructor(endianness: Endianness) {
 			this.buffer = new ArrayBuffer(2);
-			let integer = new ui16(endianness, this.buffer, 0);
+			let integer = new ui16(endianness, this.buffer);
 			this.inverted = new pi16(integer, 0, 1);
 			this.mirrored = new pi16(integer, 1, 1);
 			this.index = new pi16(integer, 5, 11);
@@ -937,7 +937,7 @@ namespace wc1 {
 	};
 
 	export class TileHeader {
-		readonly headers: [
+		readonly layout: [
 			[MicrotileHeader, MicrotileHeader],
 			[MicrotileHeader, MicrotileHeader]
 		];
@@ -947,7 +947,7 @@ namespace wc1 {
 			let b = new MicrotileHeader(endianness);
 			let c = new MicrotileHeader(endianness);
 			let d = new MicrotileHeader(endianness);
-			this.headers = [
+			this.layout = [
 				[a, b],
 				[c, d]
 			];
@@ -955,9 +955,9 @@ namespace wc1 {
 
 		async load(cursor: number, dataProvider: DataProvider): Promise<number> {
 			let length = 0;
-			for (let y = 0; y < this.headers.length; y++) {
-				for (let x = 0; x < this.headers[y].length; x++) {
-					length += await this.headers[y][x].load(cursor + length, dataProvider);
+			for (let y = 0; y < this.layout.length; y++) {
+				for (let x = 0; x < this.layout[y].length; x++) {
+					length += await this.layout[y][x].load(cursor + length, dataProvider);
 				}
 			}
 			return length;
@@ -1139,7 +1139,7 @@ namespace wc1 {
 			return length;
 		}
 
-		makeTexture(context: WebGLRenderingContext, width: number, height: number): WebGLTexture {
+		makeTexture(context: WebGL2RenderingContext, width: number, height: number): WebGLTexture {
 			let x = this.header.x.value;
 			let y = this.header.y.value;
 			let w = this.header.w.value;
@@ -1203,7 +1203,7 @@ namespace wc1 {
 			return this;
 		}
 
-		makeTextures(context: WebGLRenderingContext): Array<WebGLTexture> {
+		makeTextures(context: WebGL2RenderingContext): Array<WebGLTexture> {
 			let w = this.header.w.value;
 			let h = this.header.h.value;
 			let textures = new Array<WebGLTexture>();
@@ -1269,7 +1269,7 @@ namespace wc1 {
 			return this;
 		}
 
-		makeTexture(context: WebGLRenderingContext): WebGLTexture {
+		makeTexture(context: WebGL2RenderingContext): WebGLTexture {
 			let w = this.header.w.value;
 			let h = this.header.h.value;
 			let texture = context.createTexture();
@@ -1303,7 +1303,7 @@ namespace wc1 {
 			return this;
 		}
 
-		makeTexture(context: WebGLRenderingContext): WebGLTexture {
+		makeTexture(context: WebGL2RenderingContext): WebGLTexture {
 			let w = this.buffer.byteLength / 3;
 			let h = 1;
 			let texture = context.createTexture();
@@ -1366,7 +1366,7 @@ namespace wc1 {
 			return this;
 		}
 
-		makeTexture(context: WebGLRenderingContext): WebGLTexture {
+		makeTexture(context: WebGL2RenderingContext): WebGLTexture {
 			let w = this.header.w.value;
 			let h = this.header.h.value;
 			let texture = context.createTexture();
@@ -1512,12 +1512,9 @@ let archive: Archive | undefined;
 
 async function load(dataProvider: DataProvider): Promise<void> {
 	archive = new Archive(dataProvider, endianness);
-	let base_palette = await new wc1.Palette(endianness).load(await archive.getRecord(191));
-	let paletteTexture = await base_palette.makeTexture(context);
-	let palette = await new wc1.Palette(endianness).load(await archive.getRecord(210));
-	palette.updateTexture(paletteTexture, 128);
-	context.activeTexture(context.TEXTURE1);
-	context.bindTexture(context.TEXTURE_2D, paletteTexture);
+	//tileset = await loadTileset(context, archive, endianness, 189, 190, 191);
+	tileset = await loadTileset(context, archive, endianness, 192, 193, 194);
+	//tileset = await loadTileset(context, archive, endianness, 195, 196, 197);
 	try {
 		await loadUnitScript(archive);
 	} catch (error) {
@@ -1530,27 +1527,72 @@ async function load(dataProvider: DataProvider): Promise<void> {
 /* 			let wave = await new WavFile().load(await archive.getRecord(504));
 	await wave.play(); */
 }
-async function loadForest(archive: Archive, endianness: Endianness): Promise<void> {
-	let microtileData = await archive.getRecord(189);
-	assert.assert((microtileData.size() % (8)) === 0);
-	let cursor = 0;
-	let microtileHeaders = new Array<wc1.MicrotileHeader>();
-	while (cursor < microtileData.size()) {
-		let microtile = new wc1.MicrotileHeader(endianness);
-		cursor += await microtile.load(cursor, microtileData);
-		microtileHeaders.push(microtile);
-	}
-	let tileData = await archive.getRecord(190);
-	assert.assert((tileData.size() % (8 * 8)) === 0);
-	cursor = 0;
-	let tileHeaders = new Array<wc1.TileHeader>();
-	while (cursor < tileData.size()) {
-		let tile = new wc1.TileHeader(endianness);
-		cursor += await tile.load(cursor, tileData);
-		tileHeaders.push(tile);
-	}
-}
 
+async function loadTileset(context: WebGL2RenderingContext, archive: Archive, endianness: Endianness, tilesetIndex: number, tilesIndex: number, paletteIndex: number): Promise<Array<WebGLTexture>> {
+	let base_palette = await new wc1.Palette(endianness).load(await archive.getRecord(paletteIndex));
+	let paletteTexture = await base_palette.makeTexture(context);
+	let palette = await new wc1.Palette(endianness).load(await archive.getRecord(210));
+	palette.updateTexture(paletteTexture, 128);
+	context.activeTexture(context.TEXTURE1);
+	context.bindTexture(context.TEXTURE_2D, paletteTexture);
+	let tiles = await archive.getRecord(tilesIndex);
+	assert.assert((tiles.size() % (8 * 8)) === 0);
+	let headers = await archive.getRecord(tilesetIndex);
+	let cursor = 0;
+	assert.assert((tiles.size() % 8) === 0);
+	let textures = new Array<WebGLTexture>();
+	let array = new Uint8Array(8 * 8);
+	while (cursor < headers.size()) {
+		let w = 2 * 8;
+		let h = 2 * 8;
+		let texture = context.createTexture();
+		if (is.absent(texture)) {
+			throw `Expected a texture!`;
+		}
+		context.activeTexture(context.TEXTURE0);
+		context.bindTexture(context.TEXTURE_2D, texture);
+		context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);
+		context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);
+		context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);
+		context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);
+		context.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, w, h, 0, context.LUMINANCE, context.UNSIGNED_BYTE, null);
+		let tileHeader = new wc1.TileHeader(endianness);
+		cursor += await tileHeader.load(cursor, headers);
+		for (let y = 0; y < tileHeader.layout.length; y++) {
+			for (let x = 0; x < tileHeader.layout[y].length; x++) {
+				let header = tileHeader.layout[y][x];
+				await tiles.read(header.index.value * 8 * 8, array.buffer);
+				if (header.inverted.value) {
+					for (let y = 0; y < 8 / 2; y++) {
+						for (let x = 0; x < 8; x++) {
+							let indexOne = (y * 8) + x;
+							let indexTwo = ((8 - y - 1) * 8) + x;
+							let valueOne = array[indexOne];
+							let valueTwo = array[indexTwo];
+							array[indexOne] = valueTwo;
+							array[indexTwo] = valueOne;
+						}
+					}
+				}
+				if (header.mirrored.value) {
+					for (let y = 0; y < 8; y++) {
+						for (let x = 0; x < 8 / 2; x++) {
+							let indexOne = (y * 8) + x;
+							let indexTwo = (y * 8) + 8 - x - 1;
+							let valueOne = array[indexOne];
+							let valueTwo = array[indexTwo];
+							array[indexOne] = valueTwo;
+							array[indexTwo] = valueOne;
+						}
+					}
+				}
+				context.texSubImage2D(context.TEXTURE_2D, 0, x * 8, y * 8, 8, 8, context.LUMINANCE, context.UNSIGNED_BYTE, array);
+			}
+		}
+		textures.push(texture);
+	}
+	return textures;
+}
 type Entity = {
 	name: string,
 	script: number,
@@ -1644,7 +1686,13 @@ context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_
 context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);
 context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);
 context.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, 256, 1, 0, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer);
+let cycleWait = 0;
 function updateCycle() {
+	if (cycleWait > 0) {
+		cycleWait -= 1;
+		return;
+	}
+	cycleWait = 6;
 	let first = colorCycleBuffer[112];
 	for (let i = 112; i < 112 + 8 - 1; i++) {
 		colorCycleBuffer[i] = colorCycleBuffer[i+1];
@@ -1700,9 +1748,24 @@ async function loadParticleScript(archive: Archive): Promise<wc1.ParticleScriptH
 	delay = 0;
 	return us.header;
 }
+let tileset: Array<WebGLTexture> | undefined;
 function render(ms: number): void {
 	context.clear(context.COLOR_BUFFER_BIT);
 	updateCycle();
+	if (is.present(tileset)) {
+		for (let y = 0; y < 16; y++) {
+			for (let x = 0; x < 16; x++) {
+				context.uniform1i(transparentIndexLocation, 256);
+				context.uniform2f(anchorLocation, 0.0, 0.0);
+				context.uniform2f(quadLocation, x * 16, y * 16);
+				context.uniform2i(scalingLocation, 0, 0);
+				context.activeTexture(context.TEXTURE0);
+				context.bindTexture(context.TEXTURE_2D, tileset[y*8 + x]);
+				context.bindBuffer(context.ARRAY_BUFFER, buffer);
+				context.drawArrays(context.TRIANGLES, 0, 6);
+			}
+		}
+	}
 	if (is.present(offset) && is.present(view)) {
 		if (delay > 0) {
 			delay -= 1;
@@ -1738,6 +1801,7 @@ function render(ms: number): void {
 		if (index >= textures.length) {
 			//console.log({index, unit: entity});
 		}
+		context.uniform1i(transparentIndexLocation, 0);
 		context.uniform2f(anchorLocation, 0.5, 0.5);
 		context.uniform2f(quadLocation, 48, 48);
 		context.uniform2i(scalingLocation, direction < 5 ? 0 : 1, 0);
@@ -1783,7 +1847,7 @@ window.addEventListener("keyup", async (event) => {
 				offset = (await loadUnitScript(archive)).spawnOffset.value;
 			} else if (event.key === "t") {
 				offset = (await loadUnitScript(archive)).trainOffset.value;
-			} else if (event.key === "z") {
+			} else if (event.key === "z") {w
 				offset = (await loadParticleScript(archive)).spawnOffset.value;
 			} else if (event.key === "x") {
 				offset = (await loadParticleScript(archive)).movementOffset.value;

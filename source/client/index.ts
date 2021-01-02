@@ -1597,76 +1597,73 @@ type Entity = {
 	name: string,
 	script: number,
 	type?: "effect",
-	sprite: number
+	sprite: number,
+	sfx: number[]
 };
 let entities: Array<Entity> = [
-	{ name: "Footman", script: 0, sprite: 279 },
-	{ name: "Grunt", script: 1, sprite: 280 },
-	{ name: "Peasant", script: 2, sprite: 281 },
-	{ name: "Peon", script: 3, sprite: 282 },
-	{ name: "Catapult", script: 4, sprite: 283 },
-	{ name: "Catapult", script: 5, sprite: 284 },
-	{ name: "Knight", script: 6, sprite: 285 },
-	{ name: "Raider", script: 7, sprite: 286 },
-	{ name: "Archer", script: 8, sprite: 287 },
-	{ name: "Spearman", script: 9, sprite: 288 },
-	{ name: "Conjurer", script: 10, sprite: 289 },
-	{ name: "Warlock", script: 11, sprite: 290 },
-	{ name: "Cleric", script: 12, sprite: 291 },
-	{ name: "Necrolyte", script: 13, sprite: 292 },
-	{ name: "Medivh", script: 14, sprite: 293 },
-	{ name: "Sir Lothar", script: 15, sprite: 294 },
-	{ name: "Grunt (copy)", script: 16, sprite: 280 },
-	{ name: "Griselda", script: 17, sprite: 296 },
-	{ name: "Garona", script: 18, sprite: 296 },
-	{ name: "Ogre", script: 19, sprite: 297 },
-	{ name: "Ogre (copy)", script: 20, sprite: 297 },
-	{ name: "Spider", script: 21, sprite: 298 },
-	{ name: "Slime", script: 22, sprite: 299 },
-	{ name: "Fire Elemental", script: 23, sprite: 300 },
-	{ name: "Scorpion", script: 24, sprite: 301 },
-	{ name: "Brigand", script: 25, sprite: 302 },
-	{ name: "Skeleton", script: 26, sprite: 303 },
-	{ name: "Skeleton", script: 27, sprite: 304 },
-	{ name: "Daemon", script: 28, sprite: 305 },
-	{ name: "Ogre (copy 2)", script: 29, sprite: 297 },
-	{ name: "Ogre (copy 3)", script: 30, sprite: 297 },
-	{ name: "Water Elemental", script: 31, sprite: 306 },
-	{ name: "Farm", script: 32, sprite: 307 },
-	{ name: "Farm", script: 33, sprite: 308 },
-	{ name: "Barracks", script: 34, sprite: 309 },
-	{ name: "Barracks", script: 35, sprite: 310 },
-	{ name: "Church", script: 36, sprite: 311 },
-	{ name: "Temple", script: 37, sprite: 312 },
-	{ name: "Tower", script: 38, sprite: 313 },
-	{ name: "Tower", script: 39, sprite: 314 },
-	{ name: "Town Hall", script: 40, sprite: 315 },
-	{ name: "Town Hall", script: 41, sprite: 316 },
-	{ name: "Mill", script: 42, sprite: 317 },
-	{ name: "Mill", script: 43, sprite: 318 },
-	{ name: "Stables", script: 44, sprite: 319 },
-	{ name: "Kennel", script: 45, sprite: 320 },
-	{ name: "Blacksmith", script: 46, sprite: 321 },
-	{ name: "Blacksmith", script: 47, sprite: 322 },
-	{ name: "Stormwind Keep", script: 48, sprite: 323 },
-	{ name: "Black Rock Spire", script: 49, sprite: 324 },
-	{ name: "Gold Mine", script: 50, sprite: 325 },
-	{ name: "Blob", script: 0, type: "effect", sprite: 347 },
-	{ name: "Fire Ball", script: 1, type: "effect", sprite: 348 },
-	{ name: "Spear", script: 2, type: "effect", sprite: 349 },
-	{ name: "Poison Cloud", script: 3, type: "effect", sprite: 350 },
-	{ name: "Catapult Projectile", script: 4, type: "effect", sprite: 351 },
-	{ name: "Burning Small", script: 5, type: "effect", sprite: 352 },
-	{ name: "Burning Medium", script: 6, type: "effect", sprite: 353 },
-	{ name: "Explosion", script: 7, type: "effect", sprite: 354 },
-	{ name: "Sparkle", script: 8, type: "effect", sprite: 355 },
-	{ name: "Building Collapse", script: 9, type: "effect", sprite: 356 },
-	{ name: "Water Elemental", script: 10, type: "effect", sprite: 357 },
-	{ name: "Fire Elemental", script: 11, type: "effect", sprite: 358 },
-	{ name: "Peasant", script: 2, sprite: 327 },
-	{ name: "Peasant", script: 2, sprite: 329 },
-	{ name: "Peon", script: 3, sprite: 328 },
-	{ name: "Peon", script: 3, sprite: 330 },
+	{ name: "Footman", script: 0, sprite: 279, sfx: [487, 488, 489] },
+	{ name: "Grunt", script: 1, sprite: 280, sfx: [487, 488, 489] },
+	{ name: "Peasant", script: 2, sprite: 281, sfx: [477, 478, 479] },
+	{ name: "Peon", script: 3, sprite: 282, sfx: [477, 478, 479] },
+	{ name: "Catapult", script: 4, sprite: 283, sfx: [476] },
+	{ name: "Catapult", script: 5, sprite: 284, sfx: [476] },
+	{ name: "Knight", script: 6, sprite: 285, sfx: [487, 488, 489] },
+	{ name: "Raider", script: 7, sprite: 286, sfx: [487, 488, 489] },
+	{ name: "Archer", script: 8, sprite: 287, sfx: [493] },
+	{ name: "Spearman", script: 9, sprite: 288, sfx: [493] },
+	{ name: "Conjurer", script: 10, sprite: 289, sfx: [] },
+	{ name: "Warlock", script: 11, sprite: 290, sfx: [] },
+	{ name: "Cleric", script: 12, sprite: 291, sfx: [] },
+	{ name: "Necrolyte", script: 13, sprite: 292, sfx: [] },
+	{ name: "Medivh", script: 14, sprite: 293, sfx: [] },
+	{ name: "Sir Lothar", script: 15, sprite: 294, sfx: [] },
+	{ name: "Grunt (copy)", script: 16, sprite: 280, sfx: [] },
+	{ name: "Griselda", script: 17, sprite: 296, sfx: [] },
+	{ name: "Garona", script: 18, sprite: 296, sfx: [] },
+	{ name: "Ogre", script: 19, sprite: 297, sfx: [] },
+	{ name: "Ogre (copy)", script: 20, sprite: 297, sfx: [] },
+	{ name: "Spider", script: 21, sprite: 298, sfx: [] },
+	{ name: "Slime", script: 22, sprite: 299, sfx: [] },
+	{ name: "Fire Elemental", script: 23, sprite: 300, sfx: [] },
+	{ name: "Scorpion", script: 24, sprite: 301, sfx: [] },
+	{ name: "Brigand", script: 25, sprite: 302, sfx: [] },
+	{ name: "Skeleton", script: 26, sprite: 303, sfx: [] },
+	{ name: "Skeleton", script: 27, sprite: 304, sfx: [] },
+	{ name: "Daemon", script: 28, sprite: 305, sfx: [] },
+	{ name: "Ogre (copy 2)", script: 29, sprite: 297, sfx: [] },
+	{ name: "Ogre (copy 3)", script: 30, sprite: 297, sfx: [] },
+	{ name: "Water Elemental", script: 31, sprite: 306, sfx: [] },
+	{ name: "Farm", script: 32, sprite: 307, sfx: [] },
+	{ name: "Farm", script: 33, sprite: 308, sfx: [] },
+	{ name: "Barracks", script: 34, sprite: 309, sfx: [] },
+	{ name: "Barracks", script: 35, sprite: 310, sfx: [] },
+	{ name: "Church", script: 36, sprite: 311, sfx: [] },
+	{ name: "Temple", script: 37, sprite: 312, sfx: [] },
+	{ name: "Tower", script: 38, sprite: 313, sfx: [] },
+	{ name: "Tower", script: 39, sprite: 314, sfx: [] },
+	{ name: "Town Hall", script: 40, sprite: 315, sfx: [] },
+	{ name: "Town Hall", script: 41, sprite: 316, sfx: [] },
+	{ name: "Mill", script: 42, sprite: 317, sfx: [] },
+	{ name: "Mill", script: 43, sprite: 318, sfx: [] },
+	{ name: "Stables", script: 44, sprite: 319, sfx: [] },
+	{ name: "Kennel", script: 45, sprite: 320, sfx: [] },
+	{ name: "Blacksmith", script: 46, sprite: 321, sfx: [] },
+	{ name: "Blacksmith", script: 47, sprite: 322, sfx: [] },
+	{ name: "Stormwind Keep", script: 48, sprite: 323, sfx: [] },
+	{ name: "Black Rock Spire", script: 49, sprite: 324, sfx: [] },
+	{ name: "Gold Mine", script: 50, sprite: 325, sfx: [] },
+	{ name: "Blob", script: 0, type: "effect", sprite: 347, sfx: [] },
+	{ name: "Fire Ball", script: 1, type: "effect", sprite: 348, sfx: [] },
+	{ name: "Spear", script: 2, type: "effect", sprite: 349, sfx: [] },
+	{ name: "Poison Cloud", script: 3, type: "effect", sprite: 350, sfx: [] },
+	{ name: "Catapult Projectile", script: 4, type: "effect", sprite: 351, sfx: [] },
+	{ name: "Burning Small", script: 5, type: "effect", sprite: 352, sfx: [] },
+	{ name: "Burning Medium", script: 6, type: "effect", sprite: 353, sfx: [] },
+	{ name: "Explosion", script: 7, type: "effect", sprite: 354, sfx: [] },
+	{ name: "Sparkle", script: 8, type: "effect", sprite: 355, sfx: [] },
+	{ name: "Building Collapse", script: 9, type: "effect", sprite: 356, sfx: [] },
+	{ name: "Water Elemental", script: 10, type: "effect", sprite: 357, sfx: [] },
+	{ name: "Fire Elemental", script: 11, type: "effect", sprite: 358, sfx: [] },
 ];
 
 let w = 256;
@@ -1710,6 +1707,7 @@ let delay = 0;
 let direction = 0;
 let frame = 0;
 let view: DataView | undefined;
+let sfx: Array<VocFile> = [];
 async function loadUnitScript(archive: Archive): Promise<wc1.UnitScriptHeader> {
 	let entitydata = entities[entity];
 	let sprite = await new wc1.Sprite(endianness).load(await archive.getRecord(entitydata.sprite));
@@ -1731,6 +1729,7 @@ async function loadUnitScript(archive: Archive): Promise<wc1.UnitScriptHeader> {
 	frame = 0;
 	offset = us.header.movementOffset.value;
 	delay = 0;
+	sfx = await Promise.all(entitydata.sfx.map(async (index) => await new VocFile().load(await archive.getRecord(index))));
 	return us.header;
 }
 async function loadParticleScript(archive: Archive): Promise<wc1.ParticleScriptHeader> {
@@ -1749,7 +1748,7 @@ async function loadParticleScript(archive: Archive): Promise<wc1.ParticleScriptH
 	return us.header;
 }
 let tileset: Array<WebGLTexture> | undefined;
-function render(ms: number): void {
+async function render(ms: number): Promise<void> {
 	context.clear(context.COLOR_BUFFER_BIT);
 	updateCycle();
 	if (is.present(tileset)) {
@@ -1788,7 +1787,11 @@ function render(ms: number): void {
 			} else if (opcode === 7) {
 				delay = view.getUint8(offset++);
 			} else if (opcode === 8) {
-				console.log("sound!");
+				setTimeout(() => {
+					if (sfx.length > 0) {
+						sfx[Math.floor(Math.random() * sfx.length)].play();
+					}
+				});
 			} else if (opcode === 9) {
 				console.log("damage!");
 			} else if (opcode === 10) {

@@ -1412,7 +1412,7 @@ context.shaderSource(vertexShader, `#version 300 es
 	in vec2 vertexTexture;
 	out vec2 textureCoordinates;
 	void main() {
-		float zoom = 4.0;
+		float zoom = 3.0;
 		textureCoordinates = vertexTexture;
 		if (scaling.x) {
 			textureCoordinates.x = 1.0 - textureCoordinates.x;
@@ -1515,7 +1515,7 @@ async function load(dataProvider: DataProvider): Promise<void> {
 	tileset = await loadTileset(context, archive, endianness, 189, 190, 191);
 	//tileset = await loadTileset(context, archive, endianness, 192, 193, 194);
 	//tileset = await loadTileset(context, archive, endianness, 195, 196, 197);
-	map = await loadMap(archive, endianness, 49);
+	map = await loadMap(archive, endianness, 47);
 	try {
 		await loadUnitScript(archive);
 	} catch (error) {
@@ -1704,15 +1704,27 @@ function updateCycle() {
 		cycleWait -= 1;
 		return;
 	}
-	cycleWait = 6;
-	let first = colorCycleBuffer[112];
-	for (let i = 112; i < 112 + 8 - 1; i++) {
-		colorCycleBuffer[i] = colorCycleBuffer[i+1];
+	cycleWait = 15;
+	function update(offset: number, length: number, direction: "forward" | "reverse"): void {
+		if (direction === "forward") {
+			let first = colorCycleBuffer[offset];
+			for (let i = offset; i < offset + length - 1; i++) {
+				colorCycleBuffer[i] = colorCycleBuffer[i+1];
+			}
+			colorCycleBuffer[offset + length - 1] = first;
+		} else {
+			let last = colorCycleBuffer[offset + length - 1];
+			for (let i = offset + length - 1; i > offset; i--) {
+				colorCycleBuffer[i] = colorCycleBuffer[i-1];
+			}
+			colorCycleBuffer[offset] = last;
+		}
+		context.activeTexture(context.TEXTURE2);
+		context.bindTexture(context.TEXTURE_2D, colorCycleTexture);
+		context.texSubImage2D(context.TEXTURE_2D, 0, offset, 0, length, 1, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer, offset);
 	}
-	colorCycleBuffer[112 + 8 - 1] = first;
-	context.activeTexture(context.TEXTURE2);
-	context.bindTexture(context.TEXTURE_2D, colorCycleTexture);
-	context.texSubImage2D(context.TEXTURE_2D, 0, 112, 0, 8, 1, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer, 112);
+	update(114, 6, "reverse");
+	update(121, 6, "reverse");
 }
 
 let textures = new Array<WebGLTexture>();
@@ -1768,8 +1780,8 @@ async function render(ms: number): Promise<void> {
 	context.clear(context.COLOR_BUFFER_BIT);
 	updateCycle();
 	if (is.present(map) && is.present(tileset)) {
-		for (let y = 0; y < 16; y++) {
-			for (let x = 0; x < 16; x++) {
+		for (let y = 0; y < 64; y++) {
+			for (let x = 0; x < 64; x++) {
 				context.uniform1i(transparentIndexLocation, 256);
 				context.uniform2f(anchorLocation, 0.0, 0.0);
 				context.uniform2f(quadLocation, x * 16, y * 16);
@@ -1822,7 +1834,7 @@ async function render(ms: number): Promise<void> {
 		}
 		context.uniform1i(transparentIndexLocation, 0);
 		context.uniform2f(anchorLocation, 0.5, 0.5);
-		context.uniform2f(quadLocation, 48, 48);
+		context.uniform2f(quadLocation, 192, 192);
 		context.uniform2i(scalingLocation, direction < 5 ? 0 : 1, 0);
 		context.activeTexture(context.TEXTURE0);
 		context.bindTexture(context.TEXTURE_2D, textures[index]);

@@ -915,7 +915,7 @@ class WavFile {
 }
 
 namespace wc1 {
-	export class TileHeader {
+	export class MicrotileHeader {
 		private buffer: ArrayBuffer;
 		readonly inverted: pi16;
 		readonly mirrored: pi16;
@@ -936,17 +936,17 @@ namespace wc1 {
 		}
 	};
 
-	export class TilesetHeader {
+	export class TileHeader {
 		readonly headers: [
-			[TileHeader, TileHeader],
-			[TileHeader, TileHeader]
+			[MicrotileHeader, MicrotileHeader],
+			[MicrotileHeader, MicrotileHeader]
 		];
 
 		constructor(endianness: Endianness) {
-			let a = new TileHeader(endianness);
-			let b = new TileHeader(endianness);
-			let c = new TileHeader(endianness);
-			let d = new TileHeader(endianness);
+			let a = new MicrotileHeader(endianness);
+			let b = new MicrotileHeader(endianness);
+			let c = new MicrotileHeader(endianness);
+			let d = new MicrotileHeader(endianness);
 			this.headers = [
 				[a, b],
 				[c, d]
@@ -1530,12 +1530,25 @@ async function load(dataProvider: DataProvider): Promise<void> {
 /* 			let wave = await new WavFile().load(await archive.getRecord(504));
 	await wave.play(); */
 }
-async function loadForest(archive: Archive): Promise<void> {
-	let tilesetData = await archive.getRecord(189);
-	assert.assert((tilesetData.size() % (8)) === 0);
+async function loadForest(archive: Archive, endianness: Endianness): Promise<void> {
+	let microtileData = await archive.getRecord(189);
+	assert.assert((microtileData.size() % (8)) === 0);
+	let cursor = 0;
+	let microtileHeaders = new Array<wc1.MicrotileHeader>();
+	while (cursor < microtileData.size()) {
+		let microtile = new wc1.MicrotileHeader(endianness);
+		cursor += await microtile.load(cursor, microtileData);
+		microtileHeaders.push(microtile);
+	}
 	let tileData = await archive.getRecord(190);
-	assert.assert((tilesetData.size() % (8 * 8)) === 0);
-
+	assert.assert((tileData.size() % (8 * 8)) === 0);
+	cursor = 0;
+	let tileHeaders = new Array<wc1.TileHeader>();
+	while (cursor < tileData.size()) {
+		let tile = new wc1.TileHeader(endianness);
+		cursor += await tile.load(cursor, tileData);
+		tileHeaders.push(tile);
+	}
 }
 
 type Entity = {

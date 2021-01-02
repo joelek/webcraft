@@ -1512,9 +1512,10 @@ let archive: Archive | undefined;
 
 async function load(dataProvider: DataProvider): Promise<void> {
 	archive = new Archive(dataProvider, endianness);
-	//tileset = await loadTileset(context, archive, endianness, 189, 190, 191);
-	tileset = await loadTileset(context, archive, endianness, 192, 193, 194);
+	tileset = await loadTileset(context, archive, endianness, 189, 190, 191);
+	//tileset = await loadTileset(context, archive, endianness, 192, 193, 194);
 	//tileset = await loadTileset(context, archive, endianness, 195, 196, 197);
+	map = await loadMap(archive, endianness, 49);
 	try {
 		await loadUnitScript(archive);
 	} catch (error) {
@@ -1592,6 +1593,20 @@ async function loadTileset(context: WebGL2RenderingContext, archive: Archive, en
 		textures.push(texture);
 	}
 	return textures;
+}
+async function loadMap(archive: Archive, endianness: Endianness, mapIndex: number): Promise<Array<number>> {
+	let indices = new Array<number>();
+	let integer = new ui16(endianness);
+	let dataProider = await archive.getRecord(mapIndex);
+	assert.assert(dataProider.size() === 64 * 64 * 2);
+	let cursor = 0;
+	for (let y = 0; y < 64; y++) {
+		for (let x = 0; x < 64; x++) {
+			cursor += await integer.load(cursor, dataProider);
+			indices.push(integer.value);
+		}
+	}
+	return indices;
 }
 type Entity = {
 	name: string,
@@ -1748,10 +1763,11 @@ async function loadParticleScript(archive: Archive): Promise<wc1.ParticleScriptH
 	return us.header;
 }
 let tileset: Array<WebGLTexture> | undefined;
+let map: Array<number>;
 async function render(ms: number): Promise<void> {
 	context.clear(context.COLOR_BUFFER_BIT);
 	updateCycle();
-	if (is.present(tileset)) {
+	if (is.present(map) && is.present(tileset)) {
 		for (let y = 0; y < 16; y++) {
 			for (let x = 0; x < 16; x++) {
 				context.uniform1i(transparentIndexLocation, 256);
@@ -1759,7 +1775,7 @@ async function render(ms: number): Promise<void> {
 				context.uniform2f(quadLocation, x * 16, y * 16);
 				context.uniform2i(scalingLocation, 0, 0);
 				context.activeTexture(context.TEXTURE0);
-				context.bindTexture(context.TEXTURE_2D, tileset[y*8 + x]);
+				context.bindTexture(context.TEXTURE_2D, tileset[map[y*64 + x]]);
 				context.bindBuffer(context.ARRAY_BUFFER, buffer);
 				context.drawArrays(context.TRIANGLES, 0, 6);
 			}

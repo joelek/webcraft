@@ -1386,6 +1386,23 @@ namespace wc1 {
 	};
 }
 
+// ============================================================================
+
+namespace soundfont {
+	export enum SampleLink {
+		MONO = 1,
+		RIGHT = 2,
+		LEFT = 4,
+		LINKED = 8,
+		ROM_MONO = 0x8000 + MONO,
+		ROM_RIGHT = 0x8000 + RIGHT,
+		ROM_LEFT = 0x8000 + LEFT,
+		ROM_LINKED = 0x8000 + LINKED,
+	};
+
+
+}
+
 let canvas = document.createElement("canvas");
 let context = canvas.getContext("webgl2") as WebGL2RenderingContext;
 if (is.absent(context)) {
@@ -1523,10 +1540,6 @@ async function load(dataProvider: DataProvider): Promise<void> {
 			await loadParticleScript(archive);
 		} catch (error) {}
 	}
-/* 			let voc = await new VocFile().load(await archive.getRecord(503));
-	await voc.play(); */
-/* 			let wave = await new WavFile().load(await archive.getRecord(504));
-	await wave.play(); */
 }
 
 async function loadTileset(context: WebGL2RenderingContext, archive: Archive, endianness: Endianness, tilesetIndex: number, tilesIndex: number, paletteIndex: number): Promise<Array<WebGLTexture>> {
@@ -1878,7 +1891,7 @@ window.addEventListener("keyup", async (event) => {
 				offset = (await loadUnitScript(archive)).spawnOffset.value;
 			} else if (event.key === "t") {
 				offset = (await loadUnitScript(archive)).trainOffset.value;
-			} else if (event.key === "z") {w
+			} else if (event.key === "z") {
 				offset = (await loadParticleScript(archive)).spawnOffset.value;
 			} else if (event.key === "x") {
 				offset = (await loadParticleScript(archive)).movementOffset.value;

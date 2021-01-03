@@ -1,0 +1,46 @@
+
+
+/*
+sf2:
+
+"RIFF", 31 279 306
+	"sfbk"
+	"LIST", 2 398
+		"INFO",
+		<chunk>,<size>
+		<chunk>,<size>
+	"LIST", 31 026 208
+		"sdta"
+		"smpl", 31 026 196
+	"LIST", 250 672
+		"pdta"
+		"phdr", 10 488 (k * 38)
+		{
+			text achPresetName[20];
+			ui16 wPreset;
+			ui16 wBank;
+			ui16 wPresetBagNdx;
+			ui32 dwLibrary;
+			ui32 dwGenre;
+			ui32 dwMorphology;
+		}[]
+		"pbag", 11 064 (k * 4)
+		{
+			ui16 wGenNdx;
+			ui16 wModNdx;
+		}[]
+		"pmod", 2 240
+		{
+			SFModulator sfModSrcOper;
+			SFGenerator sfModDestOper;
+			si16 modAmount;
+			SFModulator sfModAmtSrcOper;
+			SFTransform sfModTransOper;
+		}[]
+		"pgen", 77 856
+		"inst", 6 710
+		"ibag", 8 460
+		"imod", 20 320
+		"igen", 73 668
+		"shdr", 39 790
+*/

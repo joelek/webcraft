@@ -156,22 +156,6 @@ function xmi2mid_one(source: string, target: string): void {
 			let timb = readChunk(form.data, options);
 			let evnt = readChunk(form.data, options);
 			{
-				let temp = Buffer.alloc(4);
-				let fd = libfs.openSync(target, "w");
-				temp.write("MThd", "binary");
-				libfs.writeSync(fd, temp, 0, 4);
-				temp.writeUInt32BE(6);
-				libfs.writeSync(fd, temp, 0, 4);
-				temp.writeUInt16BE(0);
-				libfs.writeSync(fd, temp, 0, 2);
-				temp.writeUInt16BE(1);
-				libfs.writeSync(fd, temp, 0, 2);
-				temp.writeUInt16BE(64);
-				libfs.writeSync(fd, temp, 0, 2);
-				temp.write("MTrk", "binary");
-				libfs.writeSync(fd, temp, 0, 4);
-				temp.writeUInt32BE(0);
-				libfs.writeSync(fd, temp, 0, 4);
 				options.cursor = 0
 				let buffer = Buffer.from(evnt.data);
 				let g_tempo = 500000;
@@ -360,6 +344,22 @@ function xmi2mid_one(source: string, target: string): void {
 					}
 					return 0;
 				});
+				let temp = Buffer.alloc(4);
+				let fd = libfs.openSync(target, "w");
+				temp.write("MThd", "binary");
+				libfs.writeSync(fd, temp, 0, 4);
+				temp.writeUInt32BE(6);
+				libfs.writeSync(fd, temp, 0, 4);
+				temp.writeUInt16BE(0);
+				libfs.writeSync(fd, temp, 0, 2);
+				temp.writeUInt16BE(1);
+				libfs.writeSync(fd, temp, 0, 2);
+				temp.writeUInt16BE(Math.round(g_tempo/500000*64));
+				libfs.writeSync(fd, temp, 0, 2);
+				temp.write("MTrk", "binary");
+				libfs.writeSync(fd, temp, 0, 4);
+				temp.writeUInt32BE(0);
+				libfs.writeSync(fd, temp, 0, 4);
 				g_ticks = 0;
 				for (let event of events) {
 					let delay = event.timestamp - g_ticks;
@@ -401,7 +401,7 @@ if (command === "extract") {
 } else if (command === "pack") {
 	pack("./private/records/", "c:/dos/warcraft/data/data.war");
 } else if (command === "xmi2mid") {
-	xmi2mid("./private/xmi/", "./private/mid/");
+	xmi2mid("./private/xmi2/", "./private/mid2/");
 } else {
 	console.log("Please specify command.");
 }

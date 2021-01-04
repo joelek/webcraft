@@ -171,7 +171,7 @@ function xmi2mid(source: string, target: string): void {
 				libfs.writeSync(fd, temp, 0, 2);
 				temp.writeUInt16BE(1);
 				libfs.writeSync(fd, temp, 0, 2);
-				temp.writeUInt16BE(480);
+				temp.writeUInt16BE(96);
 				libfs.writeSync(fd, temp, 0, 2);
 				temp.write("MTrk", "binary");
 				libfs.writeSync(fd, temp, 0, 4);
@@ -180,6 +180,12 @@ function xmi2mid(source: string, target: string): void {
 				options.cursor = 0
 				let buffer = Buffer.from(evnt.data);
 				let g_tempo = 500000;
+				let g_ticks = 0;
+				let events = new Array<{
+					timestamp: number,
+					index: number,
+					event: Uint8Array
+				}>();
 				while (options.cursor < buffer.length) {
 					let byte = buffer.readUInt8(options.cursor); options.cursor += 1;
 					let delay = 0;
@@ -194,7 +200,8 @@ function xmi2mid(source: string, target: string): void {
 						}
 						byte = buffer.readUInt8(options.cursor); options.cursor += 1;
 					}
-					libfs.writeSync(fd, writeVarlen(delay));
+					g_ticks += delay;
+					//libfs.writeSync(fd, writeVarlen(delay));
 					let event = (byte >> 4) & 0x0F;
 					let channel = (byte >> 0) & 0x0F;
 					if (event < 0x08) {
@@ -203,55 +210,104 @@ function xmi2mid(source: string, target: string): void {
 						console.log("Note off");
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
-						libfs.writeSync(fd, Uint8Array.of(byte, a, b));
+						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
+						events.push({
+							timestamp: g_ticks,
+							index: events.length,
+							event: Buffer.of(byte, a, b)
+						});
 					} else if (event === 0x9) {
 						console.log("Note on", options.cursor);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let ticks = readVarlen(buffer, options);
-						libfs.writeSync(fd, Uint8Array.of(byte, a, b));
-						// Queue note off, must be placed in position
-						libfs.writeSync(fd, writeVarlen(ticks));
-						libfs.writeSync(fd, Uint8Array.of((0x8 << 4) | channel, a, b));
+						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
+						events.push({
+							timestamp: g_ticks,
+							index: events.length,
+							event: Buffer.of(byte, a, b)
+						});
+						events.push({
+							timestamp: g_ticks + ticks,
+							index: events.length,
+							event: Buffer.of((0x8 << 4) | channel, a, 64)
+						});
+						//libfs.writeSync(fd, writeVarlen(ticks));
+						//libfs.writeSync(fd, Uint8Array.of((0x8 << 4) | channel, a, 64));
 					} else if (event === 0xA) {
 						console.log("Polyphonic key pressure");
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
-						libfs.writeSync(fd, Uint8Array.of(byte, a, b));
+						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
+						events.push({
+							timestamp: g_ticks,
+							index: events.length,
+							event: Buffer.of(byte, a, b)
+						});
 					} else if (event === 0xB) {
 						console.log("Controller");
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
-						libfs.writeSync(fd, Uint8Array.of(byte, a, b));
+						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
+						events.push({
+							timestamp: g_ticks,
+							index: events.length,
+							event: Buffer.of(byte, a, b)
+						});
 					} else if (event === 0xC) {
 						console.log("Instrument change");
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
-						libfs.writeSync(fd, Uint8Array.of(byte, a));
+						//libfs.writeSync(fd, Uint8Array.of(byte, a));
+						events.push({
+							timestamp: g_ticks,
+							index: events.length,
+							event: Buffer.of(byte, a)
+						});
 					} else if (event === 0xD) {
 						console.log("Channel pressure");
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
-						libfs.writeSync(fd, Uint8Array.of(byte, a));
+						//libfs.writeSync(fd, Uint8Array.of(byte, a));
+						events.push({
+							timestamp: g_ticks,
+							index: events.length,
+							event: Buffer.of(byte, a)
+						});
 					} else if (event === 0xE) {
 						console.log("Pitch bend");
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
-						libfs.writeSync(fd, Uint8Array.of(byte, a, b));
+						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
+						events.push({
+							timestamp: g_ticks,
+							index: events.length,
+							event: Buffer.of(byte, a, b)
+						});
 					} else if (event === 0xF) {
 						if (channel < 0xF) {
 							console.log("Sysex");
 							let size = readVarlen(buffer, options);
 							let data = buffer.slice(options.cursor, options.cursor + size); options.cursor += size;
-							libfs.writeSync(fd, Uint8Array.of(byte));
-							libfs.writeSync(fd, writeVarlen(size));
-							libfs.writeSync(fd, data);
+							//libfs.writeSync(fd, Uint8Array.of(byte));
+							//libfs.writeSync(fd, writeVarlen(size));
+							//libfs.writeSync(fd, data);
+							events.push({
+								timestamp: g_ticks,
+								index: events.length,
+								event: Buffer.concat([ Buffer.of(byte), writeVarlen(size), data ])
+							});
 						} else {
 							console.log("Meta");
 							let type = buffer.readUInt8(options.cursor); options.cursor += 1;
 							let size = readVarlen(buffer, options);
 							let data = buffer.slice(options.cursor, options.cursor + size); options.cursor += size;
-							libfs.writeSync(fd, Uint8Array.of(byte, type));
-							libfs.writeSync(fd, writeVarlen(size));
-							libfs.writeSync(fd, data);
+							//libfs.writeSync(fd, Uint8Array.of(byte, type));
+							//libfs.writeSync(fd, writeVarlen(size));
+							//libfs.writeSync(fd, data);
+							events.push({
+								timestamp: g_ticks,
+								index: events.length,
+								event: Buffer.concat([ Buffer.of(byte, type), writeVarlen(size), data ])
+							});
 							if (false) {
 							} else if (type === 0x00) {
 								console.log("\tSequence number", data);
@@ -285,7 +341,7 @@ function xmi2mid(source: string, target: string): void {
 								let numerator = data.readUInt8(0);
 								let denominator = (1 << data.readUInt8(1));
 								let clocks_per_metronome_click = data.readUInt8(2);
-								let quarter_32nd_notes = data.readUInt8(3); // quarter is 24 clocks
+								let quarter_32nd_notes = data.readUInt8(3);
 							} else if (type === 0x7F) {
 								console.log("\tSequencer specific", data);
 							} else {
@@ -293,6 +349,28 @@ function xmi2mid(source: string, target: string): void {
 							}
 						}
 					}
+				}
+				events = events.sort((one, two) => {
+					if (one.timestamp < two.timestamp) {
+						return -1;
+					}
+					if (one.timestamp > two.timestamp) {
+						return 1;
+					}
+					if (one.index < two.index) {
+						return -1;
+					}
+					if (one.index > two.index) {
+						return 1;
+					}
+					return 0;
+				});
+				g_ticks = 0;
+				for (let event of events) {
+					let delay = event.timestamp - g_ticks;
+					libfs.writeSync(fd, writeVarlen(delay));
+					libfs.writeSync(fd, event.event);
+					g_ticks = event.timestamp;
 				}
 				let size = libfs.fstatSync(fd).size;
 				if (size % 2 === 1) {
@@ -309,7 +387,7 @@ function xmi2mid(source: string, target: string): void {
 }
 
 console.log(writeVarlen(0x7F))
-console.log(writeVarlen(0x80))
+console.log(writeVarlen(0x80), readVarlen(Buffer.of(0x81, 0x00), { cursor: 0}));
 
 let command = process.argv[2];
 if (command === "extract") {
@@ -318,7 +396,11 @@ if (command === "extract") {
 	pack("./private/records/", "c:/dos/warcraft/data/data.war");
 } else if (command === "xmi2mid") {
 	for (let i = 0; i <= 44; i++) {
-		xmi2mid(`./private/records/${i.toString().padStart(3, "0")}`, `./private/${i.toString().padStart(3, "0")}.mid`);
+		try {
+			xmi2mid(`./private/records/${i.toString().padStart(3, "0")}`, `./private/${i.toString().padStart(3, "0")}.mid`);
+		} catch (error) {
+			console.log(i, error);
+		}
 	}
 } else {
 	console.log("Please specify command.");

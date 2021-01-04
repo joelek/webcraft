@@ -1,6 +1,6 @@
 import * as libfs from "fs";
 
-const DEBUG = true;
+const DEBUG = false;
 
 function decompressRecord(archive: Buffer, cursor: number): Buffer {
 	let header = archive.readUInt32LE(cursor); cursor += 4;
@@ -174,6 +174,10 @@ function xmi2mid_one(source: string, target: string): void {
 						options.cursor -= 1;
 						while (true) {
 							byte = buffer.readUInt8(options.cursor); options.cursor += 1;
+							if (byte > 0x7F) {
+								options.cursor -= 1;
+								break;
+							}
 							delay += byte;
 							if (byte < 0x7F) {
 								break;
@@ -186,7 +190,7 @@ function xmi2mid_one(source: string, target: string): void {
 					let event = (byte >> 4) & 0x0F;
 					let channel = (byte >> 0) & 0x0F;
 					if (event < 0x08) {
-						throw `Invalid event ${event} @ ${options.cursor-1}`;
+						throw `Invalid event ${event} @ ${options.cursor-1} ${delay}`;
 					} else if (event === 0x8) {
 						if (DEBUG) console.log(`Note off @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
@@ -198,7 +202,7 @@ function xmi2mid_one(source: string, target: string): void {
 							event: Buffer.of(byte, a, b)
 						});
 					} else if (event === 0x9) {
-						if (DEBUG) console.log(`Note on @ ${options.cursor-1}`);
+						if (DEBUG) console.log(`Note on @ ${options.cursor-1}`, delay);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let ticks = readVarlen(buffer, options);
@@ -439,7 +443,7 @@ if (command === "extract") {
 } else if (command === "pack") {
 	pack("./private/records/", "c:/dos/warcraft/data/data.war");
 } else if (command === "xmi2mid") {
-	//xmi2mid("./private/xmi2/", "./private/mid2/");
+	xmi2mid("./private/xmi2/", "./private/mid2/");
 	xmi2mid("./private/xmi/", "./private/mid/");
 } else {
 	console.log("Please specify command.");

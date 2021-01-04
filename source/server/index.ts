@@ -134,9 +134,6 @@ function writeVarlen(value: number): Buffer {
 
 		if (value < 128) {
 			bytes = bytes.slice(0, i + 1).reverse();
-			if (i > 0) {
-				console.log(v0, "coded as", bytes);
-			}
 			return bytes;
 		}
 		value = (value >> 7);
@@ -144,13 +141,11 @@ function writeVarlen(value: number): Buffer {
 	throw `Unsupported value ${value}!`;
 }
 
-function xmi2mid(source: string, target: string): void {
+function xmi2mid_one(source: string, target: string): void {
 	let buffer = libfs.readFileSync(source);
 	let options = { cursor: 0 };
 	let one = readChunk(buffer, options);
-	console.log(one);
 	let two = readChunk(buffer, options);
-	console.log(two);
 	{
 		options.cursor = 0;
 		readType(two.data, options);
@@ -171,7 +166,7 @@ function xmi2mid(source: string, target: string): void {
 				libfs.writeSync(fd, temp, 0, 2);
 				temp.writeUInt16BE(1);
 				libfs.writeSync(fd, temp, 0, 2);
-				temp.writeUInt16BE(96);
+				temp.writeUInt16BE(64);
 				libfs.writeSync(fd, temp, 0, 2);
 				temp.write("MTrk", "binary");
 				libfs.writeSync(fd, temp, 0, 4);
@@ -207,7 +202,7 @@ function xmi2mid(source: string, target: string): void {
 					if (event < 0x08) {
 						throw `Invalid event ${event} @ ${options.cursor}`;
 					} else if (event === 0x8) {
-						console.log("Note off");
+						//console.log("Note off");
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
 						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
@@ -217,7 +212,7 @@ function xmi2mid(source: string, target: string): void {
 							event: Buffer.of(byte, a, b)
 						});
 					} else if (event === 0x9) {
-						console.log("Note on", options.cursor);
+						//console.log("Note on", options.cursor);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let ticks = readVarlen(buffer, options);
@@ -230,12 +225,12 @@ function xmi2mid(source: string, target: string): void {
 						events.push({
 							timestamp: g_ticks + ticks,
 							index: events.length,
-							event: Buffer.of((0x8 << 4) | channel, a, 64)
+							event: Buffer.of((0x8 << 4) | channel, a, b)
 						});
 						//libfs.writeSync(fd, writeVarlen(ticks));
 						//libfs.writeSync(fd, Uint8Array.of((0x8 << 4) | channel, a, 64));
 					} else if (event === 0xA) {
-						console.log("Polyphonic key pressure");
+						//console.log("Polyphonic key pressure");
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
 						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
@@ -245,7 +240,7 @@ function xmi2mid(source: string, target: string): void {
 							event: Buffer.of(byte, a, b)
 						});
 					} else if (event === 0xB) {
-						console.log("Controller");
+						//console.log("Controller");
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
 						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
@@ -255,7 +250,7 @@ function xmi2mid(source: string, target: string): void {
 							event: Buffer.of(byte, a, b)
 						});
 					} else if (event === 0xC) {
-						console.log("Instrument change");
+						//console.log("Instrument change");
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						//libfs.writeSync(fd, Uint8Array.of(byte, a));
 						events.push({
@@ -264,7 +259,7 @@ function xmi2mid(source: string, target: string): void {
 							event: Buffer.of(byte, a)
 						});
 					} else if (event === 0xD) {
-						console.log("Channel pressure");
+						//console.log("Channel pressure");
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						//libfs.writeSync(fd, Uint8Array.of(byte, a));
 						events.push({
@@ -273,7 +268,7 @@ function xmi2mid(source: string, target: string): void {
 							event: Buffer.of(byte, a)
 						});
 					} else if (event === 0xE) {
-						console.log("Pitch bend");
+						//console.log("Pitch bend");
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
 						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
@@ -284,7 +279,7 @@ function xmi2mid(source: string, target: string): void {
 						});
 					} else if (event === 0xF) {
 						if (channel < 0xF) {
-							console.log("Sysex");
+							//console.log("Sysex");
 							let size = readVarlen(buffer, options);
 							let data = buffer.slice(options.cursor, options.cursor + size); options.cursor += size;
 							//libfs.writeSync(fd, Uint8Array.of(byte));
@@ -296,7 +291,7 @@ function xmi2mid(source: string, target: string): void {
 								event: Buffer.concat([ Buffer.of(byte), writeVarlen(size), data ])
 							});
 						} else {
-							console.log("Meta");
+							//console.log("Meta");
 							let type = buffer.readUInt8(options.cursor); options.cursor += 1;
 							let size = readVarlen(buffer, options);
 							let data = buffer.slice(options.cursor, options.cursor + size); options.cursor += size;
@@ -310,42 +305,42 @@ function xmi2mid(source: string, target: string): void {
 							});
 							if (false) {
 							} else if (type === 0x00) {
-								console.log("\tSequence number", data);
+								//console.log("\tSequence number", data);
 							} else if (type >= 0x01 && type <= 0x0F) {
-								console.log("\tText", data.toString("binary"));
+								//console.log("\tText", data.toString("binary"));
 							} else if (type === 0x20) {
-								console.log("\tSet active channel", data);
+								//console.log("\tSet active channel", data);
 								let channel = data.readUInt8(0);
 								if (!(channel >= 0 && channel <= 15)) {
 									throw `Invalid channel!`;
 								}
 							} else if (type === 0x2F) {
-								console.log("\tEnd of track", data);
+								//console.log("\tEnd of track", data);
 								break;
 							} else if (type === 0x51) {
-								console.log("\tSet tempo", data);
+								//console.log("\tSet tempo", data);
 								let a = data.readUInt8(0);
 								let b = data.readUInt8(1);
 								let c = data.readUInt8(2);
 								let tempo = (a << 16) | (b << 8) | (c << 0);
 								g_tempo = tempo;
 							} else if (type === 0x54) {
-								console.log("\tSet SMPTE offset", data);
+								//console.log("\tSet SMPTE offset", data);
 								let hours = data.readUInt8(0);
 								let minutes = data.readUInt8(1);
 								let seconds = data.readUInt8(2);
 								let frames = data.readUInt8(3);
 								let fractional_frames = data.readUInt8(4) / 100;
 							} else if (type === 0x58) {
-								console.log("\tTime signature", data);
+								//console.log("\tTime signature", data);
 								let numerator = data.readUInt8(0);
 								let denominator = (1 << data.readUInt8(1));
 								let clocks_per_metronome_click = data.readUInt8(2);
 								let quarter_32nd_notes = data.readUInt8(3);
 							} else if (type === 0x7F) {
-								console.log("\tSequencer specific", data);
+								//console.log("\tSequencer specific", data);
 							} else {
-								console.log("\tUnrecognized", data);
+								//console.log("\tUnrecognized", data);
 							}
 						}
 					}
@@ -386,8 +381,19 @@ function xmi2mid(source: string, target: string): void {
 	}
 }
 
-console.log(writeVarlen(0x7F))
-console.log(writeVarlen(0x80), readVarlen(Buffer.of(0x81, 0x00), { cursor: 0}));
+function xmi2mid(source: string, target: string): void {
+	libfs.mkdirSync(target, { recursive: true });
+	let entries = libfs.readdirSync(source, { withFileTypes: true });
+	for (let entry of entries) {
+		if (entry.isFile()) {
+			try {
+				xmi2mid_one(source + entry.name, target + entry.name + ".mid");
+			} catch (error) {
+				console.log(error);
+			}
+		}
+	}
+}
 
 let command = process.argv[2];
 if (command === "extract") {
@@ -395,13 +401,7 @@ if (command === "extract") {
 } else if (command === "pack") {
 	pack("./private/records/", "c:/dos/warcraft/data/data.war");
 } else if (command === "xmi2mid") {
-	for (let i = 0; i <= 44; i++) {
-		try {
-			xmi2mid(`./private/records/${i.toString().padStart(3, "0")}`, `./private/${i.toString().padStart(3, "0")}.mid`);
-		} catch (error) {
-			console.log(i, error);
-		}
-	}
+	xmi2mid("./private/xmi/", "./private/mid/");
 } else {
 	console.log("Please specify command.");
 }

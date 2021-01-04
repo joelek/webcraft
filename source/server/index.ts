@@ -1,5 +1,7 @@
 import * as libfs from "fs";
 
+const DEBUG = true;
+
 function decompressRecord(archive: Buffer, cursor: number): Buffer {
 	let header = archive.readUInt32LE(cursor); cursor += 4;
 	let decompressedSize = (header >> 0) & 0xFFFFFF;
@@ -163,7 +165,7 @@ function xmi2mid_one(source: string, target: string): void {
 				let events = new Array<{
 					timestamp: number,
 					index: number,
-					event: Uint8Array
+					event: Buffer
 				}>();
 				while (options.cursor < buffer.length) {
 					let byte = buffer.readUInt8(options.cursor); options.cursor += 1;
@@ -184,9 +186,9 @@ function xmi2mid_one(source: string, target: string): void {
 					let event = (byte >> 4) & 0x0F;
 					let channel = (byte >> 0) & 0x0F;
 					if (event < 0x08) {
-						throw `Invalid event ${event} @ ${options.cursor}`;
+						throw `Invalid event ${event} @ ${options.cursor-1}`;
 					} else if (event === 0x8) {
-						//console.log("Note off");
+						if (DEBUG) console.log(`Note off @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
 						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
@@ -196,7 +198,7 @@ function xmi2mid_one(source: string, target: string): void {
 							event: Buffer.of(byte, a, b)
 						});
 					} else if (event === 0x9) {
-						//console.log("Note on", options.cursor);
+						if (DEBUG) console.log(`Note on @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let ticks = readVarlen(buffer, options);
@@ -214,7 +216,7 @@ function xmi2mid_one(source: string, target: string): void {
 						//libfs.writeSync(fd, writeVarlen(ticks));
 						//libfs.writeSync(fd, Uint8Array.of((0x8 << 4) | channel, a, 64));
 					} else if (event === 0xA) {
-						//console.log("Polyphonic key pressure");
+						if (DEBUG) console.log(`Polyphonic key pressure @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
 						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
@@ -224,7 +226,7 @@ function xmi2mid_one(source: string, target: string): void {
 							event: Buffer.of(byte, a, b)
 						});
 					} else if (event === 0xB) {
-						//console.log("Controller");
+						if (DEBUG) console.log(`Controller @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
 						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
@@ -234,7 +236,7 @@ function xmi2mid_one(source: string, target: string): void {
 							event: Buffer.of(byte, a, b)
 						});
 					} else if (event === 0xC) {
-						//console.log("Instrument change");
+						if (DEBUG) console.log(`Instrument change @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						//libfs.writeSync(fd, Uint8Array.of(byte, a));
 						events.push({
@@ -243,7 +245,7 @@ function xmi2mid_one(source: string, target: string): void {
 							event: Buffer.of(byte, a)
 						});
 					} else if (event === 0xD) {
-						//console.log("Channel pressure");
+						if (DEBUG) console.log(`Channel pressure @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						//libfs.writeSync(fd, Uint8Array.of(byte, a));
 						events.push({
@@ -252,7 +254,7 @@ function xmi2mid_one(source: string, target: string): void {
 							event: Buffer.of(byte, a)
 						});
 					} else if (event === 0xE) {
-						//console.log("Pitch bend");
+						if (DEBUG) console.log(`Pitch bend @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
 						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
@@ -263,7 +265,7 @@ function xmi2mid_one(source: string, target: string): void {
 						});
 					} else if (event === 0xF) {
 						if (channel < 0xF) {
-							//console.log("Sysex");
+							if (DEBUG) console.log(`Sysex @ ${options.cursor-1}`);
 							let size = readVarlen(buffer, options);
 							let data = buffer.slice(options.cursor, options.cursor + size); options.cursor += size;
 							//libfs.writeSync(fd, Uint8Array.of(byte));
@@ -275,7 +277,7 @@ function xmi2mid_one(source: string, target: string): void {
 								event: Buffer.concat([ Buffer.of(byte), writeVarlen(size), data ])
 							});
 						} else {
-							//console.log("Meta");
+							if (DEBUG) console.log(`Meta @ ${options.cursor-1}`);
 							let type = buffer.readUInt8(options.cursor); options.cursor += 1;
 							let size = readVarlen(buffer, options);
 							let data = buffer.slice(options.cursor, options.cursor + size); options.cursor += size;
@@ -350,18 +352,54 @@ function xmi2mid_one(source: string, target: string): void {
 				libfs.writeSync(fd, temp, 0, 4);
 				temp.writeUInt32BE(6);
 				libfs.writeSync(fd, temp, 0, 4);
-				temp.writeUInt16BE(0);
-				libfs.writeSync(fd, temp, 0, 2);
 				temp.writeUInt16BE(1);
 				libfs.writeSync(fd, temp, 0, 2);
-				temp.writeUInt16BE(Math.round(g_tempo/500000*64));
+				temp.writeUInt16BE(2);
 				libfs.writeSync(fd, temp, 0, 2);
+				temp.writeUInt16BE(96);
+				libfs.writeSync(fd, temp, 0, 2);
+				let track0buf = new Array<Buffer>();
+				let timeevents = events.filter((event) => {
+					if (event.event[0] === 0xFF) {
+						if (event.event[1] === 0x51) {
+							return true;
+						} else if (event.event[1] === 0x58) {
+							return true;
+						} else if (event.event[1] === 0x2F) {
+							return true;
+						}
+					}
+					return false;
+				});
+				let notevents = events.filter((event) => {
+					if (event.event[0] === 0xFF) {
+						if (event.event[1] === 0x51) {
+							return false;
+						} else if (event.event[1] === 0x58) {
+							return false;
+						} else if (event.event[1] === 0x2F) {
+							return true;
+						}
+					}
+					return true;
+				});
+				g_ticks = 0;
+				for (let event of timeevents) {
+					let delay = event.timestamp - g_ticks;
+					track0buf.push(writeVarlen(delay), event.event);
+					g_ticks = event.timestamp;
+				}
+				let track0head = Buffer.from("MTrk\0\0\0\0", "binary");
+				let track0data = Buffer.concat(track0buf);
+				track0head.writeUInt32BE(track0data.length, 4);
+				let track0 = Buffer.concat([track0head, track0data]);
+				libfs.writeSync(fd, track0);
 				temp.write("MTrk", "binary");
 				libfs.writeSync(fd, temp, 0, 4);
 				temp.writeUInt32BE(0);
 				libfs.writeSync(fd, temp, 0, 4);
 				g_ticks = 0;
-				for (let event of events) {
+				for (let event of notevents) {
 					let delay = event.timestamp - g_ticks;
 					libfs.writeSync(fd, writeVarlen(delay));
 					libfs.writeSync(fd, event.event);
@@ -373,8 +411,8 @@ function xmi2mid_one(source: string, target: string): void {
 					libfs.writeSync(fd, temp, 0, 1);
 					size += 1;
 				}
-				temp.writeUInt32BE(size - 22);
-				libfs.writeSync(fd, temp, 0, 4, 18);
+				temp.writeUInt32BE(size - 22 - track0.length);
+				libfs.writeSync(fd, temp, 0, 4, 18 + track0.length);
 				libfs.closeSync(fd);
 			}
 		}
@@ -389,7 +427,7 @@ function xmi2mid(source: string, target: string): void {
 			try {
 				xmi2mid_one(source + entry.name, target + entry.name + ".mid");
 			} catch (error) {
-				console.log(error);
+				console.log(entry.name, error);
 			}
 		}
 	}
@@ -401,7 +439,8 @@ if (command === "extract") {
 } else if (command === "pack") {
 	pack("./private/records/", "c:/dos/warcraft/data/data.war");
 } else if (command === "xmi2mid") {
-	xmi2mid("./private/xmi2/", "./private/mid2/");
+	//xmi2mid("./private/xmi2/", "./private/mid2/");
+	xmi2mid("./private/xmi/", "./private/mid/");
 } else {
 	console.log("Please specify command.");
 }

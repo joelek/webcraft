@@ -52,10 +52,17 @@ function extract(source: string, target: string): void {
 	let recordCount = archive.readUInt16LE(cursor); cursor += 2;
 	let id = archive.readUInt16LE(cursor); cursor += 2;
 	for (let i = 0; i < recordCount; i++) {
-		console.log(i);
 		let offset = archive.readUInt32LE(cursor); cursor += 4;
 		let buffer = decompressRecord(archive, offset);
-		libfs.writeFileSync(`${target}${i.toString().padStart(3, "0")}`, buffer);
+		let ext = "";
+		if (buffer.slice(0, 4).toString("binary") === "RIFF") {
+			ext = ".wav";
+		} else if (buffer.slice(0, 20).toString("binary") === "Creative Voice File\x1A") {
+			ext = ".voc";
+		} else if (buffer.slice(0, 4).toString("binary") === "FORM") {
+			ext = ".xmi";
+		}
+		libfs.writeFileSync(`${target}${i.toString().padStart(3, "0")}${ext}`, buffer);
 	}
 }
 
@@ -451,7 +458,6 @@ if (command === "extract") {
 } else if (command === "pack") {
 	pack("./private/records/", "c:/dos/warcraft/data/data.war");
 } else if (command === "xmi2mid") {
-	xmi2mid("./private/xmi2/", "./private/mid2/");
 	xmi2mid("./private/xmi/", "./private/mid/");
 } else {
 	console.log("Please specify command.");

@@ -242,6 +242,11 @@ function xmi2mid_one(source: string, target: string): void {
 						if (DEBUG) console.log(`Controller @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
+						if (a === 116) {
+							console.log("\tstart loop", b);
+						} else if (a === 117) {
+							console.log("\tend loop", b);
+						}
 						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
 						events.push({
 							timestamp: g_ticks,
@@ -441,11 +446,12 @@ function xmi2mid(source: string, target: string): void {
 	libfs.mkdirSync(target, { recursive: true });
 	let entries = libfs.readdirSync(source, { withFileTypes: true });
 	for (let entry of entries) {
+		console.log(entry.name);
 		if (entry.isFile()) {
 			try {
 				xmi2mid_one(source + entry.name, target + entry.name + ".mid");
 			} catch (error) {
-				console.log(entry.name, error);
+				console.log(error);
 			}
 		}
 	}

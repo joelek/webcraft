@@ -49,8 +49,10 @@ function extract(source: string, target: string): void {
 	let archive = libfs.readFileSync(source);
 	let cursor = 0;
 	let version = archive.readUInt32LE(cursor); cursor += 4
-	let recordCount = archive.readUInt32LE(cursor); cursor += 4;
+	let recordCount = archive.readUInt16LE(cursor); cursor += 2;
+	let id = archive.readUInt16LE(cursor); cursor += 2;
 	for (let i = 0; i < recordCount; i++) {
+		console.log(i);
 		let offset = archive.readUInt32LE(cursor); cursor += 4;
 		let buffer = decompressRecord(archive, offset);
 		libfs.writeFileSync(`${target}${i.toString().padStart(3, "0")}`, buffer);
@@ -360,13 +362,13 @@ function xmi2mid_one(source: string, target: string): void {
 				libfs.writeSync(fd, temp, 0, 2);
 				temp.writeUInt16BE(2);
 				libfs.writeSync(fd, temp, 0, 2);
-				temp.writeUInt16BE(96);
+				temp.writeUInt16BE(60);
 				libfs.writeSync(fd, temp, 0, 2);
 				let track0buf = new Array<Buffer>();
 				let timeevents = events.filter((event) => {
 					if (event.event[0] === 0xFF) {
 						if (event.event[1] === 0x51) {
-							return true;
+							return false;
 						} else if (event.event[1] === 0x58) {
 							return true;
 						} else if (event.event[1] === 0x2F) {
@@ -374,6 +376,11 @@ function xmi2mid_one(source: string, target: string): void {
 						}
 					}
 					return false;
+				});
+				timeevents.unshift({
+					timestamp: 0,
+					index: -1,
+					event: Buffer.of(0xff, 0x51, 0x03, 0x07, 0xa1, 0x20)
 				});
 				let notevents = events.filter((event) => {
 					if (event.event[0] === 0xFF) {
@@ -440,6 +447,7 @@ function xmi2mid(source: string, target: string): void {
 let command = process.argv[2];
 if (command === "extract") {
 	extract("./private/data.war.original", "./private/records/");
+	extract("./private/data2.war.original", "./private/records2/");
 } else if (command === "pack") {
 	pack("./private/records/", "c:/dos/warcraft/data/data.war");
 } else if (command === "xmi2mid") {

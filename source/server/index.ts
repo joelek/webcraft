@@ -275,6 +275,7 @@ function xmi2mid_one(source: string, target: string): void {
 						if (DEBUG) console.log(`Pitch bend @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
+						console.log("pb", ((a & 0x7F) << 7) | ((b & 0x7F) << 0));
 						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
 						events.push({
 							timestamp: g_ticks,
@@ -429,11 +430,11 @@ function xmi2mid_one(source: string, target: string): void {
 					g_ticks = event.timestamp;
 				}
 				let size = libfs.fstatSync(fd).size;
-				if (size % 2 === 1) {
+/* 				if (size % 2 === 1) {
 					temp.writeUInt8(0, 0);
 					libfs.writeSync(fd, temp, 0, 1);
 					size += 1;
-				}
+				} */
 				temp.writeUInt32BE(size - 22 - track0.length);
 				libfs.writeSync(fd, temp, 0, 4, 18 + track0.length);
 				libfs.closeSync(fd);

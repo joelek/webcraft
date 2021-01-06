@@ -1942,3 +1942,8 @@ window.addEventListener("resize", () => {
 	resize();
 });
 resize();
+{
+	let context = new AudioContext({
+		sampleRate: 44100
+	});
+}

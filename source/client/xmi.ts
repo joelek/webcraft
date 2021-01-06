@@ -1,95 +1,14 @@
-import * as libfs from "fs";
 
-const DEBUG = false;
 
-function decompressRecord(archive: Buffer, cursor: number): Buffer {
-	let header = archive.readUInt32LE(cursor); cursor += 4;
-	let decompressedSize = (header >> 0) & 0xFFFFFF;
-	let isCompressed = (header >> 29) & 1;
-	if (!isCompressed) {
-		return archive.slice(cursor, cursor + decompressedSize);
-	}
-	let buffer = Buffer.alloc(decompressedSize);
-	let bytesWritten = 0;
-	let history = Buffer.alloc(4096);
-	let historyPosition = 0;
-	let controlByte = 0;
-	let controlShift = 8;
-	function append(byte: number): void {
-		buffer[bytesWritten] = byte;
-		bytesWritten += 1;
-		history[historyPosition] = byte;
-		historyPosition = (historyPosition + 1) & 4095;
-	}
-	while (bytesWritten < buffer.length) {
-		if (controlShift >= 8) {
-			controlByte = archive.readUInt8(cursor); cursor += 1;
-			controlShift = 0;
-		}
-		let bit = (controlByte >> controlShift) & 1;
-		controlShift += 1;
-		if (bit) {
-			let byte = archive.readUInt8(cursor); cursor += 1;
-			append(byte);
-		} else {
-			let header = archive.readUInt16LE(cursor); cursor += 2;
-			let offset = (header >> 0) & 4095;
-			let length = (header >> 12) & 15;
-			for (let i = offset; i < offset + length + 3; i++) {
-				let byte = history[i & 4095];
-				append(byte);
-			}
-		}
-	}
-	return buffer;
-}
 
-function extract(source: string, target: string): void {
-	libfs.mkdirSync(target, { recursive: true });
-	let archive = libfs.readFileSync(source);
-	let cursor = 0;
-	let version = archive.readUInt32LE(cursor); cursor += 4
-	let recordCount = archive.readUInt16LE(cursor); cursor += 2;
-	let id = archive.readUInt16LE(cursor); cursor += 2;
-	for (let i = 0; i < recordCount; i++) {
-		let offset = archive.readUInt32LE(cursor); cursor += 4;
-		let buffer = decompressRecord(archive, offset);
-		let ext = "";
-		if (buffer.slice(0, 4).toString("binary") === "RIFF") {
-			ext = ".wav";
-		} else if (buffer.slice(0, 20).toString("binary") === "Creative Voice File\x1A") {
-			ext = ".voc";
-		} else if (buffer.slice(0, 4).toString("binary") === "FORM") {
-			ext = ".xmi";
-		}
-		libfs.writeFileSync(`${target}${i.toString().padStart(3, "0")}${ext}`, buffer);
-	}
-}
 
-function pack(source: string, target: string): void {
-	let entries = libfs.readdirSync(source, { withFileTypes: true })
-		.filter((entry) => entry.isFile())
-		.sort((one, two) => one.name.localeCompare(two.name));
-	let header = Buffer.alloc(8);
-	header.writeUInt32LE(24, 0);
-	header.writeUInt32LE(entries.length, 4);
-	let fd = libfs.openSync(target, "w");
-	libfs.writeSync(fd, header);
-	let offset = Buffer.alloc(4);
-	offset.writeUInt32LE(8 + 4 * entries.length);
-	for (let entry of entries) {
-		libfs.writeSync(fd, offset);
-		let stat = libfs.statSync(`${source}${entry.name}`);
-		offset.writeUInt32LE(offset.readUInt32LE(0) + 4 + stat.size, 0);
-	}
-	for (let entry of entries) {
-		let record = libfs.readFileSync(`${source}${entry.name}`);
-		offset.writeUInt32LE(record.length, 0);
-		libfs.writeSync(fd, offset);
-		libfs.writeSync(fd, record);
-	}
-	libfs.closeSync(fd);
-}
+
+
+
+
+/*
+
+
 
 type Chunk = {
 	type: string;
@@ -97,7 +16,8 @@ type Chunk = {
 	data: Buffer
 };
 
-function readType(buffer: Buffer, options: { cursor: number }): string {
+function readType(buffer: DataView, options: { cursor: number }): string {
+	buffer.
 	let type = buffer.slice(options.cursor, options.cursor + 4).toString("binary");
 	options.cursor += 4;
 	return type;
@@ -129,26 +49,6 @@ function readVarlen(buffer: Buffer, options: { cursor: number }): number {
 		}
 	}
 	return value;
-}
-
-function writeVarlen(value: number): Buffer {
-	if (value < 0) {
-		throw ``;
-	}
-	let bytes = Buffer.alloc(4);
-	for (let i = 0; i < 4; i++) {
-		bytes[i] = value & 0x7F;
-		if (i > 0) {
-			bytes[i] += 128;
-		}
-
-		if (value < 128) {
-			bytes = bytes.slice(0, i + 1).reverse();
-			return bytes;
-		}
-		value = (value >> 7);
-	}
-	throw `Unsupported value ${value}!`;
 }
 
 function xmi2mid_one(source: string, target: string): void {
@@ -441,30 +341,4 @@ function xmi2mid_one(source: string, target: string): void {
 		}
 	}
 }
-
-function xmi2mid(source: string, target: string): void {
-	libfs.mkdirSync(target, { recursive: true });
-	let entries = libfs.readdirSync(source, { withFileTypes: true });
-	for (let entry of entries) {
-		console.log(entry.name);
-		if (entry.isFile()) {
-			try {
-				xmi2mid_one(source + entry.name, target + entry.name + ".mid");
-			} catch (error) {
-				console.log(error);
-			}
-		}
-	}
-}
-
-let command = process.argv[2];
-if (command === "extract") {
-	extract("./private/data.war.original", "./private/records/");
-	extract("./private/data2.war.original", "./private/records2/");
-} else if (command === "pack") {
-	pack("./private/records/", "c:/dos/warcraft/data/data.war");
-} else if (command === "xmi2mid") {
-	xmi2mid("./private/xmi/", "./private/mid/");
-} else {
-	console.log("Please specify command.");
-}
+ */

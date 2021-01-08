@@ -1,3 +1,4 @@
+import { start } from "repl";
 import * as shared from "../shared";
 
 namespace is {
@@ -839,6 +840,248 @@ class WavHeader {
 	}
 }
 
+enum XMIEventType {
+	NOTE_OFF = 0x8,
+	NOTE_ON = 0x9,
+	KEY_PRESSURE = 0xA,
+	CONTROLLER = 0xB,
+	INSTRUMENT_CHANGE = 0xC,
+	CHANNEL_PRESSURE = 0xD,
+	PITCH_BEND = 0xE,
+	SYSEX = 0xF
+};
+
+type XMIEvent = {
+	index: number,
+	type: XMIEventType,
+	channel: number,
+	time: number,
+	data: Uint8Array
+};
+
+class XmiFile {
+	readonly events: Array<XMIEvent>;
+
+	constructor() {
+		this.events = new Array<XMIEvent>();
+	}
+
+	private readVarlen(buffer: Uint8Array, cursor: { offset: number }): number {
+		let value = 0;
+		for (let i = 0; i < 4; i++) {
+			let byte = buffer[cursor.offset++];
+			value = (value << 7) | (byte & 0x7F);
+			if (byte < 128) {
+				break;
+			}
+		}
+		return value;
+	}
+
+	private async loadEvents(array: Uint8Array): Promise<this> {
+		this.events.splice(0, this.events.length);
+		let cursor = {
+			offset: 0
+		};
+		let timestamp = 0;
+		while (cursor.offset < array.length) {
+			let byte = array[cursor.offset++];
+			let delay = 0;
+			if (byte < 0x80) {
+				cursor.offset -= 1;
+				while (true) {
+					byte = array[cursor.offset++];
+					if (byte > 0x7F) {
+						cursor.offset -= 1;
+						break;
+					}
+					delay += byte;
+					if (byte < 0x7F) {
+						break;
+					}
+				}
+				byte = array[cursor.offset++];
+			}
+			timestamp += delay;
+			let event = (byte >> 4) & 0x0F;
+			let channel = (byte >> 0) & 0x0F;
+			if (event < 0x08) {
+				throw `Invalid event!`;
+			} else if (event === 0x8) {
+				let a = array[cursor.offset++];
+				let b = array[cursor.offset++];
+				this.events.push({
+					index: this.events.length,
+					type: XMIEventType.NOTE_OFF,
+					channel: channel,
+					time: timestamp,
+					data: Uint8Array.of(a, b)
+				});
+			} else if (event === 0x9) {
+				let a = array[cursor.offset++];
+				let b = array[cursor.offset++];
+				let ticks = this.readVarlen(array, cursor);
+				this.events.push({
+					index: this.events.length,
+					type: XMIEventType.NOTE_ON,
+					channel: channel,
+					time: timestamp,
+					data: Uint8Array.of(a, b)
+				});
+				this.events.push({
+					index: this.events.length,
+					type: XMIEventType.NOTE_OFF,
+					channel: channel,
+					time: timestamp + ticks,
+					data: Uint8Array.of(a, b)
+				});
+			} else if (event === 0xA) {
+				let a = array[cursor.offset++];
+				let b = array[cursor.offset++];
+				this.events.push({
+					index: this.events.length,
+					type: XMIEventType.KEY_PRESSURE,
+					channel: channel,
+					time: timestamp,
+					data: Uint8Array.of(a, b)
+				});
+			} else if (event === 0xB) {
+				let a = array[cursor.offset++];
+				let b = array[cursor.offset++];
+				this.events.push({
+					index: this.events.length,
+					type: XMIEventType.CONTROLLER,
+					channel: channel,
+					time: timestamp,
+					data: Uint8Array.of(a, b)
+				});
+			} else if (event === 0xC) {
+				let a = array[cursor.offset++];
+				this.events.push({
+					index: this.events.length,
+					type: XMIEventType.INSTRUMENT_CHANGE,
+					channel: channel,
+					time: timestamp,
+					data: Uint8Array.of(a)
+				});
+			} else if (event === 0xD) {
+				let a = array[cursor.offset++];
+				this.events.push({
+					index: this.events.length,
+					type: XMIEventType.CHANNEL_PRESSURE,
+					channel: channel,
+					time: timestamp,
+					data: Uint8Array.of(a)
+				});
+			} else if (event === 0xE) {
+				let a = array[cursor.offset++];
+				let b = array[cursor.offset++];
+				this.events.push({
+					index: this.events.length,
+					type: XMIEventType.PITCH_BEND,
+					channel: channel,
+					time: timestamp,
+					data: Uint8Array.of(a, b)
+				});
+			} else if (event === 0xF) {
+				if (channel < 0xF) {
+					let size = this.readVarlen(array, cursor);
+					let data = array.slice(cursor.offset, cursor.offset + size); cursor.offset += size;
+					this.events.push({
+						index: this.events.length,
+						type: XMIEventType.SYSEX,
+						channel: channel,
+						time: timestamp,
+						data: data
+					});
+				} else {
+					let type = array[cursor.offset++];
+					let size = this.readVarlen(array, cursor);
+					let data = array.slice(cursor.offset, cursor.offset + size); cursor.offset += size;
+					this.events.push({
+						index: this.events.length,
+						type: XMIEventType.SYSEX,
+						channel: channel,
+						time: timestamp,
+						data: Uint8Array.of(type, ...data)
+					});
+				}
+			}
+		}
+		this.events.sort((one, two) => {
+			if (one.time < two.time) {
+				return -1;
+			}
+			if (one.time > two.time) {
+				return 1;
+			}
+			if (one.index < two.index) {
+				return -1;
+			}
+			if (one.index > two.index) {
+				return 1;
+			}
+			return 0;
+		});
+		let time = 0;
+		for (let event of this.events) {
+			let delay = event.time - time;
+			time = event.time;
+			event.time = delay;
+		}
+		return this;
+	}
+
+	async load(dataProvider: DataProvider): Promise<this> {
+		let cursor = 0;
+		let form = new RiffChunkHeader("BigEndian");
+		cursor += await form.load(cursor, dataProvider);
+		assert.identical(form.id.value, "FORM");
+		{
+			let xdir = new text(new ArrayBuffer(4));
+			cursor += await xdir.load(cursor, dataProvider);
+			assert.identical(xdir.value, "XDIR");
+			let info = new RiffChunkHeader("BigEndian");
+			cursor += await info.load(cursor, dataProvider);
+			assert.identical(info.id.value, "INFO");
+			cursor += info.size.value;
+			cursor += info.size.value % 2;
+		}
+		cursor += form.size.value % 2;
+		let cat = new RiffChunkHeader("BigEndian");
+		cursor += await cat.load(cursor, dataProvider);
+		assert.identical(cat.id.value, "CAT ");
+		{
+			let xmid = new text(new ArrayBuffer(4));
+			cursor += await xmid.load(cursor, dataProvider);
+			assert.identical(xmid.value, "XMID");
+			let form = new RiffChunkHeader("BigEndian");
+			cursor += await form.load(cursor, dataProvider);
+			assert.identical(form.id.value, "FORM");
+			{
+				let xmid = new text(new ArrayBuffer(4));
+				cursor += await xmid.load(cursor, dataProvider);
+				assert.identical(xmid.value, "XMID");
+				let timb = new RiffChunkHeader("BigEndian");
+				cursor += await timb.load(cursor, dataProvider);
+				assert.identical(timb.id.value, "TIMB");
+				cursor += timb.size.value;
+				cursor += timb.size.value % 2;
+				let evnt = new RiffChunkHeader("BigEndian");
+				cursor += await evnt.load(cursor, dataProvider);
+				assert.identical(evnt.id.value, "EVNT");
+				let array = new Uint8Array(evnt.size.value);
+				cursor += await dataProvider.read(cursor, array.buffer);
+				cursor += evnt.size.value % 2;
+				await this.loadEvents(array);
+			}
+			cursor += form.size.value % 2;
+		}
+		cursor += cat.size.value % 2;
+		return this;
+	}
+}
+
 class WavFile {
 	private endianness: Endianness;
 	private header: WavHeader;
@@ -1526,6 +1769,7 @@ canvas.addEventListener("dragover", async (event) => {
 });
 let endianness: Endianness = "LittleEndian";
 let archive: Archive | undefined;
+let xmi: XmiFile | undefined;
 
 async function load(dataProvider: DataProvider): Promise<void> {
 	archive = new Archive(dataProvider, endianness);
@@ -1539,6 +1783,14 @@ async function load(dataProvider: DataProvider): Promise<void> {
 		try {
 			await loadParticleScript(archive);
 		} catch (error) {}
+	}
+	xmi = await new XmiFile().load(await archive.getRecord(0));
+	xmi_delay = xmi.events[0].time;
+	let ac = new AudioContext();
+	for (let i = 0; i < 16; i++) {
+		osc[i] = ac.createOscillator();
+		state[i] = false;
+		osc[i].connect(ac.destination);
 	}
 }
 
@@ -1789,7 +2041,65 @@ async function loadParticleScript(archive: Archive): Promise<wc1.ParticleScriptH
 }
 let tileset: Array<WebGLTexture> | undefined;
 let map: Array<number>;
+let xmi_offset = 0;
+let xmi_delay = 0;
+let osc = new Array<OscillatorNode>();
+let state = new Array<boolean>();
+function startosc(channel: number, freq: number): void {
+	let o = osc[channel];
+	o.frequency.value = freq;
+	if (!state[channel]) {
+		o.start();
+		state[channel] = true;
+	}
+}
+function stoposc(channel: number, freq: number): void {
+	let o = osc[channel];
+	o.frequency.value = freq;
+	if (state[channel]) {
+		o.stop();
+		state[channel] = false;
+	}
+}
 async function render(ms: number): Promise<void> {
+	if (is.present(xmi)) {
+		if (xmi_delay > 0) {
+			xmi_delay -= 1;
+		} else {
+			while (xmi_delay === 0) {
+				let event = xmi.events[xmi_offset++];
+				if (false) {
+				} else if (event.type < XMIEventType.NOTE_ON) {
+					let a = event.data[0];
+					let b = event.data[1];
+					console.log("Note on", a, b);
+					startosc(event.channel, 440 * Math.pow(2, (a - 69)/12));
+				} else if (event.type === XMIEventType.NOTE_OFF) {
+					let a = event.data[0];
+					let b = event.data[1];
+					console.log("Note off", a, b);
+					let o = osc[event.channel];
+					stoposc(event.channel, 440 * Math.pow(2, (a - 69)/12));
+				} else if (event.type === XMIEventType.CONTROLLER) {
+					let a = event.data[0];
+					let b = event.data[1];
+					if (a === 116) {
+						console.log("Start loop", b);
+					} else if (a === 117) {
+						console.log("End loop", b);
+					}
+				} else if (event.type === XMIEventType.PITCH_BEND) {
+					let a = event.data[0];
+					let b = event.data[1];
+					let value = ((a & 0x7F) << 7) | ((b & 0x7F) << 0);
+					let o = osc[event.channel];
+					console.log("Pitch bend", value);
+				}
+				xmi_delay = xmi.events[xmi_offset].time;
+				console.log(xmi_delay);
+			}
+		}
+	}
 	context.clear(context.COLOR_BUFFER_BIT);
 	updateCycle();
 	if (is.present(map) && is.present(tileset)) {
@@ -1942,8 +2252,3 @@ window.addEventListener("resize", () => {
 	resize();
 });
 resize();
-{
-	let context = new AudioContext({
-		sampleRate: 44100
-	});
-}

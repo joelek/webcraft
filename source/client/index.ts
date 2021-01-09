@@ -1793,7 +1793,7 @@ async function load(dataProvider: DataProvider): Promise<void> {
 		state[i] = false;
 		osc[i].connect(ac.destination);
 	}
-	setEntityColor("green");
+	setEntityColor("blue");
 }
 
 async function loadTileset(context: WebGL2RenderingContext, archive: Archive, endianness: Endianness, tilesetIndex: number, tilesIndex: number, paletteIndex: number): Promise<Array<WebGLTexture>> {

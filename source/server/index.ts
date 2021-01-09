@@ -1,6 +1,6 @@
 import * as libfs from "fs";
 
-const DEBUG = false;
+const DEBUG = true;
 
 function decompressRecord(archive: Buffer, cursor: number): Buffer {
 	let header = archive.readUInt32LE(cursor); cursor += 4;
@@ -200,9 +200,9 @@ function xmi2mid_one(source: string, target: string): void {
 					if (event < 0x08) {
 						throw `Invalid event ${event} @ ${options.cursor-1} ${delay}`;
 					} else if (event === 0x8) {
-						if (DEBUG) console.log(`Note off @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
+						if (DEBUG) console.log(`Note off @ ${options.cursor-3}, channel: ${channel}`, a, b);
 						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
 						events.push({
 							timestamp: g_ticks,
@@ -210,9 +210,9 @@ function xmi2mid_one(source: string, target: string): void {
 							event: Buffer.of(byte, a, b)
 						});
 					} else if (event === 0x9) {
-						if (DEBUG) console.log(`Note on @ ${options.cursor-1}`, delay);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
+						if (DEBUG) console.log(`Note on @ ${options.cursor-3}, channel: ${channel}`, a, b);
 						let ticks = readVarlen(buffer, options);
 						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
 						events.push({
@@ -228,9 +228,9 @@ function xmi2mid_one(source: string, target: string): void {
 						//libfs.writeSync(fd, writeVarlen(ticks));
 						//libfs.writeSync(fd, Uint8Array.of((0x8 << 4) | channel, a, 64));
 					} else if (event === 0xA) {
-						if (DEBUG) console.log(`Polyphonic key pressure @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
+						if (DEBUG) console.log(`Polyphonic key pressure @ ${options.cursor-3}, channel: ${channel}`, a, b);
 						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
 						events.push({
 							timestamp: g_ticks,
@@ -238,9 +238,9 @@ function xmi2mid_one(source: string, target: string): void {
 							event: Buffer.of(byte, a, b)
 						});
 					} else if (event === 0xB) {
-						if (DEBUG) console.log(`Controller @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
+						if (DEBUG) console.log(`Controller @ ${options.cursor-3}, channel: ${channel}`, a, b);
 						if (a === 116) {
 							console.log("\tstart loop", b);
 						} else if (a === 117) {
@@ -253,8 +253,8 @@ function xmi2mid_one(source: string, target: string): void {
 							event: Buffer.of(byte, a, b)
 						});
 					} else if (event === 0xC) {
-						if (DEBUG) console.log(`Instrument change @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
+						if (DEBUG) console.log(`Instrument change @ ${options.cursor-2}, channel: ${channel}`, a);
 						//libfs.writeSync(fd, Uint8Array.of(byte, a));
 						events.push({
 							timestamp: g_ticks,
@@ -262,8 +262,8 @@ function xmi2mid_one(source: string, target: string): void {
 							event: Buffer.of(byte, a)
 						});
 					} else if (event === 0xD) {
-						if (DEBUG) console.log(`Channel pressure @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
+						if (DEBUG) console.log(`Channel pressure @ ${options.cursor-2}, channel: ${channel}`, a);
 						//libfs.writeSync(fd, Uint8Array.of(byte, a));
 						events.push({
 							timestamp: g_ticks,
@@ -271,9 +271,9 @@ function xmi2mid_one(source: string, target: string): void {
 							event: Buffer.of(byte, a)
 						});
 					} else if (event === 0xE) {
-						if (DEBUG) console.log(`Pitch bend @ ${options.cursor-1}`);
 						let a = buffer.readUInt8(options.cursor); options.cursor += 1;
 						let b = buffer.readUInt8(options.cursor); options.cursor += 1;
+						if (DEBUG) console.log(`Pitch bend @ ${options.cursor-3}, channel: ${channel}`, a, b);
 						console.log("pb", ((a & 0x7F) << 7) | ((b & 0x7F) << 0));
 						//libfs.writeSync(fd, Uint8Array.of(byte, a, b));
 						events.push({

@@ -1,2 +1,2 @@
-export * from "./decoder";
+export * from "./assert";
 export * from "./tables";

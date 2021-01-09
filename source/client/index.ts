@@ -1789,9 +1789,11 @@ async function load(dataProvider: DataProvider): Promise<void> {
 	let ac = new AudioContext();
 	for (let i = 0; i < 16; i++) {
 		osc[i] = ac.createOscillator();
+		osc[i].type = "square";
 		state[i] = false;
 		osc[i].connect(ac.destination);
 	}
+	setEntityColor("green");
 }
 
 async function loadTileset(context: WebGL2RenderingContext, archive: Archive, endianness: Endianness, tilesetIndex: number, tilesIndex: number, paletteIndex: number): Promise<Array<WebGLTexture>> {
@@ -1992,6 +1994,34 @@ function updateCycle() {
 	update(121, 6, "reverse");
 }
 
+function setEntityColor(color: "red" | "green" | "blue" | "white"): void {
+	if (color === "red") {
+		for (let i = 0; i < 8; i++) {
+			colorCycleBuffer[176 + i] = 176 + i;
+			colorCycleBuffer[200 + i] = 176 + i;
+		}
+	} else if (color === "green") {
+		for (let i = 0; i < 8; i++) {
+			colorCycleBuffer[176 + i] = 168 + i;
+			colorCycleBuffer[200 + i] = 168 + i;
+		}
+	} else if (color === "blue") {
+		for (let i = 0; i < 8; i++) {
+			colorCycleBuffer[176 + i] = 200 + i;
+			colorCycleBuffer[200 + i] = 200 + i;
+		}
+	} else if (color === "white") {
+		for (let i = 0; i < 8; i++) {
+			colorCycleBuffer[176 + i] = 184 + i;
+			colorCycleBuffer[200 + i] = 184 + i;
+		}
+	}
+	context.activeTexture(context.TEXTURE2);
+	context.bindTexture(context.TEXTURE_2D, colorCycleTexture);
+	context.texSubImage2D(context.TEXTURE_2D, 0, 176, 0, 8, 1, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer, 176);
+	context.texSubImage2D(context.TEXTURE_2D, 0, 200, 0, 8, 1, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer, 200);
+}
+
 let textures = new Array<WebGLTexture>();
 let entity = 0;
 let offset: number | undefined;
@@ -2046,6 +2076,10 @@ let xmi_delay = 0;
 let osc = new Array<OscillatorNode>();
 let state = new Array<boolean>();
 function startosc(channel: number, freq: number): void {
+	console.log(channel);
+	if (channel !== 0) {
+		return;
+	}
 	let o = osc[channel];
 	o.frequency.value = freq;
 	if (!state[channel]) {
@@ -2064,20 +2098,19 @@ function stoposc(channel: number, freq: number): void {
 async function render(ms: number): Promise<void> {
 	if (is.present(xmi)) {
 		if (xmi_delay > 0) {
-			xmi_delay -= 1;
+			xmi_delay -= 2;
 		} else {
+			xmi_delay = 0;
 			while (xmi_delay === 0) {
 				let event = xmi.events[xmi_offset++];
 				if (false) {
 				} else if (event.type < XMIEventType.NOTE_ON) {
 					let a = event.data[0];
 					let b = event.data[1];
-					console.log("Note on", a, b);
 					startosc(event.channel, 440 * Math.pow(2, (a - 69)/12));
 				} else if (event.type === XMIEventType.NOTE_OFF) {
 					let a = event.data[0];
 					let b = event.data[1];
-					console.log("Note off", a, b);
 					let o = osc[event.channel];
 					stoposc(event.channel, 440 * Math.pow(2, (a - 69)/12));
 				} else if (event.type === XMIEventType.CONTROLLER) {
@@ -2093,10 +2126,8 @@ async function render(ms: number): Promise<void> {
 					let b = event.data[1];
 					let value = ((a & 0x7F) << 7) | ((b & 0x7F) << 0);
 					let o = osc[event.channel];
-					console.log("Pitch bend", value);
 				}
 				xmi_delay = xmi.events[xmi_offset].time;
-				console.log(xmi_delay);
 			}
 		}
 	}

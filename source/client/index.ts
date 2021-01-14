@@ -1011,7 +1011,6 @@ class XmiFile {
 				}
 			}
 		}
-		console.log(JSON.stringify(this.events, null, 2))
 		this.events.sort((one, two) => {
 			if (one.time < two.time) {
 				return -1;
@@ -2080,9 +2079,10 @@ async function startosc(channel: number, midikey: number): Promise<void> {
 	//o.frequency.value = freq;
 	//o.playbackRate =
 	if (!state[channel]) {
-		let o = osc[channel] = await synth.banks[0].programs[instruments[channel]].getBuffer(audio_context);
-		let semitones = midikey - synth.banks[0].programs[instruments[channel]].sample_header.original_key.value;
-		let cents = semitones * 100;
+		let program = synth.banks[0].programs[instruments[channel]];
+		let o = osc[channel] = await program.getBuffer(audio_context);
+		let semitones = midikey - program.sample_header.original_key.value;
+		let cents = semitones * 100 + program.sample_header.correction.value;
 		o.detune.value = cents;
 		o.connect(audio_context.destination);
 		o.start();

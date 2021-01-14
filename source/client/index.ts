@@ -1,5 +1,6 @@
 import * as shared from "../shared";
 import * as binary from "../shared/binary.web";
+import { WavetableSynth } from "./synth";
 
 namespace is {
 	export function absent<A>(subject: A | null | undefined): subject is null | undefined {
@@ -747,6 +748,9 @@ class VocFile {
 	}
 
 	async play(): Promise<void> {
+		if (is.absent(audio_context)) {
+			audio_context = new AudioContext();
+		}
 		if (this.blocks.length === 0) {
 			return;
 		}
@@ -766,8 +770,7 @@ class VocFile {
 		let bytesPerFrame = bytesPerChannel * channels;
 		let samples = (dataProvider.size() - cursor) / bytesPerFrame;
 		let sampleRate = Math.floor(1000000 / (256 - header.frequency.value));
-		let context = new AudioContext();
-		let buffer = context.createBuffer(channels, samples, sampleRate);
+		let buffer = audio_context.createBuffer(channels, samples, sampleRate);
 		if (bytesPerChannel === 1) {
 			let sample = new ui08(this.endianness);
 			for (let s = 0; s < samples; s++) {
@@ -789,9 +792,9 @@ class VocFile {
 		} else {
 			throw `Expected 8 or 16 bits per sample!`;
 		}
-		let source = context.createBufferSource();
+		let source = audio_context.createBufferSource();
 		source.buffer = buffer;
-		source.connect(context.destination);
+		source.connect(audio_context.destination);
 		source.start();
 	}
 }
@@ -1631,7 +1634,8 @@ namespace wc1 {
 
 // ============================================================================
 
-let soundfont: shared.formats.soundfont.File | undefined;
+let audio_context: AudioContext | undefined;
+let synth: WavetableSynth | undefined;
 let canvas = document.createElement("canvas");
 let context = canvas.getContext("webgl2") as WebGL2RenderingContext;
 if (is.absent(context)) {
@@ -1758,6 +1762,9 @@ let archive: Archive | undefined;
 let xmi: XmiFile | undefined;
 
 async function load(dataProvider: DataProvider): Promise<void> {
+	if (is.absent(audio_context)) {
+		audio_context = new AudioContext();
+	}
 	archive = new Archive(dataProvider, endianness);
 	tileset = await loadTileset(context, archive, endianness, 189, 190, 191);
 	//tileset = await loadTileset(context, archive, endianness, 192, 193, 194);
@@ -1772,12 +1779,11 @@ async function load(dataProvider: DataProvider): Promise<void> {
 	}
 	xmi = await new XmiFile().load(await archive.getRecord(0));
 	xmi_delay = xmi.events[0].time;
-	let ac = new AudioContext();
 	for (let i = 0; i < 16; i++) {
-		osc[i] = ac.createOscillator();
-		osc[i].type = "square";
+		osc[i] = audio_context.createBufferSource();
+		//osc[i].type = "square";
 		state[i] = false;
-		osc[i].connect(ac.destination);
+		osc[i].connect(audio_context.destination);
 	}
 	setEntityColor("blue");
 }
@@ -2059,15 +2065,16 @@ let tileset: Array<WebGLTexture> | undefined;
 let map: Array<number>;
 let xmi_offset = 0;
 let xmi_delay = 0;
-let osc = new Array<OscillatorNode>();
+let osc = new Array<AudioBufferSourceNode>();
 let state = new Array<boolean>();
 function startosc(channel: number, freq: number): void {
-	console.log(channel);
-	if (channel !== 0) {
+	if (is.absent(synth)) {
 		return;
 	}
-	let o = osc[channel];
-	o.frequency.value = freq;
+	console.log(channel);
+	let o = osc[channel] = synth.banks[0].programs[0].source;
+	//o.frequency.value = freq;
+	//o.playbackRate =
 	if (!state[channel]) {
 		o.start();
 		state[channel] = true;
@@ -2075,7 +2082,7 @@ function startosc(channel: number, freq: number): void {
 }
 function stoposc(channel: number, freq: number): void {
 	let o = osc[channel];
-	o.frequency.value = freq;
+	//o.frequency.value = freq;
 	if (state[channel]) {
 		o.stop();
 		state[channel] = false;
@@ -2247,16 +2254,20 @@ window.addEventListener("keyup", async (event) => {
 canvas.addEventListener("drop", async (event) => {
 	event.stopPropagation();
 	event.preventDefault();
+	if (is.absent(audio_context)) {
+		audio_context = new AudioContext();
+	}
 	let dataTransfer = event.dataTransfer;
 	if (is.present(dataTransfer)) {
 		let files = dataTransfer.files;
 		for (let file of files) {
 			if (file.name === "gm.sf2") {
 				let cursor = new binary.Cursor();
-				let reader = new binary.WebFileReader(file);
+				let reader = new binary.CachedReader(new binary.WebFileReader(file));
 				let sf = new shared.formats.soundfont.File();
 				await sf.load(cursor, reader);
-				soundfont = sf;
+				synth = await WavetableSynth.fromSoundfont(audio_context, sf);
+				console.log("synth initialized");
 			} else {
 				let dataProvider = await new FileDataProvider(file).buffer();
 				await load(dataProvider);

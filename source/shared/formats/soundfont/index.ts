@@ -16,56 +16,39 @@ export enum SampleLink {
 };
 */
 
-export class Ranges extends Chunk {
-	readonly lo: Integer1;
-	readonly hi: Integer1;
+
+
+export class GeneratorParameters extends Chunk {
+	readonly first: Integer1;
+	readonly second: Integer1;
+	readonly signed: Integer2;
+	readonly unsigned: Integer2;
 
 	constructor(options?: Partial<{ buffer: Buffer }>) {
 		let buffer = options?.buffer ?? Buffer.alloc(2);
 		IntegerAssert.exactly(buffer.size(), 2);
 		super(buffer);
-		this.lo = new Integer1({
+		this.first = new Integer1({
 			buffer: buffer.window({ offset: 0, length: 1 })
 		});
-		this.hi = new Integer1({
+		this.second = new Integer1({
 			buffer: buffer.window({ offset: 1, length: 1 })
 		});
-	}
-
-	toJSON() {
-		return {
-			lo: this.lo.value,
-			hi: this.hi.value
-		};
-	}
-};
-
-export class GeneratorAmount extends Chunk {
-	readonly ranges: Ranges;
-	readonly amount_signed: Integer2;
-	readonly amount: Integer2;
-
-	constructor(options?: Partial<{ buffer: Buffer }>) {
-		let buffer = options?.buffer ?? Buffer.alloc(2);
-		IntegerAssert.exactly(buffer.size(), 2);
-		super(buffer);
-		this.ranges = new Ranges({
-			buffer: buffer.window({ offset: 0, length: 2 })
-		});
-		this.amount_signed = new Integer2({
+		this.signed = new Integer2({
 			buffer: buffer.window({ offset: 0, length: 2 }),
 			complement: "twos"
 		});
-		this.amount = new Integer2({
+		this.unsigned = new Integer2({
 			buffer: buffer.window({ offset: 0, length: 2 })
 		});
 	}
 
 	toJSON() {
 		return {
-			ranges: this.ranges.toJSON(),
-			amount_signed: this.amount_signed.value,
-			amount: this.amount.value
+			first: this.first.value,
+			second: this.second.value,
+			amount_signed: this.signed.value,
+			amount: this.unsigned.value
 		};
 	}
 };
@@ -112,13 +95,14 @@ export class Modulator extends Integer2 {
 	}
 };
 
+// TODO: Extend from chunk?
 export class Generator extends Integer2 {
-	readonly index: PackedInteger2;
+	readonly type: PackedInteger2;
 	readonly link: PackedInteger2;
 
 	constructor(options?: Partial<{ buffer: Buffer }>) {
 		super(options);
-		this.index = new PackedInteger2(this, {
+		this.type = new PackedInteger2(this, {
 			offset: 0,
 			length: 15
 		});
@@ -130,7 +114,7 @@ export class Generator extends Integer2 {
 
 	toJSON() {
 		return {
-			index: this.index.value,
+			type: this.type.value,
 			link: this.link.value
 		};
 	}
@@ -311,7 +295,7 @@ export class PresetModulator extends Chunk {
 
 export class PresetGenerator extends Chunk {
 	readonly generator: Generator;
-	readonly amount: GeneratorAmount;
+	readonly parameters: GeneratorParameters;
 
 	constructor(options?: Partial<{ buffer: Buffer }>) {
 		let buffer = options?.buffer ?? Buffer.alloc(4);
@@ -323,7 +307,7 @@ export class PresetGenerator extends Chunk {
 				length: 2
 			})
 		});
-		this.amount = new GeneratorAmount({
+		this.parameters = new GeneratorParameters({
 			buffer: buffer.window({
 				offset: 2,
 				length: 2
@@ -334,7 +318,7 @@ export class PresetGenerator extends Chunk {
 	toJSON() {
 		return {
 			generator: this.generator.toJSON(),
-			amount: this.amount.toJSON()
+			amount: this.parameters.toJSON()
 		};
 	}
 };
@@ -456,7 +440,7 @@ export class InstrumentModulator extends Chunk {
 
 export class InstrumentGenerator extends Chunk {
 	readonly generator: Generator;
-	readonly amount: GeneratorAmount;
+	readonly parameters: GeneratorParameters;
 
 	constructor(options?: Partial<{ buffer: Buffer }>) {
 		let buffer = options?.buffer ?? Buffer.alloc(4);
@@ -468,7 +452,7 @@ export class InstrumentGenerator extends Chunk {
 				length: 2
 			})
 		});
-		this.amount = new GeneratorAmount({
+		this.parameters = new GeneratorParameters({
 			buffer: buffer.window({
 				offset: 2,
 				length: 2
@@ -479,7 +463,7 @@ export class InstrumentGenerator extends Chunk {
 	toJSON() {
 		return {
 			generator: this.generator.value,
-			amount: this.amount.toJSON()
+			amount: this.parameters.toJSON()
 		};
 	}
 };
@@ -607,6 +591,7 @@ export class File implements Loadable {
 	}
 
 	async load(cursor: Cursor, reader: Reader): Promise<this> {
+		// TODO: Reset state or make static.
 		let chunk = await riff.File.parseChunk(cursor, reader);
 		console.log("" + chunk.header.type.value + ": " + chunk.header.size.value);
 		StringAssert.identical(chunk.header.type.value, "RIFF");

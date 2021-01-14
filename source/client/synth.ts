@@ -42,3 +42,98 @@ general midi has 128 instruments, channel 10 has different ones
 set instrument sets the instrument of the channel
 
 */
+
+import { is } from "../shared";
+import { Buffer, Cursor } from "../shared/binary";
+import { Integer2 } from "../shared/binary/chunks";
+import * as soundfont from "../shared/formats/soundfont";
+
+export class Program {
+	source: AudioBufferSourceNode;
+
+	constructor() {
+		this.source = undefined as any as AudioBufferSourceNode;
+	}
+};
+
+export class Bank {
+	readonly programs: Array<Program>;
+
+	constructor() {
+		this.programs = new Array<Program>(128).fill(new Program());
+	}
+};
+
+export class WavetableSynth {
+	readonly banks: Array<Bank>;
+
+	constructor() {
+		this.banks = new Array<Bank>(10).fill(new Bank());
+	}
+
+	static async fromSoundfont(context: AudioContext, file: soundfont.File): Promise<WavetableSynth> {
+		let synth = new WavetableSynth();
+		outer: for (let preset_header of file.phdr) {
+			let bank = synth.banks[preset_header.bank.value];
+			if (is.absent(bank)) {
+				continue;
+			}
+			let program = bank.programs[preset_header.preset.value];
+			if (is.absent(program)) {
+				continue;
+			}
+			let preset_bag = file.pbag[preset_header.pbag_index.value];
+			if (is.absent(preset_bag)) {
+				continue;
+			}
+			let preset_generator = file.pgen[preset_bag.pgen_index.value];
+			if (is.absent(preset_generator)) {
+				continue;
+			}
+			let preset_generator_index = preset_generator.generator.type.value;
+			if (preset_generator_index !== 41) {
+				continue;
+			}
+			let instrument = file.inst[preset_generator.parameters.signed.value];
+			if (is.absent(instrument)) {
+				continue;
+			}
+			let instrument_bag = file.ibag[instrument.ibag_index.value];
+			if (is.absent(instrument_bag)) {
+				continue;
+			}
+			let igen_index = instrument_bag.igen_index.value;
+			inner: while (igen_index < file.igen.length) {
+				let generator = file.igen[igen_index++];
+				if (is.absent(generator)) {
+					continue outer;
+				}
+				let type = generator.generator.type.value;
+				if (type === 53) {
+					let sample_header = file.shdr[generator.parameters.signed.value];
+					if (is.absent(sample_header)) {
+						continue outer;
+					}
+					let sample_count = sample_header.end.value - sample_header.start.value;
+					let reader = file.smpl;
+					let cursor = new Cursor({ offset: sample_header.start.value * 2 });
+					let buffer = context.createBuffer(1, sample_count, sample_header.sample_rate.value);
+					let sample = new Integer2({ complement: "twos" });
+					for (let s = 0; s < sample_count; s++) {
+						await sample.load(cursor, reader);
+						let value = ((sample.value + 32768) / 65535) * 2.0 - 1.0;
+						buffer.getChannelData(0)[s] = value;
+					}
+					program.source = context.createBufferSource();
+					program.source.buffer = buffer;
+					program.source.loopStart = (sample_header.loop_start.value - sample_header.start.value) / sample_header.sample_rate.value;
+					program.source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;
+					program.source.loop = true;
+					program.source.connect(context.destination);
+					break inner;
+				}
+			}
+		}
+		return synth;
+	}
+};

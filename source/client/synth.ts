@@ -49,22 +49,44 @@ import { Integer2 } from "../shared/binary/chunks";
 import * as soundfont from "../shared/formats/soundfont";
 
 export class Program {
-	sample_header: soundfont.SampleHeader;
-	reader: Reader;
+	file: soundfont.File;
+	igen_index: number;
 	buffer: AudioBuffer | undefined;
 
 	constructor() {
-		this.sample_header = new soundfont.SampleHeader();
-		this.reader = new BufferReader();
+		this.file = new soundfont.File();
+		this.igen_index = 0;
 	}
 
-	async getBuffer(context: AudioContext): Promise<AudioBufferSourceNode> {
+	async getBuffer(context: AudioContext): Promise<{ buffer: AudioBufferSourceNode, cents: number }> {
 		let buffer = this.buffer;
+		let sample_header = new soundfont.SampleHeader();
+		let igen_index = this.igen_index;
+		while (igen_index < this.file.igen.length) {
+			let generator = this.file.igen[igen_index++];
+			if (is.absent(generator)) {
+				throw ``;
+			}
+			let type = generator.generator.type.value;
+			if (is.absent(buffer)) {
+				console.log(type, generator.parameters.signed.value);
+			}
+			if (type === soundfont.GeneratorType.SAMPLE_ID) {
+				if (is.absent(buffer)) {
+					console.log("");
+				}
+				sample_header = this.file.shdr[generator.parameters.signed.value];
+				if (is.absent(sample_header)) {
+					throw ``;
+				}
+				break;
+			}
+		}
 		if (is.absent(buffer)) {
-			let sample_count = this.sample_header.end.value - this.sample_header.start.value;
-			let reader = this.reader;
-			let cursor = new Cursor({ offset: this.sample_header.start.value * 2 });
-			buffer = context.createBuffer(1, sample_count, this.sample_header.sample_rate.value);
+			let sample_count = sample_header.end.value - sample_header.start.value;
+			let reader = this.file.smpl;
+			let cursor = new Cursor({ offset: sample_header.start.value * 2 });
+			buffer = context.createBuffer(1, sample_count, sample_header.sample_rate.value);
 			let sample = new Integer2({ complement: "twos" });
 			for (let s = 0; s < sample_count; s++) {
 				await sample.load(cursor, reader);
@@ -75,10 +97,14 @@ export class Program {
 		}
 		let source = context.createBufferSource();
 		source.buffer = buffer;
-		source.loopStart = (this.sample_header.loop_start.value - this.sample_header.start.value) / this.sample_header.sample_rate.value;
-		source.loopEnd = (this.sample_header.loop_end.value - this.sample_header.start.value) / this.sample_header.sample_rate.value;
+		source.loopStart = (sample_header.loop_start.value - sample_header.start.value) / sample_header.sample_rate.value;
+		source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;
 		source.loop = true;
-		return source;
+		let cents = sample_header.original_key.value * 100 + sample_header.correction.value;
+		return {
+			buffer: source,
+			cents: cents
+		};
 	}
 };
 
@@ -134,23 +160,8 @@ export class WavetableSynth {
 			if (is.absent(instrument_bag)) {
 				continue;
 			}
-			let igen_index = instrument_bag.igen_index.value;
-			inner: while (igen_index < file.igen.length) {
-				let generator = file.igen[igen_index++];
-				if (is.absent(generator)) {
-					continue outer;
-				}
-				let type = generator.generator.type.value;
-				if (type === 53) {
-					let sample_header = file.shdr[generator.parameters.signed.value];
-					if (is.absent(sample_header)) {
-						continue outer;
-					}
-					program.sample_header = sample_header;
-					program.reader = file.smpl;
-					break inner;
-				}
-			}
+			program.file = file;
+			program.igen_index = instrument_bag.igen_index.value;
 		}
 		return synth;
 	}

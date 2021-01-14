@@ -1782,13 +1782,7 @@ async function load(dataProvider: DataProvider): Promise<void> {
 	}
 	xmi = await new XmiFile().load(await archive.getRecord(0));
 	xmi_delay = xmi.events[0].time;
-	for (let i = 0; i < 16; i++) {
-		osc[i] = audio_context.createBufferSource();
-		//osc[i].type = "square";
-		state[i] = false;
-		osc[i].connect(audio_context.destination);
-	}
-	setEntityColor("blue");
+	//setEntityColor("red");
 }
 
 async function loadTileset(context: WebGL2RenderingContext, archive: Archive, endianness: Endianness, tilesetIndex: number, tilesIndex: number, paletteIndex: number): Promise<Array<WebGLTexture>> {
@@ -2072,11 +2066,8 @@ let xmi_delay = 0;
 let osc = new Array<AudioBufferSourceNode>();
 let state = new Array<boolean>();
 let instruments = new Array(16).fill(0);
-async function startosc(channel: number, midikey: number): Promise<void> {
+async function startosc(channel: number, midikey: number, two: number): Promise<void> {
 	if (is.absent(synth) || is.absent(audio_context)) {
-		return;
-	}
-	if (channel === 9) {
 		return;
 	}
 	//440 * Math.pow(2, (a - 69)/12)
@@ -2084,16 +2075,16 @@ async function startosc(channel: number, midikey: number): Promise<void> {
 	//o.playbackRate =
 	if (!state[channel]) {
 		let program = synth.banks[0].programs[instruments[channel]];
-		let o = osc[channel] = await program.getBuffer(audio_context);
-		let semitones = midikey - program.sample_header.original_key.value;
-		let cents = semitones * 100 + program.sample_header.correction.value;
+		let b = await program.getBuffer(audio_context);
+		let o = osc[channel] = b.buffer;
+		let cents = midikey * 100 - b.cents;
 		o.detune.value = cents;
 		o.connect(audio_context.destination);
 		o.start();
 		state[channel] = true;
 	}
 }
-function stoposc(channel: number, midikey: number): void {
+function stoposc(channel: number, midikey: number, two: number): void {
 	let o = osc[channel];
 	//o.frequency.value = freq;
 	if (state[channel]) {
@@ -2110,15 +2101,14 @@ async function soundUpdate(): Promise<void> {
 			while (xmi_delay === 0) {
 				let event = xmi.events[xmi_offset];
 				if (false) {
-				} else if (event.type === XMIEventType.NOTE_ON) {
-					let a = event.data[0];
-					let b = event.data[1];
-					await startosc(event.channel, a);
 				} else if (event.type === XMIEventType.NOTE_OFF) {
 					let a = event.data[0];
 					let b = event.data[1];
-					let o = osc[event.channel];
-					stoposc(event.channel, a);
+					stoposc(event.channel, a, b);
+				} else if (event.type === XMIEventType.NOTE_ON) {
+					let a = event.data[0];
+					let b = event.data[1];
+					await startosc(event.channel, a, b);
 				} else if (event.type === XMIEventType.INSTRUMENT_CHANGE) {
 					let a = event.data[0];
 					let o = instruments[event.channel] = a;
@@ -2137,6 +2127,8 @@ async function soundUpdate(): Promise<void> {
 					let b = event.data[1];
 					let value = ((a & 0x7F) << 7) | ((b & 0x7F) << 0);
 					let o = osc[event.channel];
+				} else if (event.type === XMIEventType.SYSEX) {
+
 				}
 				xmi_offset += 1;
 				xmi_delay = xmi.events[xmi_offset].time;
@@ -2289,6 +2281,9 @@ canvas.addEventListener("drop", async (event) => {
 	event.preventDefault();
 	if (is.absent(audio_context)) {
 		audio_context = new AudioContext();
+		for (let i = 0; i < 16; i++) {
+			osc[i] = audio_context.createBufferSource();
+		}
 	}
 	let dataTransfer = event.dataTransfer;
 	if (is.present(dataTransfer)) {

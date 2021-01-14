@@ -44,36 +44,66 @@ set instrument sets the instrument of the channel
 */
 
 import { is } from "../shared";
-import { Buffer, Cursor } from "../shared/binary";
+import { BufferReader, Cursor, Reader } from "../shared/binary";
 import { Integer2 } from "../shared/binary/chunks";
 import * as soundfont from "../shared/formats/soundfont";
 
 export class Program {
-	source: AudioBufferSourceNode;
-	key: number;
+	sample_header: soundfont.SampleHeader;
+	reader: Reader;
+	buffer: AudioBuffer | undefined;
 
 	constructor() {
-		this.source = undefined as any as AudioBufferSourceNode;
-		this.key = 60;
+		this.sample_header = new soundfont.SampleHeader();
+		this.reader = new BufferReader();
+	}
+
+	async getBuffer(context: AudioContext): Promise<AudioBufferSourceNode> {
+		let buffer = this.buffer;
+		if (is.absent(buffer)) {
+			let sample_count = this.sample_header.end.value - this.sample_header.start.value;
+			let reader = this.reader;
+			let cursor = new Cursor({ offset: this.sample_header.start.value * 2 });
+			buffer = context.createBuffer(1, sample_count, this.sample_header.sample_rate.value);
+			let sample = new Integer2({ complement: "twos" });
+			for (let s = 0; s < sample_count; s++) {
+				await sample.load(cursor, reader);
+				let value = ((sample.value + 32768) / 65535) * 2.0 - 1.0;
+				buffer.getChannelData(0)[s] = value;
+			}
+			this.buffer = buffer;
+		}
+		let source = context.createBufferSource();
+		source.buffer = buffer;
+		source.loopStart = (this.sample_header.loop_start.value - this.sample_header.start.value) / this.sample_header.sample_rate.value;
+		source.loopEnd = (this.sample_header.loop_end.value - this.sample_header.start.value) / this.sample_header.sample_rate.value;
+		source.loop = true;
+		return source;
 	}
 };
 
 export class Bank {
-	readonly programs: Array<Program>;
+	programs: Array<Program>;
 
 	constructor() {
-		this.programs = new Array<Program>(128).fill(new Program());
+		this.programs = new Array<Program>();
+		for (let i = 0; i < 128; i++) {
+			this.programs.push(new Program());
+		}
 	}
 };
 
 export class WavetableSynth {
-	readonly banks: Array<Bank>;
+	banks: Array<Bank>;
 
 	constructor() {
-		this.banks = new Array<Bank>(10).fill(new Bank());
+		this.banks = new Array<Bank>();
+		for (let i = 0; i < 10; i++) {
+			this.banks.push(new Bank());
+		}
 	}
 
-	static async fromSoundfont(context: AudioContext, file: soundfont.File): Promise<WavetableSynth> {
+	static async fromSoundfont(file: soundfont.File): Promise<WavetableSynth> {
 		let synth = new WavetableSynth();
 		outer: for (let preset_header of file.phdr) {
 			let bank = synth.banks[preset_header.bank.value];
@@ -116,23 +146,8 @@ export class WavetableSynth {
 					if (is.absent(sample_header)) {
 						continue outer;
 					}
-					let sample_count = sample_header.end.value - sample_header.start.value;
-					let reader = file.smpl;
-					let cursor = new Cursor({ offset: sample_header.start.value * 2 });
-					let buffer = context.createBuffer(1, sample_count, sample_header.sample_rate.value);
-					let sample = new Integer2({ complement: "twos" });
-					for (let s = 0; s < sample_count; s++) {
-						await sample.load(cursor, reader);
-						let value = ((sample.value + 32768) / 65535) * 2.0 - 1.0;
-						buffer.getChannelData(0)[s] = value;
-					}
-					program.source = context.createBufferSource();
-					program.source.buffer = buffer;
-					program.source.loopStart = (sample_header.loop_start.value - sample_header.start.value) / sample_header.sample_rate.value;
-					program.source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;
-					program.source.loop = true;
-					program.source.connect(context.destination);
-					program.key = sample_header.original_key.value;
+					program.sample_header = sample_header;
+					program.reader = file.smpl;
 					break inner;
 				}
 			}

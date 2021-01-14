@@ -1011,6 +1011,7 @@ class XmiFile {
 				}
 			}
 		}
+		console.log(JSON.stringify(this.events, null, 2))
 		this.events.sort((one, two) => {
 			if (one.time < two.time) {
 				return -1;
@@ -2067,24 +2068,24 @@ let xmi_offset = 0;
 let xmi_delay = 0;
 let osc = new Array<AudioBufferSourceNode>();
 let state = new Array<boolean>();
-function startosc(channel: number, midikey: number): void {
+let instruments = new Array(16).fill(0);
+async function startosc(channel: number, midikey: number): Promise<void> {
 	if (is.absent(synth) || is.absent(audio_context)) {
 		return;
 	}
 	console.log(channel);
-	let o = osc[channel] = audio_context.createBufferSource();
-	o.buffer = synth.banks[0].programs[0].source.buffer;
-	o.loopStart = synth.banks[0].programs[0].source.loopStart;
-	o.loopEnd = synth.banks[0].programs[0].source.loopEnd;
-	o.loop = synth.banks[0].programs[0].source.loop;
-	let semitones = midikey - synth.banks[0].programs[0].key;
-	let cents = semitones * 100;
-	o.detune.value = cents;
+	if (channel === 9) {
+		return;
+	}
 	//440 * Math.pow(2, (a - 69)/12)
-	o.connect(audio_context.destination);
 	//o.frequency.value = freq;
 	//o.playbackRate =
 	if (!state[channel]) {
+		let o = osc[channel] = await synth.banks[0].programs[instruments[channel]].getBuffer(audio_context);
+		let semitones = midikey - synth.banks[0].programs[instruments[channel]].sample_header.original_key.value;
+		let cents = semitones * 100;
+		o.detune.value = cents;
+		o.connect(audio_context.destination);
 		o.start();
 		state[channel] = true;
 	}
@@ -2106,15 +2107,18 @@ async function render(ms: number): Promise<void> {
 			while (xmi_delay === 0) {
 				let event = xmi.events[xmi_offset++];
 				if (false) {
-				} else if (event.type < XMIEventType.NOTE_ON) {
+				} else if (event.type === XMIEventType.NOTE_ON) {
 					let a = event.data[0];
 					let b = event.data[1];
-					startosc(event.channel, a);
+					await startosc(event.channel, a);
 				} else if (event.type === XMIEventType.NOTE_OFF) {
 					let a = event.data[0];
 					let b = event.data[1];
 					let o = osc[event.channel];
 					stoposc(event.channel, a);
+				} else if (event.type === XMIEventType.INSTRUMENT_CHANGE) {
+					let a = event.data[0];
+					let o = instruments[event.channel] = a;
 				} else if (event.type === XMIEventType.CONTROLLER) {
 					let a = event.data[0];
 					let b = event.data[1];
@@ -2260,6 +2264,17 @@ window.addEventListener("keyup", async (event) => {
 		} catch (error) {}
 	}
 });
+fetch("gm.sf2").then(async (response) => {
+	let array_buffer = await response.arrayBuffer()
+	let cursor = new binary.Cursor();
+	let reader = new binary.BufferReader({
+		buffer: new binary.Buffer(array_buffer)
+	});
+	let sf = new shared.formats.soundfont.File();
+	await sf.load(cursor, reader);
+	synth = await WavetableSynth.fromSoundfont(sf);
+	console.log("synth initialized");
+});
 canvas.addEventListener("drop", async (event) => {
 	event.stopPropagation();
 	event.preventDefault();
@@ -2270,17 +2285,8 @@ canvas.addEventListener("drop", async (event) => {
 	if (is.present(dataTransfer)) {
 		let files = dataTransfer.files;
 		for (let file of files) {
-			if (file.name === "gm.sf2") {
-				let cursor = new binary.Cursor();
-				let reader = new binary.CachedReader(new binary.WebFileReader(file));
-				let sf = new shared.formats.soundfont.File();
-				await sf.load(cursor, reader);
-				synth = await WavetableSynth.fromSoundfont(audio_context, sf);
-				console.log("synth initialized");
-			} else {
-				let dataProvider = await new FileDataProvider(file).buffer();
-				await load(dataProvider);
-			}
+			let dataProvider = await new FileDataProvider(file).buffer();
+			await load(dataProvider);
 		}
 	}
 });

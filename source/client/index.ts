@@ -2067,12 +2067,21 @@ let xmi_offset = 0;
 let xmi_delay = 0;
 let osc = new Array<AudioBufferSourceNode>();
 let state = new Array<boolean>();
-function startosc(channel: number, freq: number): void {
-	if (is.absent(synth)) {
+function startosc(channel: number, midikey: number): void {
+	if (is.absent(synth) || is.absent(audio_context)) {
 		return;
 	}
 	console.log(channel);
-	let o = osc[channel] = synth.banks[0].programs[0].source;
+	let o = osc[channel] = audio_context.createBufferSource();
+	o.buffer = synth.banks[0].programs[0].source.buffer;
+	o.loopStart = synth.banks[0].programs[0].source.loopStart;
+	o.loopEnd = synth.banks[0].programs[0].source.loopEnd;
+	o.loop = synth.banks[0].programs[0].source.loop;
+	let semitones = midikey - synth.banks[0].programs[0].key;
+	let cents = semitones * 100;
+	o.detune.value = cents;
+	//440 * Math.pow(2, (a - 69)/12)
+	o.connect(audio_context.destination);
 	//o.frequency.value = freq;
 	//o.playbackRate =
 	if (!state[channel]) {
@@ -2080,7 +2089,7 @@ function startosc(channel: number, freq: number): void {
 		state[channel] = true;
 	}
 }
-function stoposc(channel: number, freq: number): void {
+function stoposc(channel: number, midikey: number): void {
 	let o = osc[channel];
 	//o.frequency.value = freq;
 	if (state[channel]) {
@@ -2100,12 +2109,12 @@ async function render(ms: number): Promise<void> {
 				} else if (event.type < XMIEventType.NOTE_ON) {
 					let a = event.data[0];
 					let b = event.data[1];
-					startosc(event.channel, 440 * Math.pow(2, (a - 69)/12));
+					startosc(event.channel, a);
 				} else if (event.type === XMIEventType.NOTE_OFF) {
 					let a = event.data[0];
 					let b = event.data[1];
 					let o = osc[event.channel];
-					stoposc(event.channel, 440 * Math.pow(2, (a - 69)/12));
+					stoposc(event.channel, a);
 				} else if (event.type === XMIEventType.CONTROLLER) {
 					let a = event.data[0];
 					let b = event.data[1];

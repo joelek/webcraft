@@ -50,9 +50,11 @@ import * as soundfont from "../shared/formats/soundfont";
 
 export class Program {
 	source: AudioBufferSourceNode;
+	key: number;
 
 	constructor() {
 		this.source = undefined as any as AudioBufferSourceNode;
+		this.key = 60;
 	}
 };
 
@@ -130,6 +132,7 @@ export class WavetableSynth {
 					program.source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;
 					program.source.loop = true;
 					program.source.connect(context.destination);
+					program.key = sample_header.original_key.value;
 					break inner;
 				}
 			}

@@ -1008,6 +1008,9 @@ class XmiFile {
 						time: timestamp,
 						data: Uint8Array.of(type, ...data)
 					});
+					if (type === 0x2F) {
+						break;
+					}
 				}
 			}
 		}
@@ -2064,6 +2067,7 @@ async function loadParticleScript(archive: Archive): Promise<wc1.ParticleScriptH
 let tileset: Array<WebGLTexture> | undefined;
 let map: Array<number>;
 let xmi_offset = 0;
+let xmi_loop: undefined | number;
 let xmi_delay = 0;
 let osc = new Array<AudioBufferSourceNode>();
 let state = new Array<boolean>();
@@ -2104,7 +2108,7 @@ async function soundUpdate(): Promise<void> {
 		} else {
 			xmi_delay = 0;
 			while (xmi_delay === 0) {
-				let event = xmi.events[xmi_offset++];
+				let event = xmi.events[xmi_offset];
 				if (false) {
 				} else if (event.type === XMIEventType.NOTE_ON) {
 					let a = event.data[0];
@@ -2123,8 +2127,10 @@ async function soundUpdate(): Promise<void> {
 					let b = event.data[1];
 					if (a === 116) {
 						console.log("Start loop", b);
+						xmi_loop = xmi_offset;
 					} else if (a === 117) {
 						console.log("End loop", b);
+						xmi_offset = (xmi_loop ?? 0) - 1;
 					}
 				} else if (event.type === XMIEventType.PITCH_BEND) {
 					let a = event.data[0];
@@ -2132,6 +2138,7 @@ async function soundUpdate(): Promise<void> {
 					let value = ((a & 0x7F) << 7) | ((b & 0x7F) << 0);
 					let o = osc[event.channel];
 				}
+				xmi_offset += 1;
 				xmi_delay = xmi.events[xmi_offset].time;
 			}
 		}
@@ -2288,7 +2295,13 @@ canvas.addEventListener("drop", async (event) => {
 		let files = dataTransfer.files;
 		for (let file of files) {
 			let dataProvider = await new FileDataProvider(file).buffer();
-			await load(dataProvider);
+			if (/[.]xmi$/i.test(file.name)) {
+				xmi = await new XmiFile().load(dataProvider);
+				xmi_delay = xmi.events[0].time;
+				xmi_offset = 0;
+			} else {
+				await load(dataProvider);
+			}
 		}
 	}
 });

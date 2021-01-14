@@ -1,12 +1,12 @@
 {
 	"compilerOptions": {
 		"composite": true,
-		"module": "commonjs",
+		"module": "es6",
 		"moduleResolution": "node",
 		"outDir": "./build/",
 		"rootDir": "./source/",
 		"strict": true,
-		"target": "es6"
+		"target": "es2017"
 	},
 	"include": [],
 	"references": [

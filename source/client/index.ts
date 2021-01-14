@@ -1,5 +1,5 @@
-import { start } from "repl";
 import * as shared from "../shared";
+import * as binary from "../shared/binary.web";
 
 namespace is {
 	export function absent<A>(subject: A | null | undefined): subject is null | undefined {
@@ -1631,21 +1631,7 @@ namespace wc1 {
 
 // ============================================================================
 
-namespace soundfont {
-	export enum SampleLink {
-		MONO = 1,
-		RIGHT = 2,
-		LEFT = 4,
-		LINKED = 8,
-		ROM_MONO = 0x8000 + MONO,
-		ROM_RIGHT = 0x8000 + RIGHT,
-		ROM_LEFT = 0x8000 + LEFT,
-		ROM_LINKED = 0x8000 + LINKED,
-	};
-
-
-}
-
+let soundfont: shared.formats.soundfont.File | undefined;
 let canvas = document.createElement("canvas");
 let context = canvas.getContext("webgl2") as WebGL2RenderingContext;
 if (is.absent(context)) {
@@ -2265,8 +2251,16 @@ canvas.addEventListener("drop", async (event) => {
 	if (is.present(dataTransfer)) {
 		let files = dataTransfer.files;
 		for (let file of files) {
-			let dataProvider = await new FileDataProvider(file).buffer();
-			await load(dataProvider);
+			if (file.name === "gm.sf2") {
+				let cursor = new binary.Cursor();
+				let reader = new binary.WebFileReader(file);
+				let sf = new shared.formats.soundfont.File();
+				await sf.load(cursor, reader);
+				soundfont = sf;
+			} else {
+				let dataProvider = await new FileDataProvider(file).buffer();
+				await load(dataProvider);
+			}
 		}
 	}
 });

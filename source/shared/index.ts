@@ -1,2 +1,4 @@
-export * from "./assert";
+export * as asserts from "./asserts";
+export * as binary from "./binary";
+export * as formats from "./formats";
 export * from "./tables";

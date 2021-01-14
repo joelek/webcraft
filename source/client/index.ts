@@ -2073,7 +2073,6 @@ async function startosc(channel: number, midikey: number): Promise<void> {
 	if (is.absent(synth) || is.absent(audio_context)) {
 		return;
 	}
-	console.log(channel);
 	if (channel === 9) {
 		return;
 	}
@@ -2098,10 +2097,10 @@ function stoposc(channel: number, midikey: number): void {
 		state[channel] = false;
 	}
 }
-async function render(ms: number): Promise<void> {
+async function soundUpdate(): Promise<void> {
 	if (is.present(xmi)) {
 		if (xmi_delay > 0) {
-			xmi_delay -= 2;
+			xmi_delay -= 1;
 		} else {
 			xmi_delay = 0;
 			while (xmi_delay === 0) {
@@ -2137,6 +2136,9 @@ async function render(ms: number): Promise<void> {
 			}
 		}
 	}
+}
+setInterval(soundUpdate, 1000/120);
+async function render(ms: number): Promise<void> {
 	context.clear(context.COLOR_BUFFER_BIT);
 	updateCycle();
 	if (is.present(map) && is.present(tileset)) {

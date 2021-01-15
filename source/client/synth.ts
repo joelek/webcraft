@@ -66,10 +66,16 @@ export class Program {
 		let loop = false;
 		let mod_lfo_delay_s = 0.0;
 		let mod_lfo_freq_hz = 8.176;
-		let mod_lfo_to_pitch_cents = 0.0;
+		let mod_lfo_to_pitch_cents: undefined | number;
 		let mod_lfo_to_volume_centibels: undefined | number;
 		let key_range_low = 0;
 		let key_range_high = 127;
+		let vol_env_delay_s = 0;
+		let vol_env_attack_s = 0;
+		let vol_env_hold_s = 0;
+		let vol_env_deacy_s = 0;
+		let vol_env_sustain_decrease_centibels = 0;
+		let vol_env_release_s = 0;
 		while (igen_index < this.file.igen.length) {
 			let generator = this.file.igen[igen_index++];
 			if (is.absent(generator)) {
@@ -80,6 +86,18 @@ export class Program {
 				console.log(soundfont.GeneratorType[type], generator.parameters.signed.value);
 			}
 			if (false) {
+			} else if (type === soundfont.GeneratorType.DELAY_VOL_ENV) {
+				vol_env_delay_s = 2 ** (generator.parameters.signed.value / 1200);
+			} else if (type === soundfont.GeneratorType.ATTACK_VOL_ENV) {
+				vol_env_attack_s = 2 ** (generator.parameters.signed.value / 1200);
+			} else if (type === soundfont.GeneratorType.HOLD_VOL_ENV) {
+				vol_env_hold_s = 2 ** (generator.parameters.signed.value / 1200);
+			} else if (type === soundfont.GeneratorType.DECAY_VOL_ENV) {
+				vol_env_deacy_s = 2 ** (generator.parameters.signed.value / 1200);
+			} else if (type === soundfont.GeneratorType.SUSTAIN_VOL_ENV) {
+				vol_env_sustain_decrease_centibels = generator.parameters.signed.value;
+			} else if (type === soundfont.GeneratorType.RELEASE_VOL_ENV) {
+				vol_env_release_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.KEY_RANGE) {
 				key_range_low = generator.parameters.first.value;
 				key_range_high = generator.parameters.second.value;
@@ -139,7 +157,7 @@ export class Program {
 		let mod_lfo_gained = context.createGain();
 		if (is.present(mod_lfo_to_volume_centibels)) {
 			mod_lfo_delayed.connect(mod_lfo_gained);
-			mod_lfo_gained.gain.value = mod_lfo_to_volume_centibels < 0 ? 0 - Math.pow(10, 0 - mod_lfo_to_volume_centibels/200) : Math.pow(10, mod_lfo_to_volume_centibels/200);
+			mod_lfo_gained.gain.value = Math.pow(10, mod_lfo_to_volume_centibels/200);
 		}
 		let source = context.createBufferSource();
 		source.buffer = buffer;
@@ -151,7 +169,18 @@ export class Program {
 		let sample_gain = context.createGain();
 		mod_lfo_gained.connect(sample_gain.gain);
 		source.connect(sample_gain);
-		sample_gain.connect(context.destination);
+
+		let env_vol_gain = context.createGain();
+		env_vol_gain.gain.exponentialRampToValueAtTime(1.0, vol_env_attack_s);
+
+		let env_vol_gain_delayed = context.createDelay();
+		env_vol_gain.connect(env_vol_gain_delayed);
+
+		sample_gain.connect(env_vol_gain_delayed);
+
+
+
+		env_vol_gain_delayed.connect(context.destination);
 		source.start();
 		mod_lfo_osc.start();
 		return {

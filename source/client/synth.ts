@@ -67,6 +67,7 @@ export class Program {
 		let mod_lfo_delay_s = 0.0;
 		let mod_lfo_freq_hz = 8.176;
 		let mod_lfo_to_pitch_cents = 0.0;
+		let mod_lfo_to_volume_centibels: undefined | number;
 		let key_range_low = 0;
 		let key_range_high = 127;
 		while (igen_index < this.file.igen.length) {
@@ -91,6 +92,9 @@ export class Program {
 			} else if (type === soundfont.GeneratorType.MOD_LFO_TO_PITCH) {
 				let value = generator.parameters.signed.value;
 				mod_lfo_to_pitch_cents = value;
+			} else if (type === soundfont.GeneratorType.MOD_LFO_TO_VOLUME) {
+				let value = generator.parameters.signed.value;
+				mod_lfo_to_volume_centibels = value;
 			} else if (type === soundfont.GeneratorType.OVERRIDING_ROOT_KEY) {
 				let value = generator.parameters.signed.value;
 				if (value >= 0 && value <= 127) {
@@ -127,18 +131,16 @@ export class Program {
 			}
 			this.buffer = buffer;
 		}
-let mod_lfo_osc = context.createOscillator();
-mod_lfo_osc.type = "triangle";
-mod_lfo_osc.frequency.value = mod_lfo_freq_hz;
-let mod_lfo_delayed = context.createDelay(mod_lfo_delay_s);
-mod_lfo_osc.connect(mod_lfo_delayed);
-let gain = context.createGain();
-mod_lfo_delayed.connect(gain.gain);
-console.log({
-	mod_lfo_freq_hz,
-	mod_lfo_delay_s
-});
-
+		let mod_lfo_osc = context.createOscillator();
+		mod_lfo_osc.type = "triangle";
+		mod_lfo_osc.frequency.value = mod_lfo_freq_hz;
+		let mod_lfo_delayed = context.createDelay(mod_lfo_delay_s);
+		mod_lfo_osc.connect(mod_lfo_delayed);
+		let mod_lfo_gained = context.createGain();
+		if (is.present(mod_lfo_to_volume_centibels)) {
+			mod_lfo_delayed.connect(mod_lfo_gained);
+			mod_lfo_gained.gain.value = mod_lfo_to_volume_centibels < 0 ? 0 - Math.pow(10, 0 - mod_lfo_to_volume_centibels/200) : Math.pow(10, mod_lfo_to_volume_centibels/200);
+		}
 		let source = context.createBufferSource();
 		source.buffer = buffer;
 		source.loopStart = (sample_header.loop_start.value - sample_header.start.value) / sample_header.sample_rate.value;
@@ -146,9 +148,10 @@ console.log({
 		source.loop = loop;
 		let detune_cents = (midikey - root_key_semitones) * 100 + sample_header.correction.value;
 		source.detune.value =  detune_cents;
-
-		source.connect(gain);
-		gain.connect(context.destination);
+		let sample_gain = context.createGain();
+		mod_lfo_gained.connect(sample_gain.gain);
+		source.connect(sample_gain);
+		sample_gain.connect(context.destination);
 		source.start();
 		mod_lfo_osc.start();
 		return {

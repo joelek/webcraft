@@ -62,8 +62,8 @@ export class Program {
 		let buffer = this.buffer;
 		let sample_header = new soundfont.SampleHeader();
 		let igen_index = this.igen_index;
-		let root_key: number | undefined;
-		let loop: boolean | undefined;
+		let root_key_override: number | undefined;
+		let loop = false;
 		let mod_lfo_delay_s = 0.0;
 		let mod_lfo_freq_hz = 8.176;
 		let mod_lfo_to_pitch_cents = 0.0;
@@ -94,7 +94,7 @@ export class Program {
 			} else if (type === soundfont.GeneratorType.OVERRIDING_ROOT_KEY) {
 				let value = generator.parameters.signed.value;
 				if (value >= 0 && value <= 127) {
-					root_key = value;
+					root_key_override = value;
 				}
 			} else if (type === soundfont.GeneratorType.SAMPLE_ID) {
 				if (is.absent(buffer)) {
@@ -113,6 +113,7 @@ export class Program {
 				}
 			}
 		}
+		let root_key_semitones = root_key_override ?? sample_header.original_key.value;
 		if (is.absent(buffer)) {
 			let sample_count = sample_header.end.value - sample_header.start.value;
 			let reader = this.file.smpl;
@@ -133,20 +134,26 @@ let mod_lfo_delayed = context.createDelay(mod_lfo_delay_s);
 mod_lfo_osc.connect(mod_lfo_delayed);
 let gain = context.createGain();
 mod_lfo_delayed.connect(gain.gain);
+console.log({
+	mod_lfo_freq_hz,
+	mod_lfo_delay_s
+});
 
 		let source = context.createBufferSource();
 		source.buffer = buffer;
 		source.loopStart = (sample_header.loop_start.value - sample_header.start.value) / sample_header.sample_rate.value;
 		source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;
-		source.loop = loop ?? true;
-		let cents = midikey * 100 - ((root_key ?? sample_header.original_key.value) * 100 + sample_header.correction.value);
-		source.detune.value =  cents;
+		source.loop = loop;
+		let detune_cents = (midikey - root_key_semitones) * 100 + sample_header.correction.value;
+		source.detune.value =  detune_cents;
 
 		source.connect(gain);
 		gain.connect(context.destination);
+		source.start();
+		mod_lfo_osc.start();
 		return {
 			buffer: source,
-			cents: cents
+			cents: detune_cents
 		};
 	}
 };

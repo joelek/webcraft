@@ -2077,7 +2077,6 @@ async function startosc(channel: number, midikey: number, two: number): Promise<
 		let program = synth.banks[0].programs[instruments[channel]];
 		let b = await program.getBuffer(audio_context, midikey);
 		let o = osc[channel] = b.buffer;
-		o.start();
 		state[channel] = true;
 	}
 }
@@ -2113,22 +2112,28 @@ async function soundUpdate(): Promise<void> {
 					let a = event.data[0];
 					let b = event.data[1];
 					if (a === 116) {
-						console.log("Start loop", b);
 						xmi_loop = xmi_offset;
 					} else if (a === 117) {
-						console.log("End loop", b);
 						xmi_offset = (xmi_loop ?? 0) - 1;
+					} else {
+						console.log(event);
 					}
 				} else if (event.type === XMIEventType.PITCH_BEND) {
 					let a = event.data[0];
 					let b = event.data[1];
 					let value = ((a & 0x7F) << 7) | ((b & 0x7F) << 0);
 					let o = osc[event.channel];
-				} else if (event.type === XMIEventType.SYSEX) {
-
+					console.log(event);
+				} else {
+					console.log(event);
 				}
 				xmi_offset += 1;
-				xmi_delay = xmi.events[xmi_offset].time;
+				if (xmi_offset < xmi.events.length) {
+					xmi_delay = xmi.events[xmi_offset].time;
+				} else {
+					xmi = undefined;
+					break;
+				}
 			}
 		}
 	}
@@ -2281,6 +2286,9 @@ canvas.addEventListener("drop", async (event) => {
 		for (let i = 0; i < 16; i++) {
 			osc[i] = audio_context.createBufferSource();
 		}
+	}
+	for (let o of osc) {
+		o.disconnect();
 	}
 	let dataTransfer = event.dataTransfer;
 	if (is.present(dataTransfer)) {

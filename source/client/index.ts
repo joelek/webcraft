@@ -2075,10 +2075,8 @@ async function startosc(channel: number, midikey: number, two: number): Promise<
 	//o.playbackRate =
 	if (!state[channel]) {
 		let program = synth.banks[0].programs[instruments[channel]];
-		let b = await program.getBuffer(audio_context);
+		let b = await program.getBuffer(audio_context, midikey);
 		let o = osc[channel] = b.buffer;
-		let cents = midikey * 100 - b.cents;
-		o.detune.value = cents;
 		o.connect(audio_context.destination);
 		o.start();
 		state[channel] = true;

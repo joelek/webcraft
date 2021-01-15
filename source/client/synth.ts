@@ -57,11 +57,35 @@ export class Program {
 		this.file = new soundfont.File();
 		this.igen_index = 0;
 	}
+/*
 
-	async getBuffer(context: AudioContext): Promise<{ buffer: AudioBufferSourceNode, cents: number }> {
+synth.js:75 DELAY_MOD_LFO -1898
+synth.js:75 FREQ_MOD_LFO -536
+
+synth.js:75 ATTACK_MOD_ENV -12000
+synth.js:75 DECAY_MOD_ENV -12000
+synth.js:75 SUSTAIN_MOD_ENV 1440
+synth.js:75 RELEASE_MOD_ENV -12000
+
+synth.js:75 DECAY_VOL_ENV 2352
+synth.js:75 SUSTAIN_VOL_ENV 1440
+synth.js:75 RELEASE_VOL_ENV 1776
+
+synth.js:75 KEYNUM_TO_VOL_ENV_DECAY 37
+synth.js:75 KEY_RANGE 12800
+synth.js:75 SAMPLE_MODES 0
+synth.js:75 OVERRIDING_ROOT_KEY 55
+synth.js:75 SAMPLE_ID 442
+
+*/
+	async getBuffer(context: AudioContext, midikey: number): Promise<{ buffer: AudioBufferSourceNode, cents: number }> {
 		let buffer = this.buffer;
 		let sample_header = new soundfont.SampleHeader();
 		let igen_index = this.igen_index;
+		let root_key: number | undefined;
+		let loop: boolean | undefined;
+		let delay_mod_s = 0.0;
+		let freq_mod_lfo_hz = 8.176;
 		while (igen_index < this.file.igen.length) {
 			let generator = this.file.igen[igen_index++];
 			if (is.absent(generator)) {
@@ -69,9 +93,21 @@ export class Program {
 			}
 			let type = generator.generator.type.value;
 			if (is.absent(buffer)) {
-				console.log(type, generator.parameters.signed.value);
+				console.log(soundfont.GeneratorType[type], generator.parameters.signed.value);
 			}
-			if (type === soundfont.GeneratorType.SAMPLE_ID) {
+			if (false) {
+			} else if (type === soundfont.GeneratorType.DELAY_MOD_LFO) {
+				let value = generator.parameters.signed.value;
+				delay_mod_s = 2 ** (value / 1200);
+			} else if (type === soundfont.GeneratorType.FREQ_MOD_LFO) {
+				let value = generator.parameters.signed.value;
+				freq_mod_lfo_hz = 8.176 * 2 ** (value / 1200);
+			} else if (type === soundfont.GeneratorType.OVERRIDING_ROOT_KEY) {
+				let value = generator.parameters.signed.value;
+				if (value >= 0 && value <= 127) {
+					root_key = value;
+				}
+			} else if (type === soundfont.GeneratorType.SAMPLE_ID) {
 				if (is.absent(buffer)) {
 					console.log("");
 				}
@@ -80,6 +116,12 @@ export class Program {
 					throw ``;
 				}
 				break;
+			} else if (type === soundfont.GeneratorType.SAMPLE_MODES) {
+				// TODO: Support loop during key depression (mode 3).
+				let value = generator.parameters.signed.value;
+				if (value >= 0 && value <= 3) {
+					loop = value === 1;
+				}
 			}
 		}
 		if (is.absent(buffer)) {
@@ -99,8 +141,9 @@ export class Program {
 		source.buffer = buffer;
 		source.loopStart = (sample_header.loop_start.value - sample_header.start.value) / sample_header.sample_rate.value;
 		source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;
-		source.loop = true;
-		let cents = sample_header.original_key.value * 100 + sample_header.correction.value;
+		source.loop = loop ?? true;
+		let cents = (root_key ?? sample_header.original_key.value) * 100 + sample_header.correction.value;
+		source.detune.value =  midikey * 100 - cents;
 		return {
 			buffer: source,
 			cents: cents

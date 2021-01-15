@@ -2077,7 +2077,6 @@ async function startosc(channel: number, midikey: number, two: number): Promise<
 		let program = synth.banks[0].programs[instruments[channel]];
 		let b = await program.getBuffer(audio_context, midikey);
 		let o = osc[channel] = b.buffer;
-		o.connect(audio_context.destination);
 		o.start();
 		state[channel] = true;
 	}

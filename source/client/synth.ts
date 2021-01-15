@@ -57,35 +57,18 @@ export class Program {
 		this.file = new soundfont.File();
 		this.igen_index = 0;
 	}
-/*
 
-synth.js:75 DELAY_MOD_LFO -1898
-synth.js:75 FREQ_MOD_LFO -536
-
-synth.js:75 ATTACK_MOD_ENV -12000
-synth.js:75 DECAY_MOD_ENV -12000
-synth.js:75 SUSTAIN_MOD_ENV 1440
-synth.js:75 RELEASE_MOD_ENV -12000
-
-synth.js:75 DECAY_VOL_ENV 2352
-synth.js:75 SUSTAIN_VOL_ENV 1440
-synth.js:75 RELEASE_VOL_ENV 1776
-
-synth.js:75 KEYNUM_TO_VOL_ENV_DECAY 37
-synth.js:75 KEY_RANGE 12800
-synth.js:75 SAMPLE_MODES 0
-synth.js:75 OVERRIDING_ROOT_KEY 55
-synth.js:75 SAMPLE_ID 442
-
-*/
 	async getBuffer(context: AudioContext, midikey: number): Promise<{ buffer: AudioBufferSourceNode, cents: number }> {
 		let buffer = this.buffer;
 		let sample_header = new soundfont.SampleHeader();
 		let igen_index = this.igen_index;
 		let root_key: number | undefined;
 		let loop: boolean | undefined;
-		let delay_mod_s = 0.0;
-		let freq_mod_lfo_hz = 8.176;
+		let mod_lfo_delay_s = 0.0;
+		let mod_lfo_freq_hz = 8.176;
+		let mod_lfo_to_pitch_cents = 0.0;
+		let key_range_low = 0;
+		let key_range_high = 127;
 		while (igen_index < this.file.igen.length) {
 			let generator = this.file.igen[igen_index++];
 			if (is.absent(generator)) {
@@ -96,12 +79,18 @@ synth.js:75 SAMPLE_ID 442
 				console.log(soundfont.GeneratorType[type], generator.parameters.signed.value);
 			}
 			if (false) {
+			} else if (type === soundfont.GeneratorType.KEY_RANGE) {
+				key_range_low = generator.parameters.first.value;
+				key_range_high = generator.parameters.second.value;
 			} else if (type === soundfont.GeneratorType.DELAY_MOD_LFO) {
 				let value = generator.parameters.signed.value;
-				delay_mod_s = 2 ** (value / 1200);
+				mod_lfo_delay_s = 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.FREQ_MOD_LFO) {
 				let value = generator.parameters.signed.value;
-				freq_mod_lfo_hz = 8.176 * 2 ** (value / 1200);
+				mod_lfo_freq_hz = 8.176 * 2 ** (value / 1200);
+			} else if (type === soundfont.GeneratorType.MOD_LFO_TO_PITCH) {
+				let value = generator.parameters.signed.value;
+				mod_lfo_to_pitch_cents = value;
 			} else if (type === soundfont.GeneratorType.OVERRIDING_ROOT_KEY) {
 				let value = generator.parameters.signed.value;
 				if (value >= 0 && value <= 127) {
@@ -137,13 +126,24 @@ synth.js:75 SAMPLE_ID 442
 			}
 			this.buffer = buffer;
 		}
+let mod_lfo_osc = context.createOscillator();
+mod_lfo_osc.type = "triangle";
+mod_lfo_osc.frequency.value = mod_lfo_freq_hz;
+let mod_lfo_delayed = context.createDelay(mod_lfo_delay_s);
+mod_lfo_osc.connect(mod_lfo_delayed);
+let gain = context.createGain();
+mod_lfo_delayed.connect(gain.gain);
+
 		let source = context.createBufferSource();
 		source.buffer = buffer;
 		source.loopStart = (sample_header.loop_start.value - sample_header.start.value) / sample_header.sample_rate.value;
 		source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;
 		source.loop = loop ?? true;
-		let cents = (root_key ?? sample_header.original_key.value) * 100 + sample_header.correction.value;
-		source.detune.value =  midikey * 100 - cents;
+		let cents = midikey * 100 - ((root_key ?? sample_header.original_key.value) * 100 + sample_header.correction.value);
+		source.detune.value =  cents;
+
+		source.connect(gain);
+		gain.connect(context.destination);
 		return {
 			buffer: source,
 			cents: cents

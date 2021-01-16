@@ -113,11 +113,6 @@ export class Program {
 			} else if (type === soundfont.GeneratorType.MOD_LFO_TO_VOLUME) {
 				let value = generator.parameters.signed.value;
 				mod_lfo_to_volume_centibels = value;
-			} else if (type === soundfont.GeneratorType.OVERRIDING_ROOT_KEY) {
-				let value = generator.parameters.signed.value;
-				if (value >= 0 && value <= 127) {
-					root_key_override = value;
-				}
 			} else if (type === soundfont.GeneratorType.SAMPLE_ID) {
 				if (is.absent(buffer)) {
 					console.log("");
@@ -132,6 +127,11 @@ export class Program {
 				let value = generator.parameters.signed.value;
 				if (value >= 0 && value <= 3) {
 					loop = value === 1;
+				}
+			} else if (type === soundfont.GeneratorType.OVERRIDING_ROOT_KEY) {
+				let value = generator.parameters.signed.value;
+				if (value >= 0 && value <= 127) {
+					root_key_override = value;
 				}
 			}
 		}
@@ -155,10 +155,8 @@ export class Program {
 		let mod_lfo_delayed = context.createDelay(mod_lfo_delay_s);
 		mod_lfo_osc.connect(mod_lfo_delayed);
 		let mod_lfo_gained = context.createGain();
-		if (is.present(mod_lfo_to_volume_centibels)) {
-			mod_lfo_delayed.connect(mod_lfo_gained);
-			mod_lfo_gained.gain.value = Math.pow(10, mod_lfo_to_volume_centibels/200);
-		}
+		mod_lfo_delayed.connect(mod_lfo_gained);
+		mod_lfo_gained.gain.value = Math.pow(10, (mod_lfo_to_volume_centibels ?? 0)/200);
 		let source = context.createBufferSource();
 		source.buffer = buffer;
 		source.loopStart = (sample_header.loop_start.value - sample_header.start.value) / sample_header.sample_rate.value;
@@ -166,21 +164,20 @@ export class Program {
 		source.loop = loop;
 		let detune_cents = (midikey - root_key_semitones) * 100 + sample_header.correction.value;
 		source.detune.value =  detune_cents;
-		let sample_gain = context.createGain();
-		mod_lfo_gained.connect(sample_gain.gain);
-		source.connect(sample_gain);
-
+		let sample_gain1 = context.createGain();
+		source.connect(sample_gain1);
+		if (is.present(mod_lfo_to_volume_centibels)) {
+			mod_lfo_gained.connect(sample_gain1.gain);
+		}
+		let sample_gain2 = context.createGain();
+		sample_gain1.connect(sample_gain2);
 		let env_vol_gain = context.createGain();
-		env_vol_gain.gain.exponentialRampToValueAtTime(1.0, vol_env_attack_s);
-
-		let env_vol_gain_delayed = context.createDelay();
-		env_vol_gain.connect(env_vol_gain_delayed);
-
-		sample_gain.connect(env_vol_gain_delayed);
-
-
-
-		env_vol_gain_delayed.connect(context.destination);
+		env_vol_gain.gain.setValueAtTime(0.0, vol_env_delay_s);
+		env_vol_gain.gain.exponentialRampToValueAtTime(1.0, vol_env_delay_s + vol_env_attack_s);
+		env_vol_gain.gain.setValueAtTime(1.0, vol_env_delay_s + vol_env_attack_s + vol_env_hold_s);
+		env_vol_gain.gain.linearRampToValueAtTime(Math.pow(10, -vol_env_sustain_decrease_centibels/200), vol_env_delay_s + vol_env_attack_s + vol_env_hold_s + vol_env_deacy_s);
+		env_vol_gain.connect(sample_gain2.gain);
+		sample_gain2.connect(context.destination);
 		source.start();
 		mod_lfo_osc.start();
 		return {

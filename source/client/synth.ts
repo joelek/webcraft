@@ -69,7 +69,7 @@ export class Program {
 		this.igen_index = 0;
 	}
 
-	async makeChannel(context: AudioContext, midikey: number, mixer: GainNode): Promise<MidiChannel> {
+	async makeChannel(context: AudioContext, midikey: number, velocity: number, mixer: GainNode): Promise<MidiChannel> {
 		let buffer = this.buffer;
 		let sample_header = new soundfont.SampleHeader();
 		let igen_index = this.igen_index;
@@ -216,7 +216,8 @@ export class Program {
 
 		let sample_gain0 = context.createGain();
 		source.connect(sample_gain0);
-		sample_gain0.gain.value = Math.pow(10, -volume_decrease_centibels/200);
+		let key_att_centibels = (1-velocity/127)*(1-velocity/127)*960;
+		sample_gain0.gain.value = Math.pow(10, -(key_att_centibels + volume_decrease_centibels)/200);
 
 
 		let sample_gain1 = context.createGain();
@@ -232,9 +233,9 @@ export class Program {
 		{
 			let t0 = context.currentTime;
 			let t1 = t0 + vol_env_delay_s;
-			let t2 = t1 + vol_env_attack_s;
-			let t3 = t2 + (vol_env_hold_s * vol_env_hold_time_factor);
-			let t4 = t3 + (vol_env_deacy_s * vol_env_decay_time_factor);
+			let t2 = t0 + vol_env_attack_s;
+			let t3 = t0 + (vol_env_hold_s * vol_env_hold_time_factor);
+			let t4 = t0 + (vol_env_deacy_s * vol_env_decay_time_factor);
 			vol_env.gain.setValueAtTime(0.0, t0);
 			vol_env.gain.setValueAtTime(0.0, t1);
 			vol_env.gain.exponentialRampToValueAtTime(1.0, t2);
@@ -250,9 +251,9 @@ export class Program {
 		{
 			let t0 = context.currentTime;
 			let t1 = t0 + mod_env_delay_s;
-			let t2 = t1 + mod_env_attack_s;
-			let t3 = t2 + (mod_env_hold_s * mod_env_hold_time_factor);
-			let t4 = t3 + (mod_env_deacy_s * mod_env_decay_time_factor);
+			let t2 = t0 + mod_env_attack_s;
+			let t3 = t0 + (mod_env_hold_s * mod_env_hold_time_factor);
+			let t4 = t0 + (mod_env_deacy_s * mod_env_decay_time_factor);
 			mod_env.gain.setValueAtTime(0.0, t0);
 			mod_env.gain.setValueAtTime(0.0, t1);
 			mod_env.gain.exponentialRampToValueAtTime(1.0, t2);

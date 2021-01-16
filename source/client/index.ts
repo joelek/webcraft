@@ -2076,7 +2076,7 @@ async function keyon(channel_index: number, midikey: number, velocity: number): 
 		channels[channel_index] = undefined;
 	}
 	let program = synth.banks[0].programs[instruments[channel_index]];
-	channel = await program.makeChannel(audio_context, midikey, channel_mixers[channel_index]);
+	channel = await program.makeChannel(audio_context, midikey, velocity, channel_mixers[channel_index]);
 	channels[channel_index] = channel;
 }
 function keyoff(channel_index: number, midikey: number, velocity: number): void {

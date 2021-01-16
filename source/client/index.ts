@@ -2065,6 +2065,7 @@ let xmi_loop: undefined | number;
 let xmi_delay = 0;
 let channels = new Array<MidiChannel | undefined>();
 let instruments = new Array(16).fill(0);
+let channel_mixers = new Array<GainNode>();
 async function keyon(channel_index: number, midikey: number, velocity: number): Promise<void> {
 	if (is.absent(synth) || is.absent(audio_context)) {
 		return;
@@ -2075,7 +2076,7 @@ async function keyon(channel_index: number, midikey: number, velocity: number): 
 		channels[channel_index] = undefined;
 	}
 	let program = synth.banks[0].programs[instruments[channel_index]];
-	channel = await program.makeChannel(audio_context, midikey);
+	channel = await program.makeChannel(audio_context, midikey, channel_mixers[channel_index]);
 	channels[channel_index] = channel;
 }
 function keyoff(channel_index: number, midikey: number, velocity: number): void {
@@ -2111,17 +2112,19 @@ async function soundUpdate(): Promise<void> {
 						xmi_loop = xmi_offset;
 					} else if (a === 117) {
 						xmi_offset = (xmi_loop ?? 0) - 1;
+					} else if (a === 7) {
+						channel_mixers[event.channel].gain.value = b/127;
 					} else {
-						console.log(event);
+						console.log(XMIEventType[event.type], event);
 					}
 				} else if (event.type === XMIEventType.PITCH_BEND) {
 					let a = event.data[0];
 					let b = event.data[1];
 					let value = ((a & 0x7F) << 7) | ((b & 0x7F) << 0);
 					let o = channels[event.channel];
-					console.log(event);
+					console.log(XMIEventType[event.type], event);
 				} else {
-					console.log(event);
+					console.log(XMIEventType[event.type], event);
 				}
 				xmi_offset += 1;
 				if (xmi_offset < xmi.events.length) {
@@ -2279,6 +2282,10 @@ canvas.addEventListener("drop", async (event) => {
 	event.preventDefault();
 	if (is.absent(audio_context)) {
 		audio_context = new AudioContext();
+		for (let i = channel_mixers.length; i < 16; i++) {
+			channel_mixers[i] = audio_context.createGain();
+			channel_mixers[i].connect(audio_context.destination);
+		}
 	}
 	for (let channel of channels) {
 		if (is.present(channel)) {

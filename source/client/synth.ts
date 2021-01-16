@@ -69,7 +69,7 @@ export class Program {
 		this.igen_index = 0;
 	}
 
-	async makeChannel(context: AudioContext, midikey: number): Promise<MidiChannel> {
+	async makeChannel(context: AudioContext, midikey: number, mixer: GainNode): Promise<MidiChannel> {
 		let buffer = this.buffer;
 		let sample_header = new soundfont.SampleHeader();
 		let igen_index = this.igen_index;
@@ -279,8 +279,7 @@ export class Program {
 			constant.start();
 		}
 
-
-		sample_gain2.connect(context.destination);
+		sample_gain2.connect(mixer);
 		detune_source.start();
 		source.start();
 		mod_lfo_osc.start();

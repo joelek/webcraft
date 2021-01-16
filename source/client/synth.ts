@@ -101,6 +101,8 @@ export class Program {
 		let mod_env_decay_time_factor = 1;
 		let mod_env_to_pitch_cents: undefined | number;
 
+		let volume_decrease_centibels = 0;
+
 		while (igen_index < this.file.igen.length) {
 			let generator = this.file.igen[igen_index++];
 			if (is.absent(generator)) {
@@ -111,6 +113,8 @@ export class Program {
 				console.log(soundfont.GeneratorType[type], generator.parameters.signed.value);
 			}
 			if (false) {
+			} else if (type === soundfont.GeneratorType.INITIAL_ATTENUATION) {
+				volume_decrease_centibels = generator.parameters.signed.value;
 			} else if (type === soundfont.GeneratorType.MOD_ENV_TO_PITCH) {
 				mod_env_to_pitch_cents = generator.parameters.signed.value;
 			} else if (type === soundfont.GeneratorType.VOL_ENV_KEY_TO_HOLD) {
@@ -210,8 +214,13 @@ export class Program {
 		source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;
 		source.loop = loop;
 
+		let sample_gain0 = context.createGain();
+		source.connect(sample_gain0);
+		sample_gain0.gain.value = Math.pow(10, -volume_decrease_centibels/200);
+
+
 		let sample_gain1 = context.createGain();
-		source.connect(sample_gain1);
+		sample_gain0.connect(sample_gain1);
 		if (is.present(mod_lfo_to_volume_centibels)) {
 			mod_lfo_gained.connect(sample_gain1.gain);
 		}

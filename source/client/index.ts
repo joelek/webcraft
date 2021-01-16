@@ -2137,7 +2137,7 @@ async function soundUpdate(): Promise<void> {
 		}
 	}
 }
-setInterval(soundUpdate, 1000/120);
+setInterval(soundUpdate, 8);
 async function render(ms: number): Promise<void> {
 	context.clear(context.COLOR_BUFFER_BIT);
 	updateCycle();

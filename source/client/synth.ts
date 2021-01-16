@@ -79,6 +79,7 @@ export class Program {
 		let mod_lfo_freq_hz = 8.176;
 		let mod_lfo_to_pitch_cents: undefined | number;
 		let mod_lfo_to_volume_centibels: undefined | number;
+		// TODO: Figure out what to do with these.
 		let key_range_low = 0;
 		let key_range_high = 127;
 		let vol_env_delay_s = 0;
@@ -253,18 +254,19 @@ export class Program {
 
 
 		let detune_source = context.createConstantSource();
-		let detune_gain = context.createGain();
-		let detune_modulation = context.createGain();
 		let detune_cents = (midikey - root_key_semitones) * 100 + sample_header.correction.value;
 		detune_source.offset.value = detune_cents;
 		detune_source.connect(source.detune);
-/* 		detune_gain.connect(source.detune);
-		detune_modulation.connect(detune_gain.gain);
 
 		if (is.present(mod_lfo_to_pitch_cents)) {
-			detune_modulation.gain.value = mod_lfo_to_pitch_cents;
-			mod_lfo_delayed.connect(detune_modulation);
-		} */
+			let constant = context.createConstantSource();
+			let gain = context.createGain();
+			constant.offset.value = mod_lfo_to_pitch_cents;
+			constant.connect(gain);
+			mod_lfo_delayed.connect(gain.gain);
+			gain.connect(source.detune);
+			constant.start();
+		}
 
 
 		sample_gain2.connect(context.destination);

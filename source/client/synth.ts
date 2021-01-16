@@ -76,6 +76,8 @@ export class Program {
 		let vol_env_deacy_s = 0;
 		let vol_env_sustain_decrease_centibels = 0;
 		let vol_env_release_s = 0;
+		let vol_env_hold_time_factor = 0;
+		let vol_env_decay_time_factor = 0;
 		while (igen_index < this.file.igen.length) {
 			let generator = this.file.igen[igen_index++];
 			if (is.absent(generator)) {
@@ -86,6 +88,10 @@ export class Program {
 				console.log(soundfont.GeneratorType[type], generator.parameters.signed.value);
 			}
 			if (false) {
+			} else if (type === soundfont.GeneratorType.KEYNUM_TO_VOL_ENV_HOLD) {
+				vol_env_hold_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
+			} else if (type === soundfont.GeneratorType.KEYNUM_TO_VOL_ENV_DECAY) {
+				vol_env_decay_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.DELAY_VOL_ENV) {
 				vol_env_delay_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.ATTACK_VOL_ENV) {
@@ -172,10 +178,14 @@ export class Program {
 		let sample_gain2 = context.createGain();
 		sample_gain1.connect(sample_gain2);
 		let env_vol_gain = context.createGain();
-		env_vol_gain.gain.setValueAtTime(0.0, vol_env_delay_s);
-		env_vol_gain.gain.exponentialRampToValueAtTime(1.0, vol_env_delay_s + vol_env_attack_s);
-		env_vol_gain.gain.setValueAtTime(1.0, vol_env_delay_s + vol_env_attack_s + vol_env_hold_s);
-		env_vol_gain.gain.linearRampToValueAtTime(Math.pow(10, -vol_env_sustain_decrease_centibels/200), vol_env_delay_s + vol_env_attack_s + vol_env_hold_s + vol_env_deacy_s);
+		let t0 = vol_env_delay_s;
+		let t1 = t0 + vol_env_attack_s;
+		let t2 = t1 + (vol_env_hold_s * vol_env_hold_time_factor);
+		let t3 = t2 + (vol_env_deacy_s * vol_env_decay_time_factor);
+		env_vol_gain.gain.setValueAtTime(0.0, t0);
+		env_vol_gain.gain.exponentialRampToValueAtTime(1.0, t1);
+		env_vol_gain.gain.setValueAtTime(1.0, t2);
+		env_vol_gain.gain.linearRampToValueAtTime(Math.pow(10, -vol_env_sustain_decrease_centibels/200), t3);
 		env_vol_gain.connect(sample_gain2.gain);
 		sample_gain2.connect(context.destination);
 		source.start();

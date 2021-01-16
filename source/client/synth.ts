@@ -97,8 +97,9 @@ export class Program {
 		let mod_env_deacy_s = 0;
 		let mod_env_sustain_decrease_centibels = 0;
 		let mod_env_release_s = 0;
-		let mod_env_hold_time_factor = 0;
-		let mod_env_decay_time_factor = 0;
+		let mod_env_hold_time_factor = 1;
+		let mod_env_decay_time_factor = 1;
+		let mod_env_to_pitch_cents: undefined | number;
 
 		while (igen_index < this.file.igen.length) {
 			let generator = this.file.igen[igen_index++];
@@ -110,6 +111,8 @@ export class Program {
 				console.log(soundfont.GeneratorType[type], generator.parameters.signed.value);
 			}
 			if (false) {
+			} else if (type === soundfont.GeneratorType.MOD_ENV_TO_PITCH) {
+				mod_env_to_pitch_cents = generator.parameters.signed.value;
 			} else if (type === soundfont.GeneratorType.VOL_ENV_KEY_TO_HOLD) {
 				vol_env_hold_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_KEY_TO_DECAY) {
@@ -247,7 +250,12 @@ export class Program {
 			mod_env.gain.setValueAtTime(1.0, t3);
 			mod_env.gain.linearRampToValueAtTime(Math.pow(10, -mod_env_sustain_decrease_centibels/200), t4);
 		}
-		//mod_env.connect(sample_gain2.gain);
+		if (is.present(mod_env_to_pitch_cents)) {
+			let constant = context.createConstantSource();
+			constant.offset.value = mod_env_to_pitch_cents;
+			constant.connect(mod_env); // TODO: Route.
+			mod_env.connect(source.detune);
+		}
 
 
 

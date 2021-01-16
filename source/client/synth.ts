@@ -223,9 +223,9 @@ export class Program {
 		{
 			let t0 = context.currentTime;
 			let t1 = t0 + vol_env_delay_s;
-			let t2 = t1 + vol_env_attack_s;
-			let t3 = t2 + (vol_env_hold_s * vol_env_hold_time_factor);
-			let t4 = t3 + (vol_env_deacy_s * vol_env_decay_time_factor);
+			let t2 = t0 + vol_env_attack_s;
+			let t3 = t0 + (vol_env_hold_s * vol_env_hold_time_factor);
+			let t4 = t0 + (vol_env_deacy_s * vol_env_decay_time_factor);
 			vol_env.gain.setValueAtTime(0.0, t0);
 			vol_env.gain.setValueAtTime(0.0, t1);
 			vol_env.gain.exponentialRampToValueAtTime(1.0, t2);
@@ -241,9 +241,9 @@ export class Program {
 		{
 			let t0 = context.currentTime;
 			let t1 = t0 + mod_env_delay_s;
-			let t2 = t1 + mod_env_attack_s;
-			let t3 = t2 + (mod_env_hold_s * mod_env_hold_time_factor);
-			let t4 = t3 + (mod_env_deacy_s * mod_env_decay_time_factor);
+			let t2 = t0 + mod_env_attack_s;
+			let t3 = t0 + (mod_env_hold_s * mod_env_hold_time_factor);
+			let t4 = t0 + (mod_env_deacy_s * mod_env_decay_time_factor);
 			mod_env.gain.setValueAtTime(0.0, t0);
 			mod_env.gain.setValueAtTime(0.0, t1);
 			mod_env.gain.exponentialRampToValueAtTime(1.0, t2);
@@ -252,9 +252,12 @@ export class Program {
 		}
 		if (is.present(mod_env_to_pitch_cents)) {
 			let constant = context.createConstantSource();
+			let gain = context.createGain();
 			constant.offset.value = mod_env_to_pitch_cents;
-			constant.connect(mod_env); // TODO: Route.
-			mod_env.connect(source.detune);
+			constant.connect(gain);
+			mod_env.connect(gain.gain);
+			gain.connect(source.detune);
+			constant.start();
 		}
 
 
@@ -291,10 +294,10 @@ export class Program {
 			sample_gain2.disconnect();
 		};
 		function release() {
-			stop();
 			let t0 = context.currentTime;
 			let t1 = t0 + vol_env_release_s;
-			vol_env.gain.linearRampToValueAtTime(0.0, t0);
+			vol_env.gain.linearRampToValueAtTime(0.0, t1);
+			setTimeout(stop, vol_env_release_s * 1000);
 		}
 		return {
 			volume,

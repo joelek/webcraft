@@ -48,6 +48,17 @@ import { BufferReader, Cursor, Reader } from "../shared/binary";
 import { Integer2 } from "../shared/binary/chunks";
 import * as soundfont from "../shared/formats/soundfont";
 
+
+// 1. Modify pitch according to mod_lfo
+// 2. Modify pitch according to mod_env
+// 3. Fix channel volumes
+
+export type MidiChannel = {
+	volume: (factor: number) => void;
+	stop: () => void;
+	release: (midikey: number, velocity: number) => void;
+};
+
 export class Program {
 	file: soundfont.File;
 	igen_index: number;
@@ -58,7 +69,7 @@ export class Program {
 		this.igen_index = 0;
 	}
 
-	async getBuffer(context: AudioContext, midikey: number): Promise<{ buffer: AudioBufferSourceNode, cents: number }> {
+	async makeChannel(context: AudioContext, midikey: number): Promise<MidiChannel> {
 		let buffer = this.buffer;
 		let sample_header = new soundfont.SampleHeader();
 		let igen_index = this.igen_index;
@@ -78,6 +89,16 @@ export class Program {
 		let vol_env_release_s = 0;
 		let vol_env_hold_time_factor = 0;
 		let vol_env_decay_time_factor = 0;
+
+		let mod_env_delay_s = 0;
+		let mod_env_attack_s = 0;
+		let mod_env_hold_s = 0;
+		let mod_env_deacy_s = 0;
+		let mod_env_sustain_decrease_centibels = 0;
+		let mod_env_release_s = 0;
+		let mod_env_hold_time_factor = 0;
+		let mod_env_decay_time_factor = 0;
+
 		while (igen_index < this.file.igen.length) {
 			let generator = this.file.igen[igen_index++];
 			if (is.absent(generator)) {
@@ -88,29 +109,45 @@ export class Program {
 				console.log(soundfont.GeneratorType[type], generator.parameters.signed.value);
 			}
 			if (false) {
-			} else if (type === soundfont.GeneratorType.KEYNUM_TO_VOL_ENV_HOLD) {
+			} else if (type === soundfont.GeneratorType.VOL_ENV_KEY_TO_HOLD) {
 				vol_env_hold_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
-			} else if (type === soundfont.GeneratorType.KEYNUM_TO_VOL_ENV_DECAY) {
+			} else if (type === soundfont.GeneratorType.VOL_ENV_KEY_TO_DECAY) {
 				vol_env_decay_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
-			} else if (type === soundfont.GeneratorType.DELAY_VOL_ENV) {
+			} else if (type === soundfont.GeneratorType.VOL_ENV_DELAY) {
 				vol_env_delay_s = 2 ** (generator.parameters.signed.value / 1200);
-			} else if (type === soundfont.GeneratorType.ATTACK_VOL_ENV) {
+			} else if (type === soundfont.GeneratorType.VOL_ENV_ATTACK) {
 				vol_env_attack_s = 2 ** (generator.parameters.signed.value / 1200);
-			} else if (type === soundfont.GeneratorType.HOLD_VOL_ENV) {
+			} else if (type === soundfont.GeneratorType.VOL_ENV_HOLD) {
 				vol_env_hold_s = 2 ** (generator.parameters.signed.value / 1200);
-			} else if (type === soundfont.GeneratorType.DECAY_VOL_ENV) {
+			} else if (type === soundfont.GeneratorType.VOL_ENV_DECAY) {
 				vol_env_deacy_s = 2 ** (generator.parameters.signed.value / 1200);
-			} else if (type === soundfont.GeneratorType.SUSTAIN_VOL_ENV) {
+			} else if (type === soundfont.GeneratorType.VOL_ENV_SUSTAIN) {
 				vol_env_sustain_decrease_centibels = generator.parameters.signed.value;
-			} else if (type === soundfont.GeneratorType.RELEASE_VOL_ENV) {
+			} else if (type === soundfont.GeneratorType.VOL_ENV_RELEASE) {
 				vol_env_release_s = 2 ** (generator.parameters.signed.value / 1200);
+			} else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_HOLD) {
+				mod_env_hold_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
+			} else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_DECAY) {
+				mod_env_decay_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
+			} else if (type === soundfont.GeneratorType.MOD_ENV_DELAY) {
+				mod_env_delay_s = 2 ** (generator.parameters.signed.value / 1200);
+			} else if (type === soundfont.GeneratorType.MOD_ENV_ATTACK) {
+				mod_env_attack_s = 2 ** (generator.parameters.signed.value / 1200);
+			} else if (type === soundfont.GeneratorType.MOD_ENV_HOLD) {
+				mod_env_hold_s = 2 ** (generator.parameters.signed.value / 1200);
+			} else if (type === soundfont.GeneratorType.MOD_ENV_DECAY) {
+				mod_env_deacy_s = 2 ** (generator.parameters.signed.value / 1200);
+			} else if (type === soundfont.GeneratorType.MOD_ENV_SUSTAIN) {
+				mod_env_sustain_decrease_centibels = generator.parameters.signed.value;
+			} else if (type === soundfont.GeneratorType.MOD_ENV_RELEASE) {
+				mod_env_release_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.KEY_RANGE) {
 				key_range_low = generator.parameters.first.value;
 				key_range_high = generator.parameters.second.value;
-			} else if (type === soundfont.GeneratorType.DELAY_MOD_LFO) {
+			} else if (type === soundfont.GeneratorType.MOD_LFO_DELAY) {
 				let value = generator.parameters.signed.value;
 				mod_lfo_delay_s = 2 ** (value / 1200);
-			} else if (type === soundfont.GeneratorType.FREQ_MOD_LFO) {
+			} else if (type === soundfont.GeneratorType.MOD_LFO_FREQ) {
 				let value = generator.parameters.signed.value;
 				mod_lfo_freq_hz = 8.176 * 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_LFO_TO_PITCH) {
@@ -168,8 +205,7 @@ export class Program {
 		source.loopStart = (sample_header.loop_start.value - sample_header.start.value) / sample_header.sample_rate.value;
 		source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;
 		source.loop = loop;
-		let detune_cents = (midikey - root_key_semitones) * 100 + sample_header.correction.value;
-		source.detune.value =  detune_cents;
+
 		let sample_gain1 = context.createGain();
 		source.connect(sample_gain1);
 		if (is.present(mod_lfo_to_volume_centibels)) {
@@ -177,22 +213,83 @@ export class Program {
 		}
 		let sample_gain2 = context.createGain();
 		sample_gain1.connect(sample_gain2);
-		let env_vol_gain = context.createGain();
-		let t0 = vol_env_delay_s;
-		let t1 = t0 + vol_env_attack_s;
-		let t2 = t1 + (vol_env_hold_s * vol_env_hold_time_factor);
-		let t3 = t2 + (vol_env_deacy_s * vol_env_decay_time_factor);
-		env_vol_gain.gain.setValueAtTime(0.0, t0);
-		env_vol_gain.gain.exponentialRampToValueAtTime(1.0, t1);
-		env_vol_gain.gain.setValueAtTime(1.0, t2);
-		env_vol_gain.gain.linearRampToValueAtTime(Math.pow(10, -vol_env_sustain_decrease_centibels/200), t3);
-		env_vol_gain.connect(sample_gain2.gain);
+
+
+		let vol_env = context.createGain();
+		{
+			let t0 = context.currentTime;
+			let t1 = t0 + vol_env_delay_s;
+			let t2 = t1 + vol_env_attack_s;
+			let t3 = t2 + (vol_env_hold_s * vol_env_hold_time_factor);
+			let t4 = t3 + (vol_env_deacy_s * vol_env_decay_time_factor);
+			vol_env.gain.setValueAtTime(0.0, t0);
+			vol_env.gain.setValueAtTime(0.0, t1);
+			vol_env.gain.exponentialRampToValueAtTime(1.0, t2);
+			vol_env.gain.setValueAtTime(1.0, t3);
+			vol_env.gain.linearRampToValueAtTime(Math.pow(10, -vol_env_sustain_decrease_centibels/200), t4);
+		}
+		vol_env.connect(sample_gain2.gain);
+
+
+
+
+		let mod_env = context.createGain();
+		{
+			let t0 = context.currentTime;
+			let t1 = t0 + mod_env_delay_s;
+			let t2 = t1 + mod_env_attack_s;
+			let t3 = t2 + (mod_env_hold_s * mod_env_hold_time_factor);
+			let t4 = t3 + (mod_env_deacy_s * mod_env_decay_time_factor);
+			mod_env.gain.setValueAtTime(0.0, t0);
+			mod_env.gain.setValueAtTime(0.0, t1);
+			mod_env.gain.exponentialRampToValueAtTime(1.0, t2);
+			mod_env.gain.setValueAtTime(1.0, t3);
+			mod_env.gain.linearRampToValueAtTime(Math.pow(10, -mod_env_sustain_decrease_centibels/200), t4);
+		}
+		//mod_env.connect(sample_gain2.gain);
+
+
+
+
+
+		let detune_source = context.createConstantSource();
+		let detune_gain = context.createGain();
+		let detune_modulation = context.createGain();
+		let detune_cents = (midikey - root_key_semitones) * 100 + sample_header.correction.value;
+		detune_source.offset.value = detune_cents;
+		detune_source.connect(source.detune);
+/* 		detune_gain.connect(source.detune);
+		detune_modulation.connect(detune_gain.gain);
+
+		if (is.present(mod_lfo_to_pitch_cents)) {
+			detune_modulation.gain.value = mod_lfo_to_pitch_cents;
+			mod_lfo_delayed.connect(detune_modulation);
+		} */
+
+
 		sample_gain2.connect(context.destination);
+		detune_source.start();
 		source.start();
 		mod_lfo_osc.start();
+		function volume(factor: number) {
+
+		}
+		function stop() {
+			detune_source.stop();
+			source.stop();
+			mod_lfo_osc.stop();
+			sample_gain2.disconnect();
+		};
+		function release() {
+			stop();
+			let t0 = context.currentTime;
+			let t1 = t0 + vol_env_release_s;
+			vol_env.gain.linearRampToValueAtTime(0.0, t0);
+		}
 		return {
-			buffer: source,
-			cents: detune_cents
+			volume,
+			stop,
+			release
 		};
 	}
 };

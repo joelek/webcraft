@@ -1,6 +1,6 @@
 import * as shared from "../shared";
 import * as binary from "../shared/binary.web";
-import { WavetableSynth } from "./synth";
+import { MidiChannel, WavetableSynth } from "./synth";
 
 namespace is {
 	export function absent<A>(subject: A | null | undefined): subject is null | undefined {
@@ -2063,29 +2063,25 @@ let map: Array<number>;
 let xmi_offset = 0;
 let xmi_loop: undefined | number;
 let xmi_delay = 0;
-let osc = new Array<AudioBufferSourceNode>();
-let state = new Array<boolean>();
+let channels = new Array<MidiChannel | undefined>();
 let instruments = new Array(16).fill(0);
-async function startosc(channel: number, midikey: number, two: number): Promise<void> {
+async function keyon(channel_index: number, midikey: number, velocity: number): Promise<void> {
 	if (is.absent(synth) || is.absent(audio_context)) {
 		return;
 	}
-	//440 * Math.pow(2, (a - 69)/12)
-	//o.frequency.value = freq;
-	//o.playbackRate =
-	if (!state[channel]) {
-		let program = synth.banks[0].programs[instruments[channel]];
-		let b = await program.getBuffer(audio_context, midikey);
-		let o = osc[channel] = b.buffer;
-		state[channel] = true;
+	let channel = channels[channel_index];
+	if (is.present(channel)) {
+		channel.stop();
+		channels[channel_index] = undefined;
 	}
+	let program = synth.banks[0].programs[instruments[channel_index]];
+	channel = await program.makeChannel(audio_context, midikey);
+	channels[channel_index] = channel;
 }
-function stoposc(channel: number, midikey: number, two: number): void {
-	let o = osc[channel];
-	//o.frequency.value = freq;
-	if (state[channel]) {
-		o.stop();
-		state[channel] = false;
+function keyoff(channel_index: number, midikey: number, velocity: number): void {
+	let channel = channels[channel_index];
+	if (is.present(channel)) {
+		channel.release(midikey, velocity);
 	}
 }
 async function soundUpdate(): Promise<void> {
@@ -2100,11 +2096,11 @@ async function soundUpdate(): Promise<void> {
 				} else if (event.type === XMIEventType.NOTE_OFF) {
 					let a = event.data[0];
 					let b = event.data[1];
-					stoposc(event.channel, a, b);
+					keyoff(event.channel, a, b);
 				} else if (event.type === XMIEventType.NOTE_ON) {
 					let a = event.data[0];
 					let b = event.data[1];
-					await startosc(event.channel, a, b);
+					await keyon(event.channel, a, b);
 				} else if (event.type === XMIEventType.INSTRUMENT_CHANGE) {
 					let a = event.data[0];
 					let o = instruments[event.channel] = a;
@@ -2122,7 +2118,7 @@ async function soundUpdate(): Promise<void> {
 					let a = event.data[0];
 					let b = event.data[1];
 					let value = ((a & 0x7F) << 7) | ((b & 0x7F) << 0);
-					let o = osc[event.channel];
+					let o = channels[event.channel];
 					console.log(event);
 				} else {
 					console.log(event);
@@ -2283,12 +2279,11 @@ canvas.addEventListener("drop", async (event) => {
 	event.preventDefault();
 	if (is.absent(audio_context)) {
 		audio_context = new AudioContext();
-		for (let i = 0; i < 16; i++) {
-			osc[i] = audio_context.createBufferSource();
-		}
 	}
-	for (let o of osc) {
-		o.disconnect();
+	for (let channel of channels) {
+		if (is.present(channel)) {
+			channel.stop();
+		}
 	}
 	let dataTransfer = event.dataTransfer;
 	if (is.present(dataTransfer)) {

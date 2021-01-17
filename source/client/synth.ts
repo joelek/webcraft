@@ -88,7 +88,7 @@ export class Program {
 					attack_s: 0,
 					hold_s: 0,
 					deacy_s: 0,
-					sustain_decrease_cb: 0,
+					sustain_level: 1,
 					release_s: 0,
 					hold_time_factor: 1,
 					decay_time_factor: 1
@@ -98,7 +98,7 @@ export class Program {
 					attack_s: 0,
 					hold_s: 0,
 					deacy_s: 0,
-					sustain_decrease_cb: 0,
+					sustain_level: 1,
 					release_s: 0,
 					hold_time_factor: 1,
 					decay_time_factor: 1
@@ -154,7 +154,8 @@ export class Program {
 			} else if (type === soundfont.GeneratorType.VOL_ENV_DECAY) {
 				params.env.vol.deacy_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_SUSTAIN) {
-				params.env.vol.sustain_decrease_cb = generator.parameters.signed.value;
+				let value_cb = Math.max(0, Math.min(generator.parameters.signed.value, 1440));
+				params.env.vol.sustain_level = Math.pow(10, -value_cb/200);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_RELEASE) {
 				params.env.vol.release_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_HOLD) {
@@ -170,7 +171,9 @@ export class Program {
 			} else if (type === soundfont.GeneratorType.MOD_ENV_DECAY) {
 				params.env.mod.deacy_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_SUSTAIN) {
-				params.env.mod.sustain_decrease_cb = generator.parameters.signed.value;
+				let value_pm = Math.max(0, Math.min(generator.parameters.signed.value, 1000));
+				let decrease_level = value_pm / 1000;
+				params.env.mod.sustain_level = 1.0 - decrease_level;
 			} else if (type === soundfont.GeneratorType.MOD_ENV_RELEASE) {
 				params.env.mod.release_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.KEY_RANGE) {
@@ -271,7 +274,7 @@ export class Program {
 			vol_env.gain.setValueAtTime(0.0, t1);
 			vol_env.gain.exponentialRampToValueAtTime(1.0, t2);
 			vol_env.gain.setValueAtTime(1.0, t3);
-			vol_env.gain.linearRampToValueAtTime(Math.pow(10, -params.env.vol.sustain_decrease_cb/200), t4);
+			vol_env.gain.linearRampToValueAtTime(params.env.vol.sustain_level, t4);
 		}
 		vol_env.connect(sample_gain2.gain);
 
@@ -289,7 +292,7 @@ export class Program {
 			mod_env.gain.setValueAtTime(0.0, t1);
 			mod_env.gain.exponentialRampToValueAtTime(1.0, t2);
 			mod_env.gain.setValueAtTime(1.0, t3);
-			mod_env.gain.linearRampToValueAtTime(Math.pow(10, -params.env.mod.sustain_decrease_cb/200), t4);
+			mod_env.gain.linearRampToValueAtTime(params.env.mod.sustain_level, t4);
 		}
 		if (is.present(mod_env_to_pitch_cents)) {
 			let constant = context.createConstantSource();

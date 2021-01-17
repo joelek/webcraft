@@ -145,36 +145,45 @@ export class Program {
 			} else if (type === soundfont.GeneratorType.VOL_ENV_KEY_TO_DECAY) {
 				params.env.vol.decay_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_DELAY) {
-				params.env.vol.delay_s = 2 ** (generator.parameters.signed.value / 1200);
+				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
+				params.env.vol.delay_s = 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_ATTACK) {
-				params.env.vol.attack_s = 2 ** (generator.parameters.signed.value / 1200);
+				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
+				params.env.vol.attack_s = 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_HOLD) {
-				params.env.vol.hold_s = 2 ** (generator.parameters.signed.value / 1200);
+				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
+				params.env.vol.hold_s = 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_DECAY) {
-				params.env.vol.deacy_s = 2 ** (generator.parameters.signed.value / 1200);
+				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
+				params.env.vol.deacy_s = 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_SUSTAIN) {
 				let value_cb = Math.max(0, Math.min(generator.parameters.signed.value, 1440));
 				params.env.vol.sustain_level = Math.pow(10, -value_cb/200);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_RELEASE) {
-				params.env.vol.release_s = 2 ** (generator.parameters.signed.value / 1200);
+				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
+				params.env.vol.release_s = 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_HOLD) {
 				params.env.mod.hold_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_DECAY) {
 				params.env.mod.decay_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_DELAY) {
-				params.env.mod.delay_s = 2 ** (generator.parameters.signed.value / 1200);
+				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
+				params.env.mod.delay_s = 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_ATTACK) {
-				params.env.mod.attack_s = 2 ** (generator.parameters.signed.value / 1200);
+				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
+				params.env.mod.attack_s = 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_HOLD) {
-				params.env.mod.hold_s = 2 ** (generator.parameters.signed.value / 1200);
+				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
+				params.env.mod.hold_s = 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_DECAY) {
-				params.env.mod.deacy_s = 2 ** (generator.parameters.signed.value / 1200);
+				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
+				params.env.mod.deacy_s = 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_SUSTAIN) {
 				let value_pm = Math.max(0, Math.min(generator.parameters.signed.value, 1000));
-				let decrease_level = value_pm / 1000;
-				params.env.mod.sustain_level = 1.0 - decrease_level;
+				params.env.mod.sustain_level = 1.0 - value_pm / 1000;
 			} else if (type === soundfont.GeneratorType.MOD_ENV_RELEASE) {
-				params.env.mod.release_s = 2 ** (generator.parameters.signed.value / 1200);
+				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
+				params.env.mod.release_s = 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.KEY_RANGE) {
 				key_range_low = generator.parameters.first.value;
 				key_range_high = generator.parameters.second.value;
@@ -250,7 +259,7 @@ export class Program {
 		let sample_gain0 = context.createGain();
 		lowpass_filter.connect(sample_gain0);
 		let key_att_centibels = (1-velocity/127)*(1-velocity/127)*960;
-		sample_gain0.gain.value = Math.pow(10, (-key_att_centibels + volume_decrease_centibels)/200);
+		sample_gain0.gain.value = Math.pow(10, (-key_att_centibels - volume_decrease_centibels)/200);
 
 
 		let sample_gain1 = context.createGain();

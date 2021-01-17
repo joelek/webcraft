@@ -2073,7 +2073,7 @@ async function keyon(channel_index: number, midikey: number, velocity: number): 
 	}
 	let channel = channels[channel_index];
 	if (is.present(channel)) {
-		channel.stop();
+		channel.release(midikey, velocity);
 		channels[channel_index] = undefined;
 	}
 	let program = synth.banks[channel_index === 9 ? 128 : 0].programs[instruments[channel_index]];
@@ -2084,7 +2084,11 @@ function keyoff(channel_index: number, midikey: number, velocity: number): void 
 	let channel = channels[channel_index];
 	if (is.present(channel)) {
 		channel.release(midikey, velocity);
+		channels[channel_index] = undefined;
 	}
+}
+function volume(channel_index: number, byte: number): void {
+	channel_mixers[channel_index].gain.value = byte/127;
 }
 async function soundUpdate(): Promise<void> {
 	// TODO: Queue sounds.
@@ -2103,7 +2107,11 @@ async function soundUpdate(): Promise<void> {
 				} else if (event.type === XMIEventType.NOTE_ON) {
 					let a = event.data[0];
 					let b = event.data[1];
-					await keyon(event.channel, a, b);
+					if (b === 0) {
+						keyoff(event.channel, a, b);
+					} else {
+						await keyon(event.channel, a, b);
+					}
 				} else if (event.type === XMIEventType.INSTRUMENT_CHANGE) {
 					let a = event.data[0];
 					let o = instruments[event.channel] = a;
@@ -2116,7 +2124,7 @@ async function soundUpdate(): Promise<void> {
 						xmi_offset = (xmi_loop ?? 0);
 						continue;
 					} else if ((a === 7) || (a === 11)) {
-						channel_mixers[event.channel].gain.value = b/127;
+						volume(event.channel, b);
 					} else {
 						console.log(XMIEventType[event.type], event);
 					}

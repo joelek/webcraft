@@ -122,6 +122,133 @@ export class Program {
 		let initial_filter_cutoff_cents = 13500;
 		let initial_filter_q_db = 0;
 
+
+// 2400 cent = 24 semitoner = 2 oktaver
+
+/*
+channel0x3 for MIDI0004, too much pitch modulation, should have longer sustain, no controller messages
+
+synth.js:113 MOD_LFO_TO_PITCH 10
+synth.js:113 MOD_ENV_TO_PITCH -63
+synth.js:113 MOD_LFO_TO_VOLUME 2
+
+synth.js:113 UNUSED_2 959
+
+synth.js:113 MOD_LFO_DELAY -1292
+synth.js:113 MOD_LFO_FREQ -536
+synth.js:113 MOD_ENV_ATTACK -12000
+synth.js:113 MOD_ENV_DECAY -4871
+synth.js:113 MOD_ENV_SUSTAIN 1440
+synth.js:113 MOD_ENV_RELEASE -4871
+
+synth.js:113 VOL_ENV_ATTACK -6871
+synth.js:113 VOL_ENV_DECAY 2260
+synth.js:113 VOL_ENV_SUSTAIN 2
+synth.js:113 VOL_ENV_RELEASE -1271
+synth.js:113 VOL_ENV_KEY_TO_DECAY 15
+
+synth.js:113 KEY_RANGE 8448
+synth.js:113 START_ADDRESS_OFFSET 0
+synth.js:113 INITIAL_ATTENUATION -5
+synth.js:113 SAMPLE_MODES 1
+synth.js:113 SAMPLE_ID 76
+synth.js:231 3 "{
+  "env": {
+    "vol": {
+      "delay_s": 0,
+      "attack_s": 0.018895240172555915,
+      "hold_s": 0,
+      "deacy_s": 3.6892647743437568,
+      "sustain_level": 0.9772372209558107,
+      "release_s": 0.4799091860337126,
+      "hold_time_factor": 1,
+      "decay_time_factor": 1.3195079107728942
+    },
+    "mod": {
+      "delay_s": 0,
+      "attack_s": 0.0009765625,
+      "hold_s": 0,
+      "deacy_s": 0.05998864825421406,
+      "sustain_level": 0,
+      "release_s": 0.05998864825421406,
+      "hold_time_factor": 1,
+      "decay_time_factor": 1
+    }
+  },
+  "lfo": {
+    "mod": {
+      "delay_s": 0.4741230155872487,
+      "freq_hz": 5.9990270203984135
+    },
+    "vib": {
+      "delay_s": 0,
+      "freq_hz": 8.176
+    }
+  }
+}"
+
+samma gäller för
+
+
+synth.js:177 MOD_LFO_TO_PITCH 4
+synth.js:177 MOD_LFO_TO_VOLUME 1
+synth.js:177 MOD_LFO_DELAY -1013
+synth.js:177 MOD_LFO_FREQ -594
+
+synth.js:177 MOD_ENV_ATTACK -12000
+synth.js:177 MOD_ENV_DECAY -12000
+synth.js:177 MOD_ENV_SUSTAIN 1440
+synth.js:177 MOD_ENV_RELEASE -12000
+
+synth.js:177 VOL_ENV_ATTACK -9800
+synth.js:177 VOL_ENV_DECAY 1925
+synth.js:177 VOL_ENV_SUSTAIN 2
+synth.js:177 VOL_ENV_RELEASE -6071
+synth.js:177 VOL_ENV_KEY_TO_DECAY 15
+
+synth.js:177 KEY_RANGE 16384
+synth.js:177 START_ADDRESS_OFFSET 0
+synth.js:177 INITIAL_ATTENUATION -2
+synth.js:177 SAMPLE_MODES 1
+synth.js:177 SAMPLE_ID 262
+synth.js:295 3 "{
+  "env": {
+    "vol": {
+      "delay_s": 0,
+      "attack_s": 0.003480073117735702,
+      "hold_s": 0,
+      "deacy_s": 3.0402009102982297,
+      "sustain_level": 0.9772372209558107,
+      "release_s": 0.02999432412710703,
+      "hold_time_factor": 1,
+      "decay_time_factor": 1.0442737824274138
+    },
+    "mod": {
+      "delay_s": 0,
+      "attack_s": 0.0009765625,
+      "hold_s": 0,
+      "deacy_s": 0.0009765625,
+      "sustain_level": 0,
+      "release_s": 0.0009765625,
+      "hold_time_factor": 1,
+      "decay_time_factor": 1
+    }
+  },
+  "lfo": {
+    "mod": {
+      "delay_s": 0.5570324707780351,
+      "freq_hz": 5.8013762801471636
+    },
+    "vib": {
+      "delay_s": 0,
+      "freq_hz": 8.176
+    }
+  }
+}"
+
+
+
+ */
 		while (igen_index < this.file.igen.length) {
 			let generator = this.file.igen[igen_index++];
 			if (is.absent(generator)) {
@@ -249,18 +376,19 @@ export class Program {
 		source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;
 		source.loop = loop;
 
-
 		let lowpass_filter = context.createBiquadFilter();
 		source.connect(lowpass_filter);
 		lowpass_filter.type = "lowpass";
-		let initial_filter_cutoff_hz = 8.176 * 2 ** ((initial_filter_cutoff_cents - 2400*(1-velocity/127)*(1-velocity/127))/1200);
+		//
+		let initial_filter_cutoff_hz = 8.176 * 2 ** ((initial_filter_cutoff_cents - 2400*(1-velocity/127))/1200);
 		lowpass_filter.frequency.value = initial_filter_cutoff_hz;
 		lowpass_filter.Q.value = initial_filter_q_db;
 
 
 		let sample_gain0 = context.createGain();
 		lowpass_filter.connect(sample_gain0);
-		sample_gain0.gain.value = Math.pow(10, -(volume_decrease_centibels+(1-velocity/127)*(1-velocity/127)*960)/200);
+		//
+		sample_gain0.gain.value = Math.pow(10, -(volume_decrease_centibels + 960*(1-velocity/127))/200);
 
 
 		let sample_gain1 = context.createGain();
@@ -272,36 +400,35 @@ export class Program {
 		sample_gain1.connect(sample_gain2);
 
 
-		let vol_env = context.createGain();
+		let vol_env = context.createConstantSource();
 		{
+			vol_env.offset.value = 0.0;
 			let t0 = context.currentTime;
 			let t1 = t0 + 2 ** (params.env.vol.delay_tc / 1200);
 			let t2 = t1 + 2 ** (params.env.vol.attack_tc / 1200);
 			let t3 = t2 + (2 ** (params.env.vol.hold_tc / 1200) * params.env.vol.hold_time_factor);
 			let t4 = t3 + (2 ** (params.env.vol.deacy_tc / 1200) * params.env.vol.decay_time_factor);
-			vol_env.gain.setValueAtTime(0.0, t0);
-			vol_env.gain.setValueAtTime(0.0, t1);
-			vol_env.gain.exponentialRampToValueAtTime(1.0, t2);
-			vol_env.gain.setValueAtTime(1.0, t3);
-			vol_env.gain.linearRampToValueAtTime(params.env.vol.sustain_level, t4);
+			vol_env.offset.setValueAtTime(0.0, t1);
+			vol_env.offset.exponentialRampToValueAtTime(1.0, t2);
+			vol_env.offset.setValueAtTime(1.0, t3);
+			vol_env.offset.linearRampToValueAtTime(params.env.vol.sustain_level, t4);
 		}
 		vol_env.connect(sample_gain2.gain);
 
 
 
-
-		let mod_env = context.createGain();
+		let mod_env = context.createConstantSource();
 		{
+			mod_env.offset.value = 0.0;
 			let t0 = context.currentTime;
 			let t1 = t0 + 2 ** (params.env.mod.delay_tc / 1200);
 			let t2 = t1 + 2 ** (params.env.mod.attack_tc / 1200);
 			let t3 = t2 + (2 ** (params.env.mod.hold_tc / 1200) * params.env.mod.hold_time_factor);
 			let t4 = t3 + (2 ** (params.env.mod.deacy_tc / 1200) * params.env.mod.decay_time_factor);
-			mod_env.gain.setValueAtTime(0.0, t0);
-			mod_env.gain.setValueAtTime(0.0, t1);
-			mod_env.gain.exponentialRampToValueAtTime(1.0, t2);
-			mod_env.gain.setValueAtTime(1.0, t3);
-			mod_env.gain.linearRampToValueAtTime(params.env.mod.sustain_level, t4);
+			mod_env.offset.setValueAtTime(0.0, t1);
+			mod_env.offset.exponentialRampToValueAtTime(1.0, t2);
+			mod_env.offset.setValueAtTime(1.0, t3);
+			mod_env.offset.linearRampToValueAtTime(params.env.mod.sustain_level, t4);
 		}
 		if (is.present(mod_env_to_pitch_cents)) {
 			// 219 cb = + 2.19semitones
@@ -323,31 +450,34 @@ export class Program {
 		detune_source.offset.value = detune_cents;
 		detune_source.connect(source.detune);
 
-		if (is.present(mod_lfo_to_pitch_cents)) {
-			let constant = context.createConstantSource();
-			let gain = context.createGain();
-			constant.offset.value = mod_lfo_to_pitch_cents;
-			constant.connect(gain);
-			mod_lfo_delayed.connect(gain.gain);
-			gain.connect(source.detune);
-			constant.start();
-		}
+		let constant = context.createConstantSource();
+		let gain = context.createGain();
+		constant.offset.value = mod_lfo_to_pitch_cents ?? 0;
+		constant.connect(gain);
+		mod_lfo_delayed.connect(gain.gain);
+		gain.connect(source.detune);
+		constant.start();
+
 
 		sample_gain2.connect(mixer);
 		detune_source.start();
 		source.start();
 		mod_lfo_osc.start();
+		vol_env.start();
+		mod_env.start();
 		function stop() {
+			sample_gain2.disconnect();
 			detune_source.stop();
 			source.stop();
 			mod_lfo_osc.stop();
-			sample_gain2.disconnect();
+			mod_env.stop();
+			vol_env.stop();
 		};
 		function release() {
 			let t0 = context.currentTime;
-			mod_env.gain.linearRampToValueAtTime(0.0, t0 + 2 ** (params.env.mod.release_tc / 1200));
-			vol_env.gain.linearRampToValueAtTime(0.0, t0 + 2 ** (params.env.vol.release_tc / 1200));
-			setTimeout(stop, 2 ** (params.env.mod.release_tc / 1200) * 1000);
+			mod_env.offset.linearRampToValueAtTime(0.0, t0 + 2 ** (params.env.mod.release_tc / 1200));
+			vol_env.offset.linearRampToValueAtTime(0.0, t0 + 2 ** (params.env.vol.release_tc / 1200));
+			setTimeout(stop, 2 ** (params.env.vol.release_tc / 1200) * 1000);
 		}
 		return {
 			stop,

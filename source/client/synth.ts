@@ -251,7 +251,7 @@ export class Program {
 		let sample_gain0 = context.createGain();
 		lowpass_filter.connect(sample_gain0);
 		let key_att_centibels = (1-velocity/127)*(1-velocity/127)*960;
-		sample_gain0.gain.value = Math.pow(10, -(key_att_centibels + volume_decrease_centibels)/200);
+		sample_gain0.gain.value = Math.pow(10, (-key_att_centibels + volume_decrease_centibels)/200);
 
 
 		let sample_gain1 = context.createGain();

@@ -2113,7 +2113,8 @@ async function soundUpdate(): Promise<void> {
 					if (a === 116) {
 						xmi_loop = xmi_offset;
 					} else if (a === 117) {
-						xmi_offset = (xmi_loop ?? 0) - 1;
+						xmi_offset = (xmi_loop ?? 0);
+						continue;
 					} else if ((a === 7) || (a === 11)) {
 						channel_mixers[event.channel].gain.value = b/127;
 					} else {

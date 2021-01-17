@@ -2076,7 +2076,7 @@ async function keyon(channel_index: number, midikey: number, velocity: number): 
 		channel.stop();
 		channels[channel_index] = undefined;
 	}
-	let program = synth.banks[0].programs[instruments[channel_index]];
+	let program = synth.banks[channel_index === 9 ? 128 : 0].programs[instruments[channel_index]];
 	channel = await program.makeChannel(audio_context, midikey, velocity, channel_mixers[channel_index], channel_index);
 	channels[channel_index] = channel;
 }
@@ -2140,7 +2140,7 @@ async function soundUpdate(): Promise<void> {
 		}
 	}
 }
-setInterval(soundUpdate, 8);
+setInterval(soundUpdate, 7);
 async function render(ms: number): Promise<void> {
 	context.clear(context.COLOR_BUFFER_BIT);
 	updateCycle();

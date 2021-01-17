@@ -54,7 +54,6 @@ import * as soundfont from "../shared/formats/soundfont";
 // 3. Fix channel volumes
 
 export type MidiChannel = {
-	volume: (factor: number) => void;
 	stop: () => void;
 	release: (midikey: number, velocity: number) => void;
 };
@@ -295,6 +294,7 @@ export class Program {
 			mod_env.gain.linearRampToValueAtTime(params.env.mod.sustain_level, t4);
 		}
 		if (is.present(mod_env_to_pitch_cents)) {
+			// 219 cb = + 2.19semitones
 			let constant = context.createConstantSource();
 			let gain = context.createGain();
 			constant.offset.value = mod_env_to_pitch_cents;
@@ -327,9 +327,6 @@ export class Program {
 		detune_source.start();
 		source.start();
 		mod_lfo_osc.start();
-		function volume(factor: number) {
-
-		}
 		function stop() {
 			detune_source.stop();
 			source.stop();
@@ -338,13 +335,11 @@ export class Program {
 		};
 		function release() {
 			let t0 = context.currentTime;
-			let t1 = t0 + params.env.vol.release_s;
-			mod_env.gain.linearRampToValueAtTime(0.0, params.env.mod.release_s);
-			vol_env.gain.linearRampToValueAtTime(0.0, t1);
+			mod_env.gain.linearRampToValueAtTime(0.0, t0 + params.env.mod.release_s);
+			vol_env.gain.linearRampToValueAtTime(0.0, t0 + params.env.vol.release_s);
 			setTimeout(stop, params.env.vol.release_s * 1000);
 		}
 		return {
-			volume,
 			stop,
 			release
 		};
@@ -367,7 +362,7 @@ export class WavetableSynth {
 
 	constructor() {
 		this.banks = new Array<Bank>();
-		for (let i = 0; i < 10; i++) {
+		for (let i = 0; i < 255; i++) {
 			this.banks.push(new Bank());
 		}
 	}

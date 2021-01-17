@@ -83,22 +83,22 @@ export class Program {
 		let params = {
 			env: {
 				vol: {
-					delay_s: 0,
-					attack_s: 0,
-					hold_s: 0,
-					deacy_s: 0,
+					delay_tc: -12000,
+					attack_tc: -12000,
+					hold_tc: -12000,
+					deacy_tc: -12000,
 					sustain_level: 1,
-					release_s: 0,
+					release_tc: -12000,
 					hold_time_factor: 1,
 					decay_time_factor: 1
 				},
 				mod: {
-					delay_s: 0,
-					attack_s: 0,
-					hold_s: 0,
-					deacy_s: 0,
+					delay_tc: -12000,
+					attack_tc: -12000,
+					hold_tc: -12000,
+					deacy_tc: -12000,
 					sustain_level: 1,
-					release_s: 0,
+					release_tc: -12000,
 					hold_time_factor: 1,
 					decay_time_factor: 1
 				}
@@ -146,44 +146,44 @@ export class Program {
 				params.env.vol.decay_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_DELAY) {
 				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
-				params.env.vol.delay_s = 2 ** (value / 1200);
+				params.env.vol.delay_tc = value;
 			} else if (type === soundfont.GeneratorType.VOL_ENV_ATTACK) {
 				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
-				params.env.vol.attack_s = 2 ** (value / 1200);
+				params.env.vol.attack_tc = value;
 			} else if (type === soundfont.GeneratorType.VOL_ENV_HOLD) {
 				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
-				params.env.vol.hold_s = 2 ** (value / 1200);
+				params.env.vol.hold_tc = value;
 			} else if (type === soundfont.GeneratorType.VOL_ENV_DECAY) {
 				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
-				params.env.vol.deacy_s = 2 ** (value / 1200);
+				params.env.vol.deacy_tc = value;
 			} else if (type === soundfont.GeneratorType.VOL_ENV_SUSTAIN) {
 				let value_cb = Math.max(0, Math.min(generator.parameters.signed.value, 1440));
 				params.env.vol.sustain_level = Math.pow(10, -value_cb/200);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_RELEASE) {
 				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
-				params.env.vol.release_s = 2 ** (value / 1200);
+				params.env.vol.release_tc = value;
 			} else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_HOLD) {
 				params.env.mod.hold_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_DECAY) {
 				params.env.mod.decay_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_DELAY) {
 				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
-				params.env.mod.delay_s = 2 ** (value / 1200);
+				params.env.mod.delay_tc = value;
 			} else if (type === soundfont.GeneratorType.MOD_ENV_ATTACK) {
 				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
-				params.env.mod.attack_s = 2 ** (value / 1200);
+				params.env.mod.attack_tc = value;
 			} else if (type === soundfont.GeneratorType.MOD_ENV_HOLD) {
 				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
-				params.env.mod.hold_s = 2 ** (value / 1200);
+				params.env.mod.hold_tc = value;
 			} else if (type === soundfont.GeneratorType.MOD_ENV_DECAY) {
 				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
-				params.env.mod.deacy_s = 2 ** (value / 1200);
+				params.env.mod.deacy_tc = value;
 			} else if (type === soundfont.GeneratorType.MOD_ENV_SUSTAIN) {
 				let value_pm = Math.max(0, Math.min(generator.parameters.signed.value, 1000));
 				params.env.mod.sustain_level = 1.0 - value_pm / 1000;
 			} else if (type === soundfont.GeneratorType.MOD_ENV_RELEASE) {
 				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
-				params.env.mod.release_s = 2 ** (value / 1200);
+				params.env.mod.release_tc = value;
 			} else if (type === soundfont.GeneratorType.KEY_RANGE) {
 				key_range_low = generator.parameters.first.value;
 				key_range_high = generator.parameters.second.value;
@@ -275,10 +275,10 @@ export class Program {
 		let vol_env = context.createGain();
 		{
 			let t0 = context.currentTime;
-			let t1 = t0 + params.env.vol.delay_s;
-			let t2 = t1 + params.env.vol.attack_s;
-			let t3 = t2 + (params.env.vol.hold_s * params.env.vol.hold_time_factor);
-			let t4 = t3 + (params.env.vol.deacy_s * params.env.vol.decay_time_factor);
+			let t1 = t0 + 2 ** (params.env.vol.delay_tc / 1200);
+			let t2 = t1 + 2 ** (params.env.vol.attack_tc / 1200);
+			let t3 = t2 + (2 ** (params.env.vol.hold_tc / 1200) * params.env.vol.hold_time_factor);
+			let t4 = t3 + (2 ** (params.env.vol.deacy_tc / 1200) * params.env.vol.decay_time_factor);
 			vol_env.gain.setValueAtTime(0.0, t0);
 			vol_env.gain.setValueAtTime(0.0, t1);
 			vol_env.gain.exponentialRampToValueAtTime(1.0, t2);
@@ -293,10 +293,10 @@ export class Program {
 		let mod_env = context.createGain();
 		{
 			let t0 = context.currentTime;
-			let t1 = t0 + params.env.mod.delay_s;
-			let t2 = t1 + params.env.mod.attack_s;
-			let t3 = t2 + (params.env.mod.hold_s * params.env.mod.hold_time_factor);
-			let t4 = t3 + (params.env.mod.deacy_s * params.env.mod.decay_time_factor);
+			let t1 = t0 + 2 ** (params.env.mod.delay_tc / 1200);
+			let t2 = t1 + 2 ** (params.env.mod.attack_tc / 1200);
+			let t3 = t2 + (2 ** (params.env.mod.hold_tc / 1200) * params.env.mod.hold_time_factor);
+			let t4 = t3 + (2 ** (params.env.mod.deacy_tc / 1200) * params.env.mod.decay_time_factor);
 			mod_env.gain.setValueAtTime(0.0, t0);
 			mod_env.gain.setValueAtTime(0.0, t1);
 			mod_env.gain.exponentialRampToValueAtTime(1.0, t2);
@@ -345,9 +345,9 @@ export class Program {
 		};
 		function release() {
 			let t0 = context.currentTime;
-			mod_env.gain.linearRampToValueAtTime(0.0, t0 + params.env.mod.release_s);
-			vol_env.gain.linearRampToValueAtTime(0.0, t0 + params.env.vol.release_s);
-			setTimeout(stop, params.env.vol.release_s * 1000);
+			mod_env.gain.linearRampToValueAtTime(0.0, t0 + 2 ** (params.env.mod.release_tc / 1200));
+			vol_env.gain.linearRampToValueAtTime(0.0, t0 + 2 ** (params.env.vol.release_tc / 1200));
+			setTimeout(stop, 2 ** (params.env.mod.release_tc / 1200) * 1000);
 		}
 		return {
 			stop,

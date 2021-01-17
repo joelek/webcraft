@@ -119,7 +119,7 @@ export class Program {
 
 		let volume_decrease_centibels = 0;
 
-		let initial_filter_cutoff_hz = 20000;
+		let initial_filter_cutoff_cents = 13500;
 		let initial_filter_q_db = 0;
 
 		while (igen_index < this.file.igen.length) {
@@ -133,7 +133,7 @@ export class Program {
 			}
 			if (false) {
 			} else if (type === soundfont.GeneratorType.INITIAL_FILTER_FC) {
-				initial_filter_cutoff_hz = 8.176 * 2 ** (generator.parameters.signed.value / 1200);
+				initial_filter_cutoff_cents = generator.parameters.signed.value;
 			} else if (type === soundfont.GeneratorType.INITIAL_FILTER_Q) {
 				initial_filter_q_db = generator.parameters.signed.value / 10;
 			} else if (type === soundfont.GeneratorType.INITIAL_ATTENUATION) {
@@ -188,13 +188,13 @@ export class Program {
 				key_range_low = generator.parameters.first.value;
 				key_range_high = generator.parameters.second.value;
 			} else if (type === soundfont.GeneratorType.MOD_LFO_DELAY) {
-				let value = generator.parameters.signed.value;
+				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
 				params.lfo.mod.delay_s = 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_LFO_FREQ) {
 				let value = generator.parameters.signed.value;
 				params.lfo.mod.freq_hz = 8.176 * 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_LFO_TO_PITCH) {
-				let value = generator.parameters.signed.value;
+				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 12000));
 				mod_lfo_to_pitch_cents = value;
 			} else if (type === soundfont.GeneratorType.MOD_LFO_TO_VOLUME) {
 				let value = generator.parameters.signed.value;
@@ -237,7 +237,8 @@ export class Program {
 		let mod_lfo_osc = context.createOscillator();
 		mod_lfo_osc.type = "triangle";
 		mod_lfo_osc.frequency.value = params.lfo.mod.freq_hz;
-		let mod_lfo_delayed = context.createDelay(params.lfo.mod.delay_s);
+		let mod_lfo_delayed = context.createDelay(20);
+		mod_lfo_delayed.delayTime.value = params.lfo.mod.delay_s;
 		mod_lfo_osc.connect(mod_lfo_delayed);
 		let mod_lfo_gained = context.createGain();
 		mod_lfo_delayed.connect(mod_lfo_gained);
@@ -252,14 +253,14 @@ export class Program {
 		let lowpass_filter = context.createBiquadFilter();
 		source.connect(lowpass_filter);
 		lowpass_filter.type = "lowpass";
+		let initial_filter_cutoff_hz = 8.176 * 2 ** ((initial_filter_cutoff_cents - 2400*(1-velocity/127)*(1-velocity/127))/1200);
 		lowpass_filter.frequency.value = initial_filter_cutoff_hz;
 		lowpass_filter.Q.value = initial_filter_q_db;
 
 
 		let sample_gain0 = context.createGain();
 		lowpass_filter.connect(sample_gain0);
-		let key_att_centibels = (1-velocity/127)*(1-velocity/127)*960;
-		sample_gain0.gain.value = Math.pow(10, (-key_att_centibels - volume_decrease_centibels)/200);
+		sample_gain0.gain.value = Math.pow(10, -(volume_decrease_centibels+(1-velocity/127)*(1-velocity/127)*960)/200);
 
 
 		let sample_gain1 = context.createGain();

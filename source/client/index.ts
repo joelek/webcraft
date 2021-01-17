@@ -2086,6 +2086,7 @@ function keyoff(channel_index: number, midikey: number, velocity: number): void 
 	}
 }
 async function soundUpdate(): Promise<void> {
+	// TODO: Queue sounds.
 	if (is.present(xmi)) {
 		if (xmi_delay > 0) {
 			xmi_delay -= 1;

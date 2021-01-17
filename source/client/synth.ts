@@ -103,6 +103,9 @@ export class Program {
 
 		let volume_decrease_centibels = 0;
 
+		let initial_filter_cutoff_hz = 20000;
+		let initial_filter_q_db = 0;
+
 		while (igen_index < this.file.igen.length) {
 			let generator = this.file.igen[igen_index++];
 			if (is.absent(generator)) {
@@ -113,6 +116,10 @@ export class Program {
 				console.log(soundfont.GeneratorType[type], generator.parameters.signed.value);
 			}
 			if (false) {
+			} else if (type === soundfont.GeneratorType.INITIAL_FILTER_FC) {
+				initial_filter_cutoff_hz = 8.176 * 2 ** (generator.parameters.signed.value / 1200);
+			} else if (type === soundfont.GeneratorType.INITIAL_FILTER_Q) {
+				initial_filter_q_db = generator.parameters.signed.value / 10;
 			} else if (type === soundfont.GeneratorType.INITIAL_ATTENUATION) {
 				volume_decrease_centibels = generator.parameters.signed.value;
 			} else if (type === soundfont.GeneratorType.MOD_ENV_TO_PITCH) {
@@ -214,8 +221,16 @@ export class Program {
 		source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;
 		source.loop = loop;
 
+
+		let lowpass_filter = context.createBiquadFilter();
+		source.connect(lowpass_filter);
+		lowpass_filter.type = "lowpass";
+		lowpass_filter.frequency.value = initial_filter_cutoff_hz;
+		lowpass_filter.Q.value = initial_filter_q_db;
+
+
 		let sample_gain0 = context.createGain();
-		source.connect(sample_gain0);
+		lowpass_filter.connect(sample_gain0);
 		let key_att_centibels = (1-velocity/127)*(1-velocity/127)*960;
 		sample_gain0.gain.value = Math.pow(10, -(key_att_centibels + volume_decrease_centibels)/200);
 
@@ -233,9 +248,9 @@ export class Program {
 		{
 			let t0 = context.currentTime;
 			let t1 = t0 + vol_env_delay_s;
-			let t2 = t0 + vol_env_attack_s;
-			let t3 = t0 + (vol_env_hold_s * vol_env_hold_time_factor);
-			let t4 = t0 + (vol_env_deacy_s * vol_env_decay_time_factor);
+			let t2 = t1 + vol_env_attack_s;
+			let t3 = t2 + (vol_env_hold_s * vol_env_hold_time_factor);
+			let t4 = t3 + (vol_env_deacy_s * vol_env_decay_time_factor);
 			vol_env.gain.setValueAtTime(0.0, t0);
 			vol_env.gain.setValueAtTime(0.0, t1);
 			vol_env.gain.exponentialRampToValueAtTime(1.0, t2);
@@ -251,9 +266,9 @@ export class Program {
 		{
 			let t0 = context.currentTime;
 			let t1 = t0 + mod_env_delay_s;
-			let t2 = t0 + mod_env_attack_s;
-			let t3 = t0 + (mod_env_hold_s * mod_env_hold_time_factor);
-			let t4 = t0 + (mod_env_deacy_s * mod_env_decay_time_factor);
+			let t2 = t1 + mod_env_attack_s;
+			let t3 = t2 + (mod_env_hold_s * mod_env_hold_time_factor);
+			let t4 = t3 + (mod_env_deacy_s * mod_env_decay_time_factor);
 			mod_env.gain.setValueAtTime(0.0, t0);
 			mod_env.gain.setValueAtTime(0.0, t1);
 			mod_env.gain.exponentialRampToValueAtTime(1.0, t2);

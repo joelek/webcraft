@@ -54,6 +54,7 @@ import * as soundfont from "../shared/formats/soundfont";
 // 3. Fix channel volumes
 
 export type MidiChannel = {
+	start: () => void;
 	stop: () => void;
 	release: (midikey: number, velocity: number) => void;
 };
@@ -388,7 +389,7 @@ synth.js:295 3 "{
 		let sample_gain0 = context.createGain();
 		lowpass_filter.connect(sample_gain0);
 		//
-		sample_gain0.gain.value = Math.pow(10, -(volume_decrease_centibels + 960*(1-velocity/127))/200);
+		sample_gain0.gain.value = Math.pow(10, (volume_decrease_centibels - 960*(1-velocity/127))/200);
 
 
 		let sample_gain1 = context.createGain();
@@ -401,40 +402,15 @@ synth.js:295 3 "{
 
 
 		let vol_env = context.createConstantSource();
-		{
-			vol_env.offset.value = 0.0;
-			let t0 = context.currentTime;
-			let t1 = t0 + 2 ** (params.env.vol.delay_tc / 1200);
-			let t2 = t1 + 2 ** (params.env.vol.attack_tc / 1200);
-			let t3 = t2 + (2 ** (params.env.vol.hold_tc / 1200) * params.env.vol.hold_time_factor);
-			let t4 = t3 + (2 ** (params.env.vol.deacy_tc / 1200) * params.env.vol.decay_time_factor);
-			vol_env.offset.setValueAtTime(0.0, t1);
-			vol_env.offset.exponentialRampToValueAtTime(1.0, t2);
-			vol_env.offset.setValueAtTime(1.0, t3);
-			vol_env.offset.linearRampToValueAtTime(params.env.vol.sustain_level, t4);
-		}
 		vol_env.connect(sample_gain2.gain);
 
 
 
 		let mod_env = context.createConstantSource();
 		{
-			mod_env.offset.value = 0.0;
-			let t0 = context.currentTime;
-			let t1 = t0 + 2 ** (params.env.mod.delay_tc / 1200);
-			let t2 = t1 + 2 ** (params.env.mod.attack_tc / 1200);
-			let t3 = t2 + (2 ** (params.env.mod.hold_tc / 1200) * params.env.mod.hold_time_factor);
-			let t4 = t3 + (2 ** (params.env.mod.deacy_tc / 1200) * params.env.mod.decay_time_factor);
-			mod_env.offset.setValueAtTime(0.0, t1);
-			mod_env.offset.exponentialRampToValueAtTime(1.0, t2);
-			mod_env.offset.setValueAtTime(1.0, t3);
-			mod_env.offset.linearRampToValueAtTime(params.env.mod.sustain_level, t4);
-		}
-		if (is.present(mod_env_to_pitch_cents)) {
-			// 219 cb = + 2.19semitones
 			let constant = context.createConstantSource();
 			let gain = context.createGain();
-			constant.offset.value = mod_env_to_pitch_cents;
+			constant.offset.value = mod_env_to_pitch_cents ?? 0;
 			constant.connect(gain);
 			mod_env.connect(gain.gain);
 			gain.connect(source.detune);
@@ -449,6 +425,7 @@ synth.js:295 3 "{
 		let detune_cents = (midikey - root_key_semitones) * 100 + sample_header.correction.value;
 		detune_source.offset.value = detune_cents;
 		detune_source.connect(source.detune);
+		detune_source.start();
 
 		let constant = context.createConstantSource();
 		let gain = context.createGain();
@@ -458,16 +435,36 @@ synth.js:295 3 "{
 		gain.connect(source.detune);
 		constant.start();
 
-
-		sample_gain2.connect(mixer);
-		detune_source.start();
-		source.start();
-		mod_lfo_osc.start();
-		vol_env.start();
-		mod_env.start();
+		function start() {
+			let t0 = context.currentTime;
+			{
+				let t1 = t0 + 2 ** (params.env.mod.delay_tc / 1200);
+				let t2 = t1 + 2 ** (params.env.mod.attack_tc / 1200);
+				let t3 = t2 + (2 ** (params.env.mod.hold_tc / 1200) * params.env.mod.hold_time_factor);
+				let t4 = t3 + (2 ** (params.env.mod.deacy_tc / 1200) * params.env.mod.decay_time_factor);
+				mod_env.offset.setValueAtTime(0.0, t1);
+				mod_env.offset.exponentialRampToValueAtTime(1.0, t2);
+				mod_env.offset.setValueAtTime(1.0, t3);
+				mod_env.offset.linearRampToValueAtTime(params.env.mod.sustain_level, t4);
+			}
+			{
+				let t1 = t0 + 2 ** (params.env.vol.delay_tc / 1200);
+				let t2 = t1 + 2 ** (params.env.vol.attack_tc / 1200);
+				let t3 = t2 + (2 ** (params.env.vol.hold_tc / 1200) * params.env.vol.hold_time_factor);
+				let t4 = t3 + (2 ** (params.env.vol.deacy_tc / 1200) * params.env.vol.decay_time_factor);
+				vol_env.offset.setValueAtTime(0.0, t1);
+				vol_env.offset.exponentialRampToValueAtTime(1.0, t2);
+				vol_env.offset.setValueAtTime(1.0, t3);
+				vol_env.offset.linearRampToValueAtTime(params.env.vol.sustain_level, t4);
+			}
+			sample_gain2.connect(mixer);
+			source.start();
+			mod_lfo_osc.start();
+			vol_env.start();
+			mod_env.start();
+		}
 		function stop() {
 			sample_gain2.disconnect();
-			detune_source.stop();
 			source.stop();
 			mod_lfo_osc.stop();
 			mod_env.stop();
@@ -480,6 +477,7 @@ synth.js:295 3 "{
 			setTimeout(stop, 2 ** (params.env.vol.release_tc / 1200) * 1000);
 		}
 		return {
+			start,
 			stop,
 			release
 		};

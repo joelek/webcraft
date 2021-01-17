@@ -2066,6 +2066,7 @@ let xmi_delay = 0;
 let channels = new Array<MidiChannel | undefined>();
 let instruments = new Array(16).fill(0);
 let channel_mixers = new Array<GainNode>();
+let channel_muters = new Array<GainNode>();
 async function keyon(channel_index: number, midikey: number, velocity: number): Promise<void> {
 	if (is.absent(synth) || is.absent(audio_context)) {
 		return;
@@ -2208,6 +2209,30 @@ async function render(ms: number): Promise<void> {
 }
 window.requestAnimationFrame(render);
 window.addEventListener("keyup", async (event) => {
+
+	if (false) {
+	} else if (event.key === "0") {
+		channel_muters[0].gain.value = channel_muters[0].gain.value > 0 ? 0 : 1;
+	} else if (event.key === "1") {
+		channel_muters[1].gain.value = channel_muters[1].gain.value > 0 ? 0 : 1;
+	} else if (event.key === "2") {
+		channel_muters[2].gain.value = channel_muters[2].gain.value > 0 ? 0 : 1;
+	} else if (event.key === "3") {
+		channel_muters[3].gain.value = channel_muters[3].gain.value > 0 ? 0 : 1;
+	} else if (event.key === "4") {
+		channel_muters[4].gain.value = channel_muters[4].gain.value > 0 ? 0 : 1;
+	} else if (event.key === "5") {
+		channel_muters[5].gain.value = channel_muters[5].gain.value > 0 ? 0 : 1;
+	} else if (event.key === "6") {
+		channel_muters[6].gain.value = channel_muters[6].gain.value > 0 ? 0 : 1;
+	} else if (event.key === "7") {
+		channel_muters[7].gain.value = channel_muters[7].gain.value > 0 ? 0 : 1;
+	} else if (event.key === "8") {
+		channel_muters[8].gain.value = channel_muters[8].gain.value > 0 ? 0 : 1;
+	} else if (event.key === "9") {
+		channel_muters[9].gain.value = channel_muters[9].gain.value > 0 ? 0 : 1;
+	}
+
 	if (false) {
 	} else if (event.key === "8") {
 		direction = 0;
@@ -2283,9 +2308,13 @@ canvas.addEventListener("drop", async (event) => {
 	event.preventDefault();
 	if (is.absent(audio_context)) {
 		audio_context = new AudioContext();
+		for (let i = channel_muters.length; i < 16; i++) {
+			channel_muters[i] = audio_context.createGain();
+			channel_muters[i].connect(audio_context.destination);
+		}
 		for (let i = channel_mixers.length; i < 16; i++) {
 			channel_mixers[i] = audio_context.createGain();
-			channel_mixers[i].connect(audio_context.destination);
+			channel_mixers[i].connect(channel_muters[i]);
 		}
 	}
 	for (let channel of channels) {

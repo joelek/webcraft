@@ -69,36 +69,53 @@ export class Program {
 		this.igen_index = 0;
 	}
 
-	async makeChannel(context: AudioContext, midikey: number, velocity: number, mixer: GainNode): Promise<MidiChannel> {
+	async makeChannel(context: AudioContext, midikey: number, velocity: number, mixer: GainNode, channel: number): Promise<MidiChannel> {
 		let buffer = this.buffer;
 		let sample_header = new soundfont.SampleHeader();
 		let igen_index = this.igen_index;
 		let root_key_override: number | undefined;
 		let loop = false;
-		let mod_lfo_delay_s = 0.0;
-		let mod_lfo_freq_hz = 8.176;
 		let mod_lfo_to_pitch_cents: undefined | number;
 		let mod_lfo_to_volume_centibels: undefined | number;
 		// TODO: Figure out what to do with these.
 		let key_range_low = 0;
 		let key_range_high = 127;
-		let vol_env_delay_s = 0;
-		let vol_env_attack_s = 0;
-		let vol_env_hold_s = 0;
-		let vol_env_deacy_s = 0;
-		let vol_env_sustain_decrease_centibels = 0;
-		let vol_env_release_s = 0;
-		let vol_env_hold_time_factor = 0;
-		let vol_env_decay_time_factor = 0;
 
-		let mod_env_delay_s = 0;
-		let mod_env_attack_s = 0;
-		let mod_env_hold_s = 0;
-		let mod_env_deacy_s = 0;
-		let mod_env_sustain_decrease_centibels = 0;
-		let mod_env_release_s = 0;
-		let mod_env_hold_time_factor = 1;
-		let mod_env_decay_time_factor = 1;
+		let params = {
+			env: {
+				vol: {
+					delay_s: 0,
+					attack_s: 0,
+					hold_s: 0,
+					deacy_s: 0,
+					sustain_decrease_cb: 0,
+					release_s: 0,
+					hold_time_factor: 1,
+					decay_time_factor: 1
+				},
+				mod: {
+					delay_s: 0,
+					attack_s: 0,
+					hold_s: 0,
+					deacy_s: 0,
+					sustain_decrease_cb: 0,
+					release_s: 0,
+					hold_time_factor: 1,
+					decay_time_factor: 1
+				}
+			},
+			lfo: {
+				mod: {
+					delay_s: 0,
+					freq_hz: 8.176
+				},
+				vib: {
+					delay_s: 0,
+					freq_hz: 8.176
+				}
+			}
+		};
+
 		let mod_env_to_pitch_cents: undefined | number;
 
 		let volume_decrease_centibels = 0;
@@ -125,46 +142,46 @@ export class Program {
 			} else if (type === soundfont.GeneratorType.MOD_ENV_TO_PITCH) {
 				mod_env_to_pitch_cents = generator.parameters.signed.value;
 			} else if (type === soundfont.GeneratorType.VOL_ENV_KEY_TO_HOLD) {
-				vol_env_hold_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
+				params.env.vol.hold_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_KEY_TO_DECAY) {
-				vol_env_decay_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
+				params.env.vol.decay_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_DELAY) {
-				vol_env_delay_s = 2 ** (generator.parameters.signed.value / 1200);
+				params.env.vol.delay_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_ATTACK) {
-				vol_env_attack_s = 2 ** (generator.parameters.signed.value / 1200);
+				params.env.vol.attack_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_HOLD) {
-				vol_env_hold_s = 2 ** (generator.parameters.signed.value / 1200);
+				params.env.vol.hold_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_DECAY) {
-				vol_env_deacy_s = 2 ** (generator.parameters.signed.value / 1200);
+				params.env.vol.deacy_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_SUSTAIN) {
-				vol_env_sustain_decrease_centibels = generator.parameters.signed.value;
+				params.env.vol.sustain_decrease_cb = generator.parameters.signed.value;
 			} else if (type === soundfont.GeneratorType.VOL_ENV_RELEASE) {
-				vol_env_release_s = 2 ** (generator.parameters.signed.value / 1200);
+				params.env.vol.release_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_HOLD) {
-				mod_env_hold_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
+				params.env.mod.hold_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_DECAY) {
-				mod_env_decay_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
+				params.env.mod.decay_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_DELAY) {
-				mod_env_delay_s = 2 ** (generator.parameters.signed.value / 1200);
+				params.env.mod.delay_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_ATTACK) {
-				mod_env_attack_s = 2 ** (generator.parameters.signed.value / 1200);
+				params.env.mod.attack_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_HOLD) {
-				mod_env_hold_s = 2 ** (generator.parameters.signed.value / 1200);
+				params.env.mod.hold_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_DECAY) {
-				mod_env_deacy_s = 2 ** (generator.parameters.signed.value / 1200);
+				params.env.mod.deacy_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_SUSTAIN) {
-				mod_env_sustain_decrease_centibels = generator.parameters.signed.value;
+				params.env.mod.sustain_decrease_cb = generator.parameters.signed.value;
 			} else if (type === soundfont.GeneratorType.MOD_ENV_RELEASE) {
-				mod_env_release_s = 2 ** (generator.parameters.signed.value / 1200);
+				params.env.mod.release_s = 2 ** (generator.parameters.signed.value / 1200);
 			} else if (type === soundfont.GeneratorType.KEY_RANGE) {
 				key_range_low = generator.parameters.first.value;
 				key_range_high = generator.parameters.second.value;
 			} else if (type === soundfont.GeneratorType.MOD_LFO_DELAY) {
 				let value = generator.parameters.signed.value;
-				mod_lfo_delay_s = 2 ** (value / 1200);
+				params.lfo.mod.delay_s = 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_LFO_FREQ) {
 				let value = generator.parameters.signed.value;
-				mod_lfo_freq_hz = 8.176 * 2 ** (value / 1200);
+				params.lfo.mod.freq_hz = 8.176 * 2 ** (value / 1200);
 			} else if (type === soundfont.GeneratorType.MOD_LFO_TO_PITCH) {
 				let value = generator.parameters.signed.value;
 				mod_lfo_to_pitch_cents = value;
@@ -172,9 +189,6 @@ export class Program {
 				let value = generator.parameters.signed.value;
 				mod_lfo_to_volume_centibels = value;
 			} else if (type === soundfont.GeneratorType.SAMPLE_ID) {
-				if (is.absent(buffer)) {
-					console.log("");
-				}
 				sample_header = this.file.shdr[generator.parameters.signed.value];
 				if (is.absent(sample_header)) {
 					throw ``;
@@ -195,6 +209,8 @@ export class Program {
 		}
 		let root_key_semitones = root_key_override ?? sample_header.original_key.value;
 		if (is.absent(buffer)) {
+			console.log(channel, JSON.stringify(params, null, 2));
+			console.log("");
 			let sample_count = sample_header.end.value - sample_header.start.value;
 			let reader = this.file.smpl;
 			let cursor = new Cursor({ offset: sample_header.start.value * 2 });
@@ -209,8 +225,8 @@ export class Program {
 		}
 		let mod_lfo_osc = context.createOscillator();
 		mod_lfo_osc.type = "triangle";
-		mod_lfo_osc.frequency.value = mod_lfo_freq_hz;
-		let mod_lfo_delayed = context.createDelay(mod_lfo_delay_s);
+		mod_lfo_osc.frequency.value = params.lfo.mod.freq_hz;
+		let mod_lfo_delayed = context.createDelay(params.lfo.mod.delay_s);
 		mod_lfo_osc.connect(mod_lfo_delayed);
 		let mod_lfo_gained = context.createGain();
 		mod_lfo_delayed.connect(mod_lfo_gained);
@@ -247,15 +263,15 @@ export class Program {
 		let vol_env = context.createGain();
 		{
 			let t0 = context.currentTime;
-			let t1 = t0 + vol_env_delay_s;
-			let t2 = t1 + vol_env_attack_s;
-			let t3 = t2 + (vol_env_hold_s * vol_env_hold_time_factor);
-			let t4 = t3 + (vol_env_deacy_s * vol_env_decay_time_factor);
+			let t1 = t0 + params.env.vol.delay_s;
+			let t2 = t1 + params.env.vol.attack_s;
+			let t3 = t2 + (params.env.vol.hold_s * params.env.vol.hold_time_factor);
+			let t4 = t3 + (params.env.vol.deacy_s * params.env.vol.decay_time_factor);
 			vol_env.gain.setValueAtTime(0.0, t0);
 			vol_env.gain.setValueAtTime(0.0, t1);
 			vol_env.gain.exponentialRampToValueAtTime(1.0, t2);
 			vol_env.gain.setValueAtTime(1.0, t3);
-			vol_env.gain.linearRampToValueAtTime(Math.pow(10, -vol_env_sustain_decrease_centibels/200), t4);
+			vol_env.gain.linearRampToValueAtTime(Math.pow(10, -params.env.vol.sustain_decrease_cb/200), t4);
 		}
 		vol_env.connect(sample_gain2.gain);
 
@@ -265,15 +281,15 @@ export class Program {
 		let mod_env = context.createGain();
 		{
 			let t0 = context.currentTime;
-			let t1 = t0 + mod_env_delay_s;
-			let t2 = t1 + mod_env_attack_s;
-			let t3 = t2 + (mod_env_hold_s * mod_env_hold_time_factor);
-			let t4 = t3 + (mod_env_deacy_s * mod_env_decay_time_factor);
+			let t1 = t0 + params.env.mod.delay_s;
+			let t2 = t1 + params.env.mod.attack_s;
+			let t3 = t2 + (params.env.mod.hold_s * params.env.mod.hold_time_factor);
+			let t4 = t3 + (params.env.mod.deacy_s * params.env.mod.decay_time_factor);
 			mod_env.gain.setValueAtTime(0.0, t0);
 			mod_env.gain.setValueAtTime(0.0, t1);
 			mod_env.gain.exponentialRampToValueAtTime(1.0, t2);
 			mod_env.gain.setValueAtTime(1.0, t3);
-			mod_env.gain.linearRampToValueAtTime(Math.pow(10, -mod_env_sustain_decrease_centibels/200), t4);
+			mod_env.gain.linearRampToValueAtTime(Math.pow(10, -params.env.mod.sustain_decrease_cb/200), t4);
 		}
 		if (is.present(mod_env_to_pitch_cents)) {
 			let constant = context.createConstantSource();
@@ -319,9 +335,10 @@ export class Program {
 		};
 		function release() {
 			let t0 = context.currentTime;
-			let t1 = t0 + vol_env_release_s;
+			let t1 = t0 + params.env.vol.release_s;
+			mod_env.gain.linearRampToValueAtTime(0.0, params.env.mod.release_s);
 			vol_env.gain.linearRampToValueAtTime(0.0, t1);
-			setTimeout(stop, vol_env_release_s * 1000);
+			setTimeout(stop, params.env.vol.release_s * 1000);
 		}
 		return {
 			volume,

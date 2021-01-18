@@ -2095,7 +2095,7 @@ function keyoff(channel_index: number, midikey: number, velocity: number): void 
 	}
 }
 function volume(channel_index: number, byte: number): void {
-	channel_mixers[channel_index].gain.value = byte/127;
+	channel_mixers[channel_index].gain.value = 1 + byte/127;
 }
 async function soundUpdate(): Promise<void> {
 	// TODO: Queue sounds.

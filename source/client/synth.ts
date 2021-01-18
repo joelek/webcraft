@@ -383,13 +383,13 @@ synth.js:295 3 "{
 		let initial_attenuation = context.createGain();
 		source.connect(initial_attenuation);
 		//
-		initial_attenuation.gain.value = Math.pow(10, -(volume_decrease_centibels + 960*(1-velocity/128))/200);
+		initial_attenuation.gain.value = Math.pow(10, -(volume_decrease_centibels + 960*(1-midikey/128)*(1-midikey/128))/200);
 
 		let lowpass_filter = context.createBiquadFilter();
 		initial_attenuation.connect(lowpass_filter);
 		lowpass_filter.type = "lowpass";
 		//
-		let initial_filter_cutoff_hz = 8.176 * 2 ** ((initial_filter_cutoff_cents - 2400*(1-velocity/128))/1200);
+		let initial_filter_cutoff_hz = 8.176 * 2 ** ((initial_filter_cutoff_cents - 2400*(1-midikey/128))/1200);
 		lowpass_filter.frequency.value = initial_filter_cutoff_hz;
 		lowpass_filter.Q.value = initial_filter_q_db;
 

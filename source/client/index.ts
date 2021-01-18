@@ -2072,9 +2072,9 @@ async function keyon(channel_index: number, midikey: number, velocity: number): 
 	if (is.absent(synth) || is.absent(audio_context)) {
 		return;
 	}
-	let program = synth.banks[channel_index === 9 ? 128 : 0].programs[instruments[channel_index]];
-	if (channel_index !== 6) {
-		//return;
+	let program = synth.banks[channel_index === 9 ? 0 : 0].programs[instruments[channel_index]];
+	if (channel_muters[channel_index].gain.value === 0) {
+		return;
 	}
 	let map = channels[channel_index];
 	let channel = map.get(midikey);
@@ -2095,7 +2095,7 @@ function keyoff(channel_index: number, midikey: number, velocity: number): void 
 	}
 }
 function volume(channel_index: number, byte: number): void {
-	channel_mixers[channel_index].gain.value = 1 + byte/127;
+	channel_mixers[channel_index].gain.value = 10 ** (-960*(1 - byte/128)*(1 - byte/128)/200);
 }
 async function soundUpdate(): Promise<void> {
 	// TODO: Queue sounds.

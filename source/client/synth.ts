@@ -123,133 +123,6 @@ export class Program {
 		let initial_filter_cutoff_cents = 13500;
 		let initial_filter_q_db = 0;
 
-
-// 2400 cent = 24 semitoner = 2 oktaver
-
-/*
-channel0x3 for MIDI0004, too much pitch modulation, should have longer sustain, no controller messages
-
-synth.js:113 MOD_LFO_TO_PITCH 10
-synth.js:113 MOD_ENV_TO_PITCH -63
-synth.js:113 MOD_LFO_TO_VOLUME 2
-
-synth.js:113 UNUSED_2 959
-
-synth.js:113 MOD_LFO_DELAY -1292
-synth.js:113 MOD_LFO_FREQ -536
-synth.js:113 MOD_ENV_ATTACK -12000
-synth.js:113 MOD_ENV_DECAY -4871
-synth.js:113 MOD_ENV_SUSTAIN 1440
-synth.js:113 MOD_ENV_RELEASE -4871
-
-synth.js:113 VOL_ENV_ATTACK -6871
-synth.js:113 VOL_ENV_DECAY 2260
-synth.js:113 VOL_ENV_SUSTAIN 2
-synth.js:113 VOL_ENV_RELEASE -1271
-synth.js:113 VOL_ENV_KEY_TO_DECAY 15
-
-synth.js:113 KEY_RANGE 8448
-synth.js:113 START_ADDRESS_OFFSET 0
-synth.js:113 INITIAL_ATTENUATION -5
-synth.js:113 SAMPLE_MODES 1
-synth.js:113 SAMPLE_ID 76
-synth.js:231 3 "{
-  "env": {
-    "vol": {
-      "delay_s": 0,
-      "attack_s": 0.018895240172555915,
-      "hold_s": 0,
-      "deacy_s": 3.6892647743437568,
-      "sustain_level": 0.9772372209558107,
-      "release_s": 0.4799091860337126,
-      "hold_time_factor": 1,
-      "decay_time_factor": 1.3195079107728942
-    },
-    "mod": {
-      "delay_s": 0,
-      "attack_s": 0.0009765625,
-      "hold_s": 0,
-      "deacy_s": 0.05998864825421406,
-      "sustain_level": 0,
-      "release_s": 0.05998864825421406,
-      "hold_time_factor": 1,
-      "decay_time_factor": 1
-    }
-  },
-  "lfo": {
-    "mod": {
-      "delay_s": 0.4741230155872487,
-      "freq_hz": 5.9990270203984135
-    },
-    "vib": {
-      "delay_s": 0,
-      "freq_hz": 8.176
-    }
-  }
-}"
-
-samma gäller för
-
-
-synth.js:177 MOD_LFO_TO_PITCH 4
-synth.js:177 MOD_LFO_TO_VOLUME 1
-synth.js:177 MOD_LFO_DELAY -1013
-synth.js:177 MOD_LFO_FREQ -594
-
-synth.js:177 MOD_ENV_ATTACK -12000
-synth.js:177 MOD_ENV_DECAY -12000
-synth.js:177 MOD_ENV_SUSTAIN 1440
-synth.js:177 MOD_ENV_RELEASE -12000
-
-synth.js:177 VOL_ENV_ATTACK -9800
-synth.js:177 VOL_ENV_DECAY 1925
-synth.js:177 VOL_ENV_SUSTAIN 2
-synth.js:177 VOL_ENV_RELEASE -6071
-synth.js:177 VOL_ENV_KEY_TO_DECAY 15
-
-synth.js:177 KEY_RANGE 16384
-synth.js:177 START_ADDRESS_OFFSET 0
-synth.js:177 INITIAL_ATTENUATION -2
-synth.js:177 SAMPLE_MODES 1
-synth.js:177 SAMPLE_ID 262
-synth.js:295 3 "{
-  "env": {
-    "vol": {
-      "delay_s": 0,
-      "attack_s": 0.003480073117735702,
-      "hold_s": 0,
-      "deacy_s": 3.0402009102982297,
-      "sustain_level": 0.9772372209558107,
-      "release_s": 0.02999432412710703,
-      "hold_time_factor": 1,
-      "decay_time_factor": 1.0442737824274138
-    },
-    "mod": {
-      "delay_s": 0,
-      "attack_s": 0.0009765625,
-      "hold_s": 0,
-      "deacy_s": 0.0009765625,
-      "sustain_level": 0,
-      "release_s": 0.0009765625,
-      "hold_time_factor": 1,
-      "decay_time_factor": 1
-    }
-  },
-  "lfo": {
-    "mod": {
-      "delay_s": 0.5570324707780351,
-      "freq_hz": 5.8013762801471636
-    },
-    "vib": {
-      "delay_s": 0,
-      "freq_hz": 8.176
-    }
-  }
-}"
-
-
-
- */
 		while (igen_index < this.file.igen.length) {
 			let generator = this.file.igen[igen_index++];
 			if (is.absent(generator)) {
@@ -382,14 +255,14 @@ synth.js:295 3 "{
 
 		let initial_attenuation = context.createGain();
 		source.connect(initial_attenuation);
-		//
-		initial_attenuation.gain.value = Math.pow(10, -(volume_decrease_centibels + 960*(1-midikey/128)*(1-midikey/128))/200);
+		// OKish
+		initial_attenuation.gain.value = Math.pow(10, -(volume_decrease_centibels + 960*(1-velocity/128)*(1-velocity/128))/200);
 
 		let lowpass_filter = context.createBiquadFilter();
 		initial_attenuation.connect(lowpass_filter);
 		lowpass_filter.type = "lowpass";
-		//
-		let initial_filter_cutoff_hz = 8.176 * 2 ** ((initial_filter_cutoff_cents - 2400*(1-midikey/128))/1200);
+		// OK
+		let initial_filter_cutoff_hz = 8.176 * 2 ** ((initial_filter_cutoff_cents - 2400*(1-velocity/128))/1200);
 		lowpass_filter.frequency.value = initial_filter_cutoff_hz;
 		lowpass_filter.Q.value = initial_filter_q_db;
 
@@ -473,11 +346,15 @@ synth.js:295 3 "{
 			mod_env.stop();
 			vol_env.stop();
 		};
-		function release() {
+		function release(midikey: number, velocity: number) {
 			let t0 = context.currentTime + context.baseLatency;
-			mod_env.offset.linearRampToValueAtTime(0.0, t0 + 2 ** (params.env.mod.release_tc / 1200));
-			vol_env.offset.linearRampToValueAtTime(0.0, t0 + 2 ** (params.env.vol.release_tc / 1200));
-			setTimeout(stop, 2 ** (params.env.vol.release_tc / 1200) * 1000);
+			let tm = 2 ** (params.env.mod.release_tc / 1200);
+			let tv = 2 ** (params.env.vol.release_tc / 1200);
+			tm *= (1 - velocity/128);
+			tv *= (1 - velocity/128);
+			mod_env.offset.linearRampToValueAtTime(0.0, t0 + tm);
+			vol_env.offset.linearRampToValueAtTime(0.0, t0 + tv);
+			setTimeout(stop, tv * 1000);
 		}
 		return {
 			start,

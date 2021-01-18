@@ -2065,9 +2065,16 @@ let xmi_loop: undefined | number;
 let xmi_delay = 0;
 
 let channels = new Array<Map<number, MidiChannel>>();
-let instruments = new Array(16).fill(0);
+let instruments = new Array<number>(16).fill(0);
 let channel_mixers = new Array<GainNode>();
 let channel_muters = new Array<GainNode>();
+// fix RPN-handling?, control 101 och 100
+/*
+0,0 Pitch bend range
+1,0 Channel Fine tuning
+2,0 Channel Coarse tuning
+An example of an RPN control sequence to set coarse tuning to A440 (parm 2, value 64) is 101:0, 100:2, 6:64, 101:127, 100:127.
+ */
 async function keyon(channel_index: number, midikey: number, velocity: number): Promise<void> {
 	if (is.absent(synth) || is.absent(audio_context)) {
 		return;
@@ -2075,7 +2082,11 @@ async function keyon(channel_index: number, midikey: number, velocity: number): 
 	if (channel_muters[channel_index].gain.value === 0) {
 		return;
 	}
-	let program = synth.banks[channel_index === 9 ? 128 : 0].programs[instruments[channel_index]];
+	let bank = channel_index === 9 ? 128 : 0;
+	if (channel_index !== 6) {
+		//return;
+	}
+	let program = synth.banks[bank].programs[instruments[channel_index]];
 	if (is.absent(program)) {
 		return;
 	}

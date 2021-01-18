@@ -123,6 +123,9 @@ export class Program {
 		let initial_filter_cutoff_cents = 13500;
 		let initial_filter_q_db = 0;
 
+		if (is.absent(buffer)) {
+			console.log(channel);
+		}
 		while (igen_index < this.file.igen.length) {
 			let generator = this.file.igen[igen_index++];
 			if (is.absent(generator)) {
@@ -225,7 +228,6 @@ export class Program {
 		}
 		let root_key_semitones = root_key_override ?? sample_header.original_key.value;
 		if (is.absent(buffer)) {
-			console.log("");
 			let sample_count = sample_header.end.value - sample_header.start.value;
 			let reader = this.file.smpl;
 			let cursor = new Cursor({ offset: sample_header.start.value * 2 });
@@ -314,7 +316,7 @@ export class Program {
 		constant.start();
 
 		function start() {
-			let t0 = context.currentTime + context.baseLatency;
+			let t0 = context.currentTime;
 			{
 				let t1 = t0 + 2 ** (params.env.mod.delay_tc / 1200);
 				let t2 = t1 + 2 ** (params.env.mod.attack_tc / 1200);
@@ -349,7 +351,7 @@ export class Program {
 			vol_env.stop();
 		};
 		function release(midikey: number, velocity: number) {
-			let t0 = context.currentTime + context.baseLatency;
+			let t0 = context.currentTime;
 			let tm = 2 ** (params.env.mod.release_tc / 1200);
 			let tv = 2 ** (params.env.vol.release_tc / 1200);
 			tm *= (1 - velocity/128);

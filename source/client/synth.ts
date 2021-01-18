@@ -106,11 +106,11 @@ export class Program {
 			},
 			lfo: {
 				mod: {
-					delay_s: 0,
+					delay_tc: -12000,
 					freq_hz: 8.176
 				},
 				vib: {
-					delay_s: 0,
+					delay_tc: -12000,
 					freq_hz: 8.176
 				}
 			}
@@ -317,7 +317,7 @@ synth.js:295 3 "{
 				key_range_high = generator.parameters.second.value;
 			} else if (type === soundfont.GeneratorType.MOD_LFO_DELAY) {
 				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
-				params.lfo.mod.delay_s = 2 ** (value / 1200);
+				params.lfo.mod.delay_tc = value;
 			} else if (type === soundfont.GeneratorType.MOD_LFO_FREQ) {
 				let value = generator.parameters.signed.value;
 				params.lfo.mod.freq_hz = 8.176 * 2 ** (value / 1200);
@@ -366,7 +366,7 @@ synth.js:295 3 "{
 		mod_lfo_osc.type = "triangle";
 		mod_lfo_osc.frequency.value = params.lfo.mod.freq_hz;
 		let mod_lfo_delayed = context.createDelay(20);
-		mod_lfo_delayed.delayTime.value = params.lfo.mod.delay_s;
+		mod_lfo_delayed.delayTime.value = 2 ** (params.lfo.mod.delay_tc / 1200);
 		mod_lfo_osc.connect(mod_lfo_delayed);
 		let mod_lfo_gained = context.createGain();
 		mod_lfo_delayed.connect(mod_lfo_gained);
@@ -377,32 +377,29 @@ synth.js:295 3 "{
 		source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;
 		source.loop = loop;
 
+		let initial_attenuation = context.createGain();
+		source.connect(initial_attenuation);
+		initial_attenuation.gain.value = Math.pow(10, (volume_decrease_centibels - 960*(1-velocity/128))/200);
+
 		let lowpass_filter = context.createBiquadFilter();
-		source.connect(lowpass_filter);
+		initial_attenuation.connect(lowpass_filter);
 		lowpass_filter.type = "lowpass";
 		//
-		let initial_filter_cutoff_hz = 8.176 * 2 ** ((initial_filter_cutoff_cents - 2400*(1-velocity/127))/1200);
+		let initial_filter_cutoff_hz = 8.176 * 2 ** ((initial_filter_cutoff_cents - 2400*(1-velocity/128))/1200);
 		lowpass_filter.frequency.value = initial_filter_cutoff_hz;
 		lowpass_filter.Q.value = initial_filter_q_db;
 
 
-		let sample_gain0 = context.createGain();
-		lowpass_filter.connect(sample_gain0);
-		//
-		sample_gain0.gain.value = Math.pow(10, (volume_decrease_centibels - 960*(1-velocity/127))/200);
 
-
-		let sample_gain1 = context.createGain();
-		sample_gain0.connect(sample_gain1);
+		let amplifier = context.createGain();
+		lowpass_filter.connect(amplifier);
 		if (is.present(mod_lfo_to_volume_centibels)) {
-			mod_lfo_gained.connect(sample_gain1.gain);
+			mod_lfo_gained.connect(amplifier.gain);
 		}
-		let sample_gain2 = context.createGain();
-		sample_gain1.connect(sample_gain2);
 
 
 		let vol_env = context.createConstantSource();
-		vol_env.connect(sample_gain2.gain);
+		vol_env.connect(amplifier.gain);
 
 
 
@@ -436,7 +433,7 @@ synth.js:295 3 "{
 		constant.start();
 
 		function start() {
-			let t0 = context.currentTime;
+			let t0 = context.currentTime + context.baseLatency;
 			{
 				let t1 = t0 + 2 ** (params.env.mod.delay_tc / 1200);
 				let t2 = t1 + 2 ** (params.env.mod.attack_tc / 1200);
@@ -457,21 +454,21 @@ synth.js:295 3 "{
 				vol_env.offset.setValueAtTime(1.0, t3);
 				vol_env.offset.linearRampToValueAtTime(params.env.vol.sustain_level, t4);
 			}
-			sample_gain2.connect(mixer);
+			amplifier.connect(mixer);
 			source.start();
 			mod_lfo_osc.start();
 			vol_env.start();
 			mod_env.start();
 		}
 		function stop() {
-			sample_gain2.disconnect();
+			amplifier.disconnect();
 			source.stop();
 			mod_lfo_osc.stop();
 			mod_env.stop();
 			vol_env.stop();
 		};
 		function release() {
-			let t0 = context.currentTime;
+			let t0 = context.currentTime + context.baseLatency;
 			mod_env.offset.linearRampToValueAtTime(0.0, t0 + 2 ** (params.env.mod.release_tc / 1200));
 			vol_env.offset.linearRampToValueAtTime(0.0, t0 + 2 ** (params.env.vol.release_tc / 1200));
 			setTimeout(stop, 2 ** (params.env.vol.release_tc / 1200) * 1000);

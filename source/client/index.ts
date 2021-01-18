@@ -2109,7 +2109,13 @@ function keyoff(channel_index: number, midikey: number, velocity: number): void 
 	}
 }
 function volume(channel_index: number, byte: number): void {
-	channel_mixers[channel_index].gain.value = 10 ** (-960*(1 - byte/128)*(1 - byte/128)/200);
+	// Volume is set for the loaded instrument, not the channel. Instrument loaded on multiple channels are affected.
+	let ins = instruments[channel_index];
+	for (let i = 0; i < 16; i++) {
+		if (instruments[i] === ins) {
+			channel_mixers[channel_index].gain.value = 10 ** (-960*(1 - byte/128)*(1 - byte/128)/200);
+		}
+	}
 }
 async function soundUpdate(): Promise<void> {
 	// TODO: Queue sounds.
@@ -2135,7 +2141,14 @@ async function soundUpdate(): Promise<void> {
 					}
 				} else if (event.type === XMIEventType.INSTRUMENT_CHANGE) {
 					let a = event.data[0];
-					let o = instruments[event.channel] = a;
+					console.log(`${event.channel}: instrument ${a}`);
+					for (let i = 0; i < 16; i++) {
+						if (instruments[i] === a) {
+							channel_mixers[event.channel].gain.value = channel_mixers[i].gain.value;
+							break;
+						}
+					}
+					instruments[event.channel] = a;
 				} else if (event.type === XMIEventType.CONTROLLER) {
 					let a = event.data[0];
 					let b = event.data[1];
@@ -2147,6 +2160,7 @@ async function soundUpdate(): Promise<void> {
 						xmi_offset = (xmi_loop ?? 0);
 						continue;
 					} else if ((a === 7) || (a === 11)) {
+					console.log(`${event.channel}: volume ${b}`);
 						volume(event.channel, b);
 					} else {
 						console.log(XMIEventType[event.type], event);

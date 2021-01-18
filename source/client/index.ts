@@ -2128,7 +2128,9 @@ async function soundUpdate(): Promise<void> {
 				} else if (event.type === XMIEventType.CONTROLLER) {
 					let a = event.data[0];
 					let b = event.data[1];
-					if (a === 116) {
+					if (a === 64) {
+						// SUSTAIN PEDAL ON OR OFF
+					} else if (a === 116) {
 						xmi_loop = xmi_offset;
 					} else if (a === 117) {
 						xmi_offset = (xmi_loop ?? 0);

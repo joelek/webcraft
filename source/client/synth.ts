@@ -269,9 +269,11 @@ synth.js:295 3 "{
 			} else if (type === soundfont.GeneratorType.MOD_ENV_TO_PITCH) {
 				mod_env_to_pitch_cents = generator.parameters.signed.value;
 			} else if (type === soundfont.GeneratorType.VOL_ENV_KEY_TO_HOLD) {
-				params.env.vol.hold_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
+				let value = Math.max(-1200, Math.min(generator.parameters.signed.value, 1200));
+				params.env.vol.hold_time_factor = 2 ** (value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_KEY_TO_DECAY) {
-				params.env.vol.decay_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
+				let value = Math.max(-1200, Math.min(generator.parameters.signed.value, 1200));
+				params.env.vol.decay_time_factor = 2 ** (value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.VOL_ENV_DELAY) {
 				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
 				params.env.vol.delay_tc = value;
@@ -291,9 +293,11 @@ synth.js:295 3 "{
 				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
 				params.env.vol.release_tc = value;
 			} else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_HOLD) {
-				params.env.mod.hold_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
+				let value = Math.max(-1200, Math.min(generator.parameters.signed.value, 1200));
+				params.env.mod.hold_time_factor = 2 ** (value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_DECAY) {
-				params.env.mod.decay_time_factor = 2 ** (generator.parameters.signed.value / 100 * (60 - midikey) / 12);
+				let value = Math.max(-1200, Math.min(generator.parameters.signed.value, 1200));
+				params.env.mod.decay_time_factor = 2 ** (value / 100 * (60 - midikey) / 12);
 			} else if (type === soundfont.GeneratorType.MOD_ENV_DELAY) {
 				let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
 				params.env.mod.delay_tc = value;
@@ -348,8 +352,6 @@ synth.js:295 3 "{
 		}
 		let root_key_semitones = root_key_override ?? sample_header.original_key.value;
 		if (is.absent(buffer)) {
-			console.log(channel, JSON.stringify(params, null, 2));
-			console.log("");
 			let sample_count = sample_header.end.value - sample_header.start.value;
 			let reader = this.file.smpl;
 			let cursor = new Cursor({ offset: sample_header.start.value * 2 });
@@ -362,6 +364,7 @@ synth.js:295 3 "{
 			}
 			this.buffer = buffer;
 		}
+		console.log(channel, midikey, velocity, JSON.stringify(params, null, 2));
 		let mod_lfo_osc = context.createOscillator();
 		mod_lfo_osc.type = "triangle";
 		mod_lfo_osc.frequency.value = params.lfo.mod.freq_hz;
@@ -379,7 +382,8 @@ synth.js:295 3 "{
 
 		let initial_attenuation = context.createGain();
 		source.connect(initial_attenuation);
-		initial_attenuation.gain.value = Math.pow(10, (volume_decrease_centibels - 960*(1-velocity/128))/200);
+		//
+		initial_attenuation.gain.value = Math.pow(10, -(volume_decrease_centibels + 960*(1-velocity/128))/200);
 
 		let lowpass_filter = context.createBiquadFilter();
 		initial_attenuation.connect(lowpass_filter);
@@ -399,11 +403,13 @@ synth.js:295 3 "{
 
 
 		let vol_env = context.createConstantSource();
+		vol_env.offset.value = 0;
 		vol_env.connect(amplifier.gain);
 
 
 
 		let mod_env = context.createConstantSource();
+		mod_env.offset.value = 0;
 		{
 			let constant = context.createConstantSource();
 			let gain = context.createGain();

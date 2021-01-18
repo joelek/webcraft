@@ -2063,7 +2063,8 @@ let map: Array<number>;
 let xmi_offset = 0;
 let xmi_loop: undefined | number;
 let xmi_delay = 0;
-let channels = new Array<MidiChannel | undefined>();
+
+let channels = new Array<Map<number, MidiChannel>>();
 let instruments = new Array(16).fill(0);
 let channel_mixers = new Array<GainNode>();
 let channel_muters = new Array<GainNode>();
@@ -2071,21 +2072,26 @@ async function keyon(channel_index: number, midikey: number, velocity: number): 
 	if (is.absent(synth) || is.absent(audio_context)) {
 		return;
 	}
-	let channel = channels[channel_index];
-	if (is.present(channel)) {
-		channel.release(midikey, velocity);
-		channels[channel_index] = undefined;
-	}
 	let program = synth.banks[channel_index === 9 ? 128 : 0].programs[instruments[channel_index]];
+	if (channel_index !== 6) {
+		//return;
+	}
+	let map = channels[channel_index];
+	let channel = map.get(midikey);
+	if (is.present(channel)) {
+		channel.stop();
+		map.delete(midikey);
+	}
 	channel = await program.makeChannel(audio_context, midikey, velocity, channel_mixers[channel_index], channel_index);
-	channels[channel_index] = channel;
+	map.set(midikey, channel);
 	channel.start();
 }
 function keyoff(channel_index: number, midikey: number, velocity: number): void {
-	let channel = channels[channel_index];
+	let map = channels[channel_index];
+	let channel = map.get(midikey);
 	if (is.present(channel)) {
 		channel.release(midikey, velocity);
-		channels[channel_index] = undefined;
+		map.delete(midikey);
 	}
 }
 function volume(channel_index: number, byte: number): void {
@@ -2318,6 +2324,9 @@ canvas.addEventListener("drop", async (event) => {
 	event.preventDefault();
 	if (is.absent(audio_context)) {
 		audio_context = new AudioContext();
+		for (let i = channels.length; i < 16; i++) {
+			channels[i] = new Map<number, MidiChannel>();
+		}
 		for (let i = channel_muters.length; i < 16; i++) {
 			channel_muters[i] = audio_context.createGain();
 			channel_muters[i].connect(audio_context.destination);
@@ -2328,8 +2337,8 @@ canvas.addEventListener("drop", async (event) => {
 		}
 	}
 	for (let channel of channels) {
-		if (is.present(channel)) {
-			channel.stop();
+		for (let mc of channel.values()) {
+			mc.stop();
 		}
 	}
 	let dataTransfer = event.dataTransfer;

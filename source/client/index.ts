@@ -2072,8 +2072,11 @@ async function keyon(channel_index: number, midikey: number, velocity: number): 
 	if (is.absent(synth) || is.absent(audio_context)) {
 		return;
 	}
-	let program = synth.banks[channel_index === 9 ? 0 : 0].programs[instruments[channel_index]];
 	if (channel_muters[channel_index].gain.value === 0) {
+		return;
+	}
+	let program = synth.banks[channel_index === 9 ? 128 : 0].programs[instruments[channel_index]];
+	if (is.absent(program)) {
 		return;
 	}
 	let map = channels[channel_index];

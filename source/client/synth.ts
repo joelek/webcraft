@@ -225,6 +225,7 @@ export class Program {
 		}
 		let root_key_semitones = root_key_override ?? sample_header.original_key.value;
 		if (is.absent(buffer)) {
+			console.log("");
 			let sample_count = sample_header.end.value - sample_header.start.value;
 			let reader = this.file.smpl;
 			let cursor = new Cursor({ offset: sample_header.start.value * 2 });
@@ -237,7 +238,7 @@ export class Program {
 			}
 			this.buffer = buffer;
 		}
-		console.log(channel, midikey, velocity, JSON.stringify(params, null, 2));
+		//console.log(channel, midikey, velocity, JSON.stringify(params, null, 2));
 		let mod_lfo_osc = context.createOscillator();
 		mod_lfo_osc.type = "triangle";
 		mod_lfo_osc.frequency.value = params.lfo.mod.freq_hz;
@@ -299,6 +300,7 @@ export class Program {
 
 		let detune_source = context.createConstantSource();
 		let detune_cents = (midikey - root_key_semitones) * 100 + sample_header.correction.value;
+
 		detune_source.offset.value = detune_cents;
 		detune_source.connect(source.detune);
 		detune_source.start();
@@ -365,13 +367,10 @@ export class Program {
 };
 
 export class Bank {
-	programs: Array<Program>;
+	programs: Array<Program | undefined>;
 
 	constructor() {
 		this.programs = new Array<Program>();
-		for (let i = 0; i < 128; i++) {
-			this.programs.push(new Program());
-		}
 	}
 };
 
@@ -393,9 +392,6 @@ export class WavetableSynth {
 				continue;
 			}
 			let program = bank.programs[preset_header.preset.value];
-			if (is.absent(program)) {
-				continue;
-			}
 			let preset_bag = file.pbag[preset_header.pbag_index.value];
 			if (is.absent(preset_bag)) {
 				continue;
@@ -416,8 +412,10 @@ export class WavetableSynth {
 			if (is.absent(instrument_bag)) {
 				continue;
 			}
+			program = new Program();
 			program.file = file;
 			program.igen_index = instrument_bag.igen_index.value;
+			bank.programs[preset_header.preset.value] = program;
 		}
 		return synth;
 	}

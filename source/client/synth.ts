@@ -286,15 +286,15 @@ export class Program {
 		}
 
 		function start() {
-			let t0 = context.currentTime + context.baseLatency;
+			let t0 = context.currentTime;
 			{
 				let t1 = t0 + 2 ** (params.env.mod.delay_tc / 1200);
 				let t2 = t1 + 2 ** (params.env.mod.attack_tc / 1200);
 				let t3 = t2 + (2 ** (params.env.mod.hold_tc / 1200) * params.env.mod.hold_time_factor);
 				let t4 = t3 + (2 ** (params.env.mod.deacy_tc / 1200) * params.env.mod.decay_time_factor);
-				mod_env.offset.setValueAtTime(0.0, t1);
+				mod_env.offset.linearRampToValueAtTime(0.0, t1);
 				mod_env.offset.exponentialRampToValueAtTime(1.0, t2);
-				mod_env.offset.setValueAtTime(1.0, t3);
+				mod_env.offset.linearRampToValueAtTime(1.0, t3);
 				mod_env.offset.linearRampToValueAtTime(params.env.mod.sustain_level, t4);
 			}
 			{
@@ -302,9 +302,9 @@ export class Program {
 				let t2 = t1 + 2 ** (params.env.vol.attack_tc / 1200);
 				let t3 = t2 + (2 ** (params.env.vol.hold_tc / 1200) * params.env.vol.hold_time_factor);
 				let t4 = t3 + (2 ** (params.env.vol.deacy_tc / 1200) * params.env.vol.decay_time_factor);
-				vol_env.offset.setValueAtTime(0.0, t1);
+				vol_env.offset.linearRampToValueAtTime(0.0, t1);
 				vol_env.offset.exponentialRampToValueAtTime(1.0, t2);
-				vol_env.offset.setValueAtTime(1.0, t3);
+				vol_env.offset.linearRampToValueAtTime(1.0, t3);
 				vol_env.offset.linearRampToValueAtTime(params.env.vol.sustain_level, t4);
 			}
 			amplifier.connect(mixer);
@@ -325,16 +325,16 @@ export class Program {
 			modenv_to_pitch_source.stop();
 			detune_source.stop();
 			mod_lfo_to_pitch_const.stop();
-		};
+		}
 		function release(midikey: number, velocity: number) {
-			let t0 = context.currentTime + context.baseLatency;
+			let t0 = context.currentTime;
 			let tm = 2 ** (params.env.mod.release_tc / 1200);
 			let tv = 2 ** (params.env.vol.release_tc / 1200);
 			tm *= (1 - velocity/128);
 			tv *= (1 - velocity/128);
 			mod_env.offset.linearRampToValueAtTime(0.0, t0 + tm);
 			vol_env.offset.linearRampToValueAtTime(0.0, t0 + tv);
-			setTimeout(stop, (tv) * 1000);
+			setTimeout(stop, (context.baseLatency + tv) * 1000);
 		}
 		return {
 			start,

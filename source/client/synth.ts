@@ -1,141 +1,3 @@
-/*
-original_key: middle C, 261.62 Hz = 60
-pitch_correction: cents
-a bank is a set of patches/programs/instruments
-phdr contains banks and presets, bank 0 presets correspond to midi instruments
-
-
-phdr: 236 entries
-	preset varies between 0 and 127, 255 is invalid
-	bank varies between 0 and 128, 255 is invalid
-	bag_index points to pbag and increases from 0 to 235
-pbag: 236 entries
-	generator_index points to pgen and increases from 0 to 235
-	modulator_index points to pmod, always 0
-pmod: 1 entry
-	only terminal record
-pgen: 236 entries
-	generator is 41 (which is an enum meaning instrument generator)
-	amount is increasing from 0 to 234, last one is zeroed
-
-inst: 236 entries
-	bag_index points to ibag, indices 0 to 1724 (increasing but not continous)
-ibag: 1725 entries
-	generator_index points to igen and uses indices from 0 to 12898
-	modulator_index points to pmod, always 0
-imod: 1 entry
-	only terminal record
-igen: 12899 entries
-	generator varies (5, 21, 22, 26, 28 etc) corresponds to enumerated algorithm
-	amount varies
-
-shdr: 496 entries
-
-
-
-
-
-
-
-general midi has 16 channels, channel 10 is reserved for percussion,
-general midi has 128 instruments, channel 10 has different ones
-set instrument sets the instrument of the channel
-
-
-
-
-drums are put in bank 128 at these instruments.
-last phdr
-
-226: {name: "Standard    ", preset: 0, bank: 128, pbag_index: 226, library: 0, …}
-227: {name: "Room        ", preset: 8, bank: 128, pbag_index: 227, library: 0, …}
-228: {name: "Power       ", preset: 16, bank: 128, pbag_index: 228, library: 0, …}
-229: {name: "Electronic  ", preset: 24, bank: 128, pbag_index: 229, library: 0, …}
-230: {name: "TR-808      ", preset: 25, bank: 128, pbag_index: 230, library: 0, …}
-231: {name: "Jazz        ", preset: 32, bank: 128, pbag_index: 231, library: 0, …}
-232: {name: "Brush       ", preset: 40, bank: 128, pbag_index: 232, library: 0, …}
-233: {name: "Orchestra   ", preset: 48, bank: 128, pbag_index: 233, library: 0, …}
-234: {name: "SFX         ", preset: 56, bank: 128, pbag_index: 234, library: 0, …}
-235: {name: "EOP", preset: 255, bank: 255, pbag_index: 235, library: 0, …}
-
-
-last inst:
-226: {name: "Standard    ", ibag_index: 1189}
-227: {name: "Room        ", ibag_index: 1250}
-228: {name: "Power       ", ibag_index: 1311}
-229: {name: "Electronic  ", ibag_index: 1372}
-230: {name: "TR-808      ", ibag_index: 1433}
-231: {name: "Jazz        ", ibag_index: 1494}
-232: {name: "Brush       ", ibag_index: 1555}
-233: {name: "Orchestra   ", ibag_index: 1616}
-234: {name: "SFX         ", ibag_index: 1678}
-235: {name: "EOI", ibag_index: 1724}
-
-ibag 1189, 1250: (standard + 1)
-0: {igen_index: 7170, imod_index: 0} -> starts with key 27, ends with sample 196 (HI_Q_60, matches gs key 27)
-1: {igen_index: 7180, imod_index: 0} -> starts with key 28, ends with sample 371 (SLAP_60 matches gs key 28)
-2: {igen_index: 7190, imod_index: 0}
-3: {igen_index: 7202, imod_index: 0}
-4: {igen_index: 7215, imod_index: 0}
-5: {igen_index: 7222, imod_index: 0}
-6: {igen_index: 7230, imod_index: 0}
-7: {igen_index: 7239, imod_index: 0}
-8: {igen_index: 7249, imod_index: 0}
-9: {igen_index: 7256, imod_index: 0}
-10: {igen_index: 7265, imod_index: 0}
-11: {igen_index: 7275, imod_index: 0}
-12: {igen_index: 7284, imod_index: 0}
-13: {igen_index: 7294, imod_index: 0}
-14: {igen_index: 7303, imod_index: 0}
-15: {igen_index: 7314, imod_index: 0}
-16: {igen_index: 7325, imod_index: 0}
-17: {igen_index: 7336, imod_index: 0}
-18: {igen_index: 7349, imod_index: 0}
-19: {igen_index: 7360, imod_index: 0}
-20: {igen_index: 7369, imod_index: 0}
-21: {igen_index: 7380, imod_index: 0}
-22: {igen_index: 7391, imod_index: 0}
-23: {igen_index: 7401, imod_index: 0}
-24: {igen_index: 7412, imod_index: 0}
-25: {igen_index: 7423, imod_index: 0}
-26: {igen_index: 7434, imod_index: 0}
-27: {igen_index: 7445, imod_index: 0}
-28: {igen_index: 7456, imod_index: 0}
-29: {igen_index: 7469, imod_index: 0}
-30: {igen_index: 7479, imod_index: 0}
-31: {igen_index: 7490, imod_index: 0}
-32: {igen_index: 7503, imod_index: 0}
-33: {igen_index: 7515, imod_index: 0}
-34: {igen_index: 7525, imod_index: 0}
-35: {igen_index: 7535, imod_index: 0}
-36: {igen_index: 7546, imod_index: 0}
-37: {igen_index: 7556, imod_index: 0}
-38: {igen_index: 7567, imod_index: 0}
-39: {igen_index: 7577, imod_index: 0}
-40: {igen_index: 7588, imod_index: 0}
-41: {igen_index: 7598, imod_index: 0}
-42: {igen_index: 7609, imod_index: 0}
-43: {igen_index: 7619, imod_index: 0}
-44: {igen_index: 7629, imod_index: 0}
-45: {igen_index: 7639, imod_index: 0}
-46: {igen_index: 7649, imod_index: 0}
-47: {igen_index: 7659, imod_index: 0}
-48: {igen_index: 7667, imod_index: 0}
-49: {igen_index: 7677, imod_index: 0}
-50: {igen_index: 7688, imod_index: 0}
-51: {igen_index: 7699, imod_index: 0}
-52: {igen_index: 7709, imod_index: 0}
-53: {igen_index: 7719, imod_index: 0}
-54: {igen_index: 7730, imod_index: 0}
-55: {igen_index: 7742, imod_index: 0}
-56: {igen_index: 7752, imod_index: 0}
-57: {igen_index: 7762, imod_index: 0}
-58: {igen_index: 7771, imod_index: 0}
-59: {igen_index: 7779, imod_index: 0}
-60: {igen_index: 7790, imod_index: 0} -> starts with key 87, ends with sample 409 (SURDO60 matches gs key 87)
-61: {igen_index: 7800, imod_index: 0} (extra)
-*/
-
 import { is } from "../shared";
 import { BufferReader, Cursor, Reader } from "../shared/binary";
 import { Integer2 } from "../shared/binary/chunks";
@@ -208,7 +70,6 @@ export class Program {
 				}
 			};
 			inner: for (let i = igen_index; i < this.file.igen.length; i++) {
-				//console.log(soundfont.GeneratorType[type], generator.parameters.signed.value);
 				let generator = this.file.igen[i];
 				if (is.absent(generator)) {
 					throw ``;
@@ -313,6 +174,12 @@ export class Program {
 					if (value >= 0 && value <= 127) {
 						params.sample.root_key_override = value;
 					}
+				} else if (type === soundfont.GeneratorType.START_ADDRESS_OFFSET) {
+					let value = generator.parameters.signed.value;
+				} else if (type === soundfont.GeneratorType.PAN) {
+					let value = generator.parameters.signed.value;
+				} else {
+					//console.log(soundfont.GeneratorType[type], generator.parameters.signed.value);
 				}
 			}
 		}
@@ -335,9 +202,9 @@ export class Program {
 				buffer.getChannelData(0)[s] = value;
 			}
 			this.buffers.set(params.sample.index, buffer);
+			console.log(channel, JSON.stringify(params, null, 2));
 		}
 		let root_key_semitones = params.sample.root_key_override ?? sample_header.original_key.value;
-
 
 
 
@@ -372,6 +239,7 @@ export class Program {
 
 
 		let amplifier = context.createGain();
+		amplifier.gain.value = 0;
 		lowpass_filter.connect(amplifier);
 		if (params.lfo.mod.to_volume_cb > 0) {
 			mod_lfo_gained.connect(amplifier.gain);
@@ -386,14 +254,14 @@ export class Program {
 
 		let mod_env = context.createConstantSource();
 		mod_env.offset.value = 0;
+		let modenv_to_pitch_source = context.createConstantSource();
 		{
-			let constant = context.createConstantSource();
 			let gain = context.createGain();
-			constant.offset.value = params.env.mod.to_pitch_c;
-			constant.connect(gain);
+			gain.gain.value = 0;
+			modenv_to_pitch_source.offset.value = params.env.mod.to_pitch_c;
+			modenv_to_pitch_source.connect(gain);
 			mod_env.connect(gain.gain);
 			gain.connect(source.detune);
-			constant.start();
 		}
 
 
@@ -406,15 +274,16 @@ export class Program {
 
 		detune_source.offset.value = detune_cents;
 		detune_source.connect(source.detune);
-		detune_source.start();
 
-		let constant = context.createConstantSource();
-		let gain = context.createGain();
-		constant.offset.value = params.lfo.mod.to_pitch_c;
-		constant.connect(gain);
-		mod_lfo_delayed.connect(gain.gain);
-		gain.connect(source.detune);
-		constant.start();
+		let mod_lfo_to_pitch_const = context.createConstantSource();
+		{
+			let gain = context.createGain();
+			gain.gain.value = 0;
+			mod_lfo_to_pitch_const.offset.value = params.lfo.mod.to_pitch_c;
+			mod_lfo_to_pitch_const.connect(gain);
+			mod_lfo_delayed.connect(gain.gain);
+			gain.connect(source.detune);
+		}
 
 		function start() {
 			let t0 = context.currentTime;
@@ -441,8 +310,11 @@ export class Program {
 			amplifier.connect(mixer);
 			source.start();
 			mod_lfo_osc.start();
-			vol_env.start();
 			mod_env.start();
+			vol_env.start();
+			modenv_to_pitch_source.start();
+			detune_source.start();
+			mod_lfo_to_pitch_const.start();
 		}
 		function stop() {
 			amplifier.disconnect();
@@ -450,6 +322,9 @@ export class Program {
 			mod_lfo_osc.stop();
 			mod_env.stop();
 			vol_env.stop();
+			modenv_to_pitch_source.stop();
+			detune_source.stop();
+			mod_lfo_to_pitch_const.stop();
 		};
 		function release(midikey: number, velocity: number) {
 			let t0 = context.currentTime;

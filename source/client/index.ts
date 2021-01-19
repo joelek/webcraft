@@ -2068,36 +2068,7 @@ let channels = new Array<Map<number, MidiChannel>>();
 let instruments = new Array<number>(16).fill(0);
 let channel_mixers = new Array<GainNode>();
 let channel_muters = new Array<GainNode>();
-// fix RPN-handling?, control 101 och 100
-/*
-0,0 Pitch bend range
-1,0 Channel Fine tuning
-2,0 Channel Coarse tuning
-An example of an RPN control sequence to set coarse tuning to A440 (parm 2, value 64) is 101:0, 100:2, 6:64, 101:127, 100:127.
 
-
- 381
-3
-synth.js:116 MOD_LFO_TO_PITCH 8
-synth.js:116 MOD_LFO_TO_VOLUME 17
-synth.js:116 UNUSED_2 481
-synth.js:116 MOD_LFO_DELAY -3493
-synth.js:116 MOD_LFO_FREQ 349
-synth.js:116 MOD_ENV_SUSTAIN 1440
-synth.js:116 VOL_ENV_ATTACK -7545
-synth.js:116 VOL_ENV_DECAY 2149
-synth.js:116 VOL_ENV_SUSTAIN 2
-synth.js:116 VOL_ENV_RELEASE 427
-synth.js:116 VOL_ENV_KEY_TO_DECAY 7
-synth.js:116 KEY_RANGE 14080
-synth.js:116 START_ADDRESS_OFFSET 0
-synth.js:116 INITIAL_ATTENUATION -7
-synth.js:116 SAMPLE_MODES 1
-synth.js:116 SAMPLE_ID 405
-
-fladdrar för mycket
-
- */
 async function keyon(channel_index: number, midikey: number, velocity: number): Promise<void> {
 	if (is.absent(synth) || is.absent(audio_context)) {
 		return;
@@ -2130,7 +2101,7 @@ function keyoff(channel_index: number, midikey: number, velocity: number): void 
 	}
 }
 function volume(channel_index: number, byte: number): void {
-	// Volume is set for the loaded instrument, not the channel. Instrument loaded on multiple channels are affected.
+	// Volume is set for the loaded instrument, not the channel. Instruments loaded on multiple channels are affected.
 	let ins = instruments[channel_index];
 	for (let i = 0; i < 16; i++) {
 		if (instruments[i] === ins) {
@@ -2162,7 +2133,7 @@ async function soundUpdate(): Promise<void> {
 					}
 				} else if (event.type === XMIEventType.INSTRUMENT_CHANGE) {
 					let a = event.data[0];
-					console.log(`${event.channel}: instrument ${a}`);
+					//console.log(`${event.channel}: instrument ${a}`);
 					for (let i = 0; i < 16; i++) {
 						if (instruments[i] === a) {
 							channel_mixers[event.channel].gain.value = channel_mixers[i].gain.value;
@@ -2175,13 +2146,15 @@ async function soundUpdate(): Promise<void> {
 					let b = event.data[1];
 					if (a === 64) {
 						// SUSTAIN PEDAL ON OR OFF
+					} else if (a === 10) {
+						// PANNING
 					} else if (a === 116) {
 						xmi_loop = xmi_offset;
 					} else if (a === 117) {
 						xmi_offset = (xmi_loop ?? 0);
 						continue;
 					} else if ((a === 7) || (a === 11)) {
-						console.log(`${event.channel}: volume ${a} ${b}`);
+						//console.log(`${event.channel}: volume ${a} ${b}`);
 						volume(event.channel, b);
 					} else {
 						console.log(XMIEventType[event.type], a, b);

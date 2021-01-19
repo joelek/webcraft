@@ -216,7 +216,7 @@ export class Program {
 		mod_lfo_osc.connect(mod_lfo_delayed);
 		let mod_lfo_gained = context.createGain();
 		mod_lfo_delayed.connect(mod_lfo_gained);
-		mod_lfo_gained.gain.value = Math.pow(10, (params.lfo.mod.to_volume_cb)/200);
+		mod_lfo_gained.gain.value = 1 - Math.pow(10, (params.lfo.mod.to_volume_cb)/200); // should not add 1.02 but 0.02
 		let source = context.createBufferSource();
 		source.buffer = buffer;
 		source.loopStart = (sample_header.loop_start.value - sample_header.start.value) / sample_header.sample_rate.value;
@@ -286,7 +286,7 @@ export class Program {
 		}
 
 		function start() {
-			let t0 = context.currentTime;
+			let t0 = context.currentTime + context.baseLatency;
 			{
 				let t1 = t0 + 2 ** (params.env.mod.delay_tc / 1200);
 				let t2 = t1 + 2 ** (params.env.mod.attack_tc / 1200);
@@ -327,14 +327,14 @@ export class Program {
 			mod_lfo_to_pitch_const.stop();
 		};
 		function release(midikey: number, velocity: number) {
-			let t0 = context.currentTime;
+			let t0 = context.currentTime + context.baseLatency;
 			let tm = 2 ** (params.env.mod.release_tc / 1200);
 			let tv = 2 ** (params.env.vol.release_tc / 1200);
 			tm *= (1 - velocity/128);
 			tv *= (1 - velocity/128);
 			mod_env.offset.linearRampToValueAtTime(0.0, t0 + tm);
 			vol_env.offset.linearRampToValueAtTime(0.0, t0 + tv);
-			setTimeout(stop, tv * 1000);
+			setTimeout(stop, (tv) * 1000);
 		}
 		return {
 			start,

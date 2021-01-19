@@ -272,10 +272,18 @@ export class Program {
 					let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
 					params.env.mod.release_tc = value;
 				} else if (type === soundfont.GeneratorType.KEY_RANGE) {
-					let key_range_low = generator.parameters.first.value;
-					let key_range_high = generator.parameters.second.value;
+					let lower = generator.parameters.first.value;
+					let upper = generator.parameters.second.value;
 					if (i === igen_index) {
-						if (key < key_range_low || key > key_range_high) {
+						if (key < lower || key > upper) {
+							continue outer;
+						}
+					}
+				} else if (type === soundfont.GeneratorType.VEL_RANGE) {
+					let lower = generator.parameters.first.value;
+					let upper = generator.parameters.second.value;
+					if (i === igen_index || i === igen_index + 1) {
+						if (velocity < lower || velocity > upper) {
 							continue outer;
 						}
 					}

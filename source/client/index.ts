@@ -2181,7 +2181,7 @@ async function soundUpdate(): Promise<void> {
 						xmi_offset = (xmi_loop ?? 0);
 						continue;
 					} else if ((a === 7) || (a === 11)) {
-					console.log(`${event.channel}: volume ${b}`);
+						console.log(`${event.channel}: volume ${a} ${b}`);
 						volume(event.channel, b);
 					} else {
 						console.log(XMIEventType[event.type], a, b);

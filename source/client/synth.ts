@@ -10,11 +10,13 @@ export type MidiChannel = {
 };
 
 export class Program {
+	name: string;
 	file: soundfont.File;
 	igen_indices: Array<number>;
 	buffers: Map<number, AudioBuffer>;
 
 	constructor() {
+		this.name = "";
 		this.file = new soundfont.File();
 		this.igen_indices = new Array<number>();
 		this.buffers = new Map<number, AudioBuffer>();
@@ -392,6 +394,7 @@ export class WavetableSynth {
 			}
 			program = new Program();
 			program.file = file;
+			program.name = preset_header.name.value;
 			for (let i = instrument.ibag_index.value; i < next_instrument.ibag_index.value; i++) {
 				let instrument_bag = file.ibag[i];
 				if (is.absent(instrument_bag)) {

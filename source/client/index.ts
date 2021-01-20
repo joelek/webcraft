@@ -2065,7 +2065,7 @@ let xmi_loop: undefined | number;
 let xmi_delay = 0;
 
 let channels = new Array<Map<number, MidiChannel>>();
-let instruments = new Array<number>(16).fill(0);
+let instruments = new Array<[number, number]>();
 let channel_mixers = new Array<GainNode>();
 let channel_muters = new Array<GainNode>();
 
@@ -2076,9 +2076,8 @@ async function keyon(channel_index: number, midikey: number, velocity: number): 
 	if (channel_muters[channel_index].gain.value === 0) {
 		return;
 	}
-	let bank = channel_index === 9 ? 128 : 0;
 	let instrument = instruments[channel_index];
-	let program = synth.banks[bank].programs[instrument];
+	let program = synth.banks[instrument[0]].programs[instrument[1]];
 	if (is.absent(program)) {
 		return;
 	}
@@ -2135,12 +2134,12 @@ async function soundUpdate(): Promise<void> {
 					let a = event.data[0];
 					//console.log(`${event.channel}: instrument ${a}`);
 					for (let i = 0; i < 16; i++) {
-						if (instruments[i] === a) {
+						if (instruments[i][1] === a) {
 							channel_mixers[event.channel].gain.value = channel_mixers[i].gain.value;
 							break;
 						}
 					}
-					instruments[event.channel] = a;
+					instruments[event.channel][1] = a;
 				} else if (event.type === XMIEventType.CONTROLLER) {
 					let a = event.data[0];
 					let b = event.data[1];
@@ -2248,6 +2247,56 @@ async function render(ms: number): Promise<void> {
 	window.requestAnimationFrame(render);
 }
 window.requestAnimationFrame(render);
+let keysdown: Record<string, boolean | undefined> = {};
+window.addEventListener("keydown", async (event) => {
+	if (keysdown[event.key]) {
+		return;
+	}
+	keysdown[event.key] = true;
+	if (false) {
+	} else if (event.key === "a") {
+		await keyon(0, 57, 127);
+	} else if (event.key === "s") {
+		await keyon(0, 58, 127);
+	} else if (event.key === "d") {
+		await keyon(0, 59, 127);
+	} else if (event.key === "f") {
+		await keyon(0, 60, 127);
+	} else if (event.key === "g") {
+		await keyon(0, 61, 127);
+	} else if (event.key === "h") {
+		await keyon(0, 62, 127);
+	} else if (event.key === "j") {
+		await keyon(0, 63, 127);
+	} else if (event.key === "k") {
+		await keyon(0, 64, 127);
+	} else if (event.key === "l") {
+		await keyon(0, 65, 127);
+	}
+});
+window.addEventListener("keyup", async (event) => {
+	delete keysdown[event.key];
+	if (false) {
+	} else if (event.key === "a") {
+		keyoff(0, 57, 127);
+	} else if (event.key === "s") {
+		keyoff(0, 58, 127);
+	} else if (event.key === "d") {
+		keyoff(0, 59, 127);
+	} else if (event.key === "f") {
+		keyoff(0, 60, 127);
+	} else if (event.key === "g") {
+		keyoff(0, 61, 127);
+	} else if (event.key === "h") {
+		keyoff(0, 62, 127);
+	} else if (event.key === "j") {
+		keyoff(0, 63, 127);
+	} else if (event.key === "k") {
+		keyoff(0, 64, 127);
+	} else if (event.key === "l") {
+		keyoff(0, 65, 127);
+	}
+});
 window.addEventListener("keyup", async (event) => {
 
 	if (false) {
@@ -2332,24 +2381,14 @@ window.addEventListener("keyup", async (event) => {
 		} catch (error) {}
 	}
 });
-fetch("gm.sf2").then(async (response) => {
-	let array_buffer = await response.arrayBuffer()
-	let cursor = new binary.Cursor();
-	let reader = new binary.BufferReader({
-		buffer: new binary.Buffer(array_buffer)
-	});
-	let sf = new shared.formats.soundfont.File();
-	await sf.load(cursor, reader);
-	synth = await WavetableSynth.fromSoundfont(sf);
-	console.log("synth initialized");
-});
-canvas.addEventListener("drop", async (event) => {
-	event.stopPropagation();
-	event.preventDefault();
+function unlock_context(): void {
 	if (is.absent(audio_context)) {
 		audio_context = new AudioContext();
 		for (let i = channels.length; i < 16; i++) {
 			channels[i] = new Map<number, MidiChannel>();
+		}
+		for (let i = instruments.length; i < 16; i++) {
+			instruments[i] = i === 9 ? [128, 0] : [0, 0];
 		}
 		for (let i = channel_muters.length; i < 16; i++) {
 			channel_muters[i] = audio_context.createGain();
@@ -2360,6 +2399,45 @@ canvas.addEventListener("drop", async (event) => {
 			channel_mixers[i].connect(channel_muters[i]);
 		}
 	}
+}
+window.addEventListener("keydown", () => {
+	unlock_context();
+});
+fetch("gm.sf2").then(async (response) => {
+	let array_buffer = await response.arrayBuffer()
+	let cursor = new binary.Cursor();
+	let reader = new binary.BufferReader({
+		buffer: new binary.Buffer(array_buffer)
+	});
+	let sf = new shared.formats.soundfont.File();
+	await sf.load(cursor, reader);
+	synth = await WavetableSynth.fromSoundfont(sf);
+	console.log("synth initialized");
+	let select = document.createElement("select");
+	select.style.setProperty("font-size", "20px");
+	for (let [bank_index, bank] of synth.banks.entries()) {
+		for (let [program_index, program] of bank.programs.entries()) {
+			if (is.present(program)) {
+				let option = document.createElement("option");
+				option.style.setProperty("font-size", "20px");
+				option.textContent = program.name;
+				option.value = "" + bank_index + ":" + program_index;
+				select.appendChild(option);
+			}
+		}
+	}
+	select.addEventListener("change", (event) => {
+		let parts = select.value.split(":");
+		let b = Number.parseInt(parts[0]);
+		let i = Number.parseInt(parts[1]);
+		instruments[0] = [b, i];
+	});
+	document.body.appendChild(select);
+});
+canvas.addEventListener("drop", async (event) => {
+	event.stopPropagation();
+	event.preventDefault();
+	unlock_context();
 	for (let channel of channels) {
 		for (let mc of channel.values()) {
 			mc.stop();

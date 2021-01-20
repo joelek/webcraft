@@ -2400,6 +2400,19 @@ function unlock_context(): void {
 		}
 	}
 }
+function reset_synth(): void {
+	for (let [i, instrument] of instruments.entries()) {
+			instruments[i] = i === 9 ? [128, 0] : [0, 0];
+	}
+	for (let [i, channel_mixer] of channel_mixers.entries()) {
+			channel_mixer.gain.value = 1;
+	}
+	for (let channel of channels) {
+		for (let mc of channel.values()) {
+			mc.stop();
+		}
+	}
+}
 window.addEventListener("keydown", () => {
 	unlock_context();
 });
@@ -2438,11 +2451,7 @@ canvas.addEventListener("drop", async (event) => {
 	event.stopPropagation();
 	event.preventDefault();
 	unlock_context();
-	for (let channel of channels) {
-		for (let mc of channel.values()) {
-			mc.stop();
-		}
-	}
+	reset_synth();
 	let dataTransfer = event.dataTransfer;
 	if (is.present(dataTransfer)) {
 		let files = dataTransfer.files;

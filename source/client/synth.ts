@@ -1,5 +1,5 @@
 import { is } from "../shared";
-import { BufferReader, Cursor, Reader } from "../shared/binary";
+import { Buffer, Cursor } from "../shared/binary";
 import { Integer2 } from "../shared/binary/chunks";
 import * as soundfont from "../shared/formats/soundfont";
 
@@ -197,11 +197,14 @@ export class Program {
 			let reader = this.file.smpl;
 			let cursor = new Cursor({ offset: sample_header.start.value * 2 });
 			buffer = context.createBuffer(1, sample_count, sample_header.sample_rate.value);
-			let sample = new Integer2({ complement: "twos" });
+			let ab = new ArrayBuffer(sample_count * 2);
+			let b = new Buffer(ab);
+			await b.load(cursor, reader);
+			let c = buffer.getChannelData(0);
+			let v = new Int16Array(ab);
 			for (let s = 0; s < sample_count; s++) {
-				await sample.load(cursor, reader);
-				let value = ((sample.value + 32768) / 65535) * 2.0 - 1.0;
-				buffer.getChannelData(0)[s] = value;
+				let value = ((v[s] + 32768) / 65535) * 2.0 - 1.0;
+				c[s] = value;
 			}
 			this.buffers.set(params.sample.index, buffer);
 			console.log(channel, JSON.stringify(params, null, 2));

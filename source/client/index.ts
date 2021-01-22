@@ -2247,55 +2247,47 @@ async function render(ms: number): Promise<void> {
 	window.requestAnimationFrame(render);
 }
 window.requestAnimationFrame(render);
+let keymap: Record<string, number> = {
+	z: 48,
+	x: 49,
+	c: 50,
+	v: 51,
+	b: 52,
+	n: 53,
+	m: 54,
+
+	a: 36,
+	s: 37,
+	d: 38,
+	f: 39,
+	g: 40,
+	h: 41,
+	j: 42,
+	k: 43,
+	l: 44,
+
+	q: 24,
+	w: 25,
+	e: 26,
+	r: 27,
+	t: 28,
+	y: 29,
+	u: 30,
+	i: 31,
+	o: 32,
+	p: 33
+};
 let keysdown: Record<string, boolean | undefined> = {};
 window.addEventListener("keydown", async (event) => {
 	if (keysdown[event.key]) {
 		return;
 	}
 	keysdown[event.key] = true;
-	if (false) {
-	} else if (event.key === "a") {
-		await keyon(0, 57, 127);
-	} else if (event.key === "s") {
-		await keyon(0, 58, 127);
-	} else if (event.key === "d") {
-		await keyon(0, 59, 127);
-	} else if (event.key === "f") {
-		await keyon(0, 60, 127);
-	} else if (event.key === "g") {
-		await keyon(0, 61, 127);
-	} else if (event.key === "h") {
-		await keyon(0, 62, 127);
-	} else if (event.key === "j") {
-		await keyon(0, 63, 127);
-	} else if (event.key === "k") {
-		await keyon(0, 64, 127);
-	} else if (event.key === "l") {
-		await keyon(0, 65, 127);
-	}
+	await keyon(0, keymap[event.key], 127);
 });
 window.addEventListener("keyup", async (event) => {
 	delete keysdown[event.key];
-	if (false) {
-	} else if (event.key === "a") {
-		keyoff(0, 57, 127);
-	} else if (event.key === "s") {
-		keyoff(0, 58, 127);
-	} else if (event.key === "d") {
-		keyoff(0, 59, 127);
-	} else if (event.key === "f") {
-		keyoff(0, 60, 127);
-	} else if (event.key === "g") {
-		keyoff(0, 61, 127);
-	} else if (event.key === "h") {
-		keyoff(0, 62, 127);
-	} else if (event.key === "j") {
-		keyoff(0, 63, 127);
-	} else if (event.key === "k") {
-		keyoff(0, 64, 127);
-	} else if (event.key === "l") {
-		keyoff(0, 65, 127);
-	}
+	keyoff(0, keymap[event.key], 127);
 });
 window.addEventListener("keyup", async (event) => {
 

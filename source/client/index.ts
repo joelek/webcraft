@@ -1002,13 +1002,15 @@ class XmiFile {
 					let type = array[cursor.offset++];
 					let size = this.readVarlen(array, cursor);
 					let data = array.slice(cursor.offset, cursor.offset + size); cursor.offset += size;
-					this.events.push({
-						index: this.events.length,
-						type: XMIEventType.SYSEX,
-						channel: channel,
-						time: timestamp,
-						data: Uint8Array.of(type, ...data)
-					});
+					if (type !== 0x51 && type !== 0x58) {
+						this.events.push({
+							index: this.events.length,
+							type: XMIEventType.SYSEX,
+							channel: channel,
+							time: timestamp,
+							data: Uint8Array.of(type, ...data)
+						});
+					}
 					if (type === 0x2F) {
 						break;
 					}

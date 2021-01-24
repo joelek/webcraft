@@ -2087,9 +2087,13 @@ async function keyon(channel_index: number, midikey: number, velocity: number): 
 		channel.stop();
 		map.delete(midikey);
 	}
-	channel = await program.makeChannel(audio_context, midikey, velocity, channel_mixers[channel_index], channel_index);
-	map.set(midikey, channel);
-	channel.start();
+	try {
+		channel = await program.makeChannel(audio_context, midikey, velocity, channel_mixers[channel_index], channel_index);
+		map.set(midikey, channel);
+		channel.start();
+	} catch (error) {
+		console.log(error);
+	}
 }
 function keyoff(channel_index: number, midikey: number, velocity: number): void {
 	let map = channels[channel_index];

@@ -1782,7 +1782,8 @@ async function load(dataProvider: DataProvider): Promise<void> {
 		} catch (error) {}
 	}
 	xmi = await new XmiFile().load(await archive.getRecord(0));
-	xmi_delay = xmi.events[0].time;
+	xmi_time_base = 60;
+	playMusic();
 	//setEntityColor("red");
 }
 
@@ -2062,8 +2063,8 @@ async function loadParticleScript(archive: Archive): Promise<wc1.ParticleScriptH
 let tileset: Array<WebGLTexture> | undefined;
 let map: Array<number>;
 let xmi_offset = 0;
+let xmi_time_base = 0;
 let xmi_loop: undefined | number;
-let xmi_delay = 0;
 
 let channels = new Array<Map<number, MidiChannel>>();
 let instruments = new Array<[number, number]>();
@@ -2113,77 +2114,121 @@ function volume(channel_index: number, byte: number): void {
 		}
 	}
 }
+
+let tempo_seconds_per_beat = 0.5;
+let signature_num = 4;
+let signature_den = 4;
+let signature_clicks = 24;
+let signature_quarts = 8;
+let xmi_timer: number | undefined;
+function stopMusic(): void {
+	if (is.present(xmi_timer)) {
+		window.clearTimeout(xmi_timer);
+		xmi_timer = undefined;
+	}
+}
+function playMusic(): void {
+	stopMusic();
+	xmi_offset = 0;
+	xmi_loop = undefined;
+	tempo_seconds_per_beat = 0.5;
+	signature_num = 4;
+	signature_den = 4;
+	signature_clicks = 24;
+	signature_quarts = 8;
+	soundUpdate();
+}
 async function soundUpdate(): Promise<void> {
-	// TODO: Queue sounds.
 	if (is.present(xmi)) {
-		if (xmi_delay > 0) {
-			xmi_delay -= 1;
-		} else {
-			xmi_delay = 0;
-			while (xmi_delay === 0) {
-				let event = xmi.events[xmi_offset];
-				if (false) {
-				} else if (event.type === XMIEventType.NOTE_OFF) {
-					let a = event.data[0];
-					let b = event.data[1];
+		while (true) {
+			let event = xmi.events[xmi_offset++];
+			if (false) {
+			} else if (event.type === XMIEventType.NOTE_OFF) {
+				let a = event.data[0];
+				let b = event.data[1];
+				keyoff(event.channel, a, b);
+			} else if (event.type === XMIEventType.NOTE_ON) {
+				let a = event.data[0];
+				let b = event.data[1];
+				if (b === 0) {
 					keyoff(event.channel, a, b);
-				} else if (event.type === XMIEventType.NOTE_ON) {
-					let a = event.data[0];
-					let b = event.data[1];
-					if (b === 0) {
-						keyoff(event.channel, a, b);
-					} else {
-						await keyon(event.channel, a, b);
-					}
-				} else if (event.type === XMIEventType.INSTRUMENT_CHANGE) {
-					let a = event.data[0];
-					//console.log(`${event.channel}: instrument ${a}`);
-					for (let i = 0; i < 16; i++) {
-						if (instruments[i][1] === a) {
-							channel_mixers[event.channel].gain.value = channel_mixers[i].gain.value;
-							break;
-						}
-					}
-					instruments[event.channel][1] = a;
-				} else if (event.type === XMIEventType.CONTROLLER) {
-					let a = event.data[0];
-					let b = event.data[1];
-					if (a === 64) {
-						// SUSTAIN PEDAL ON OR OFF
-					} else if (a === 10) {
-						// PANNING
-					} else if (a === 116) {
-						xmi_loop = xmi_offset;
-					} else if (a === 117) {
-						xmi_offset = (xmi_loop ?? 0);
-						continue;
-					} else if ((a === 7) || (a === 11)) {
-						//console.log(`${event.channel}: volume ${a} ${b}`);
-						volume(event.channel, b);
-					} else {
-						console.log(XMIEventType[event.type], a, b);
-					}
-				} else if (event.type === XMIEventType.PITCH_BEND) {
-					let a = event.data[0];
-					let b = event.data[1];
-					let value = ((a & 0x7F) << 7) | ((b & 0x7F) << 0);
-					let o = channels[event.channel];
-					console.log(XMIEventType[event.type], event);
 				} else {
-					console.log(XMIEventType[event.type], event);
+					await keyon(event.channel, a, b);
 				}
-				xmi_offset += 1;
-				if (xmi_offset < xmi.events.length) {
-					xmi_delay = xmi.events[xmi_offset].time;
+			} else if (event.type === XMIEventType.INSTRUMENT_CHANGE) {
+				let a = event.data[0];
+				//console.log(`${event.channel}: instrument ${a}`);
+				for (let i = 0; i < 16; i++) {
+					if (instruments[i][1] === a) {
+						channel_mixers[event.channel].gain.value = channel_mixers[i].gain.value;
+						break;
+					}
+				}
+				instruments[event.channel][1] = a;
+			} else if (event.type === XMIEventType.CONTROLLER) {
+				let a = event.data[0];
+				let b = event.data[1];
+				if (a === 64) {
+					// SUSTAIN PEDAL ON OR OFF
+				} else if (a === 10) {
+					// PANNING
+				} else if (a === 116) {
+					xmi_loop = xmi_offset;
+				} else if (a === 117) {
+					xmi_offset = (xmi_loop ?? 0);
+					continue;
+				} else if ((a === 7) || (a === 11)) {
+					//console.log(`${event.channel}: volume ${a} ${b}`);
+					volume(event.channel, b);
 				} else {
-					xmi = undefined;
+					console.log(XMIEventType[event.type], a, b);
+				}
+			} else if (event.type === XMIEventType.PITCH_BEND) {
+				let a = event.data[0];
+				let b = event.data[1];
+				let value = ((a & 0x7F) << 7) | ((b & 0x7F) << 0);
+				let o = channels[event.channel];
+				console.log(XMIEventType[event.type], event);
+			} else if (event.type === XMIEventType.SYSEX) {
+				if (event.channel === 15) {
+					let type = event.data[0];
+					if (type === 0x51) {
+						let a = event.data[1];
+						let b = event.data[2];
+						let c = event.data[3];
+						let tempo = (a << 16) | (b << 8) | (c << 0);
+						tempo_seconds_per_beat = tempo / 1000000;
+					} else
+					if (type === 0x58) {
+						let numerator = event.data[1];
+						let denominator = (1 << event.data[2]);
+						let clocks_per_metronome_click = event.data[3];
+						let quarter_32nd_notes = event.data[4];
+						signature_num = numerator;
+						signature_den = denominator;
+						signature_clicks = clocks_per_metronome_click;
+						signature_quarts = quarter_32nd_notes;
+					}
+				}
+			} else {
+				console.log(XMIEventType[event.type], event);
+			}
+			if (xmi_offset < xmi.events.length) {
+				let xmi_delay = xmi.events[xmi_offset].time;
+				if (xmi_delay > 0) {
+					let delay_s = (xmi_delay / xmi_time_base) * tempo_seconds_per_beat * signature_num / signature_den * 96 / signature_clicks * signature_quarts / 32;
+					console.log({xmi_delay, xmi_time_base, tempo_seconds_per_beat, signature_num, signature_den, signature_clicks, signature_quarts});
+					console.log(delay_s);
+					xmi_timer = window.setTimeout(soundUpdate, delay_s * 1000);
 					break;
 				}
+			} else {
+				xmi = undefined;
+				break;
 			}
 		}
 	}
 }
-setInterval(soundUpdate, 7);
 async function render(ms: number): Promise<void> {
 	context.clear(context.COLOR_BUFFER_BIT);
 	updateCycle();
@@ -2462,8 +2507,8 @@ canvas.addEventListener("drop", async (event) => {
 			let dataProvider = await new FileDataProvider(file).buffer();
 			if (/[.]xmi$/i.test(file.name)) {
 				xmi = await new XmiFile().load(dataProvider);
-				xmi_delay = xmi.events[0].time;
-				xmi_offset = 0;
+				xmi_time_base = 60;
+				playMusic();
 			} else
 			if (/[.]mid$/i.test(file.name)) {
 				let array_buffer = await file.arrayBuffer()
@@ -2520,8 +2565,8 @@ canvas.addEventListener("drop", async (event) => {
 					time = event.time;
 					event.time = delay;
 				}
-				xmi_delay = xmi.events[0].time;
-				xmi_offset = 0;
+				xmi_time_base = midifile.header.ticks_per_qn.value;
+				playMusic();
 			} else {
 				await load(dataProvider);
 			}

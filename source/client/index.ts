@@ -2476,26 +2476,28 @@ fetch("gm.sf2").then(async (response) => {
 	await sf.load(cursor, reader);
 	synth = await WavetableSynth.fromSoundfont(sf);
 	console.log("synth initialized");
-	let select = document.createElement("select");
-	select.style.setProperty("font-size", "20px");
-	for (let [bank_index, bank] of synth.banks.entries()) {
-		for (let [program_index, program] of bank.programs.entries()) {
-			if (is.present(program)) {
-				let option = document.createElement("option");
-				option.style.setProperty("font-size", "20px");
-				option.textContent = program.name;
-				option.value = "" + bank_index + ":" + program_index;
-				select.appendChild(option);
+	for (let chan = 0; chan < 16; chan++) {
+		let select = document.createElement("select");
+		select.style.setProperty("font-size", "20px");
+		for (let [bank_index, bank] of synth.banks.entries()) {
+			for (let [program_index, program] of bank.programs.entries()) {
+				if (is.present(program)) {
+					let option = document.createElement("option");
+					option.style.setProperty("font-size", "20px");
+					option.textContent = program.name;
+					option.value = "" + bank_index + ":" + program_index;
+					select.appendChild(option);
+				}
 			}
 		}
+		select.addEventListener("change", (event) => {
+			let parts = select.value.split(":");
+			let b = Number.parseInt(parts[0]);
+			let i = Number.parseInt(parts[1]);
+			instruments[chan] = [b, i];
+		});
+		document.body.appendChild(select);
 	}
-	select.addEventListener("change", (event) => {
-		let parts = select.value.split(":");
-		let b = Number.parseInt(parts[0]);
-		let i = Number.parseInt(parts[1]);
-		instruments[0] = [b, i];
-	});
-	document.body.appendChild(select);
 });
 canvas.addEventListener("drop", async (event) => {
 	event.stopPropagation();

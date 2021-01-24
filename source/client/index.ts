@@ -1,5 +1,6 @@
 import * as shared from "../shared";
 import * as binary from "../shared/binary.web";
+import { midi } from "../shared/formats";
 import { MidiChannel, WavetableSynth } from "./synth";
 
 namespace is {
@@ -2461,6 +2462,64 @@ canvas.addEventListener("drop", async (event) => {
 			let dataProvider = await new FileDataProvider(file).buffer();
 			if (/[.]xmi$/i.test(file.name)) {
 				xmi = await new XmiFile().load(dataProvider);
+				xmi_delay = xmi.events[0].time;
+				xmi_offset = 0;
+			} else
+			if (/[.]mid$/i.test(file.name)) {
+				let array_buffer = await file.arrayBuffer()
+				let cursor = new binary.Cursor();
+				let reader = new binary.BufferReader({
+					buffer: new binary.Buffer(array_buffer)
+				});
+				let midifile = await midi.File.fromReader(cursor, reader);
+				xmi = new XmiFile();
+				for (let track of midifile.tracks) {
+					let tc = 0;
+					for (let event of track.events) {
+						tc += event.delay;
+						let data = (() => {
+							let data = new Uint8Array(event.data.size());
+							event.data.copy(new binary.Buffer(data.buffer));
+							if (event.type === midi.Type.SYSEX) {
+								if (event.channel < 15) {
+									return data.slice(1);
+								} else {
+									return Uint8Array.of(data[0], ...data.slice(2));
+								}
+							} else {
+								return data;
+							}
+						})();
+						xmi.events.push({
+							index: xmi.events.length,
+							time: tc,
+							type: event.type + 8,
+							channel: event.channel,
+							data: data
+						});
+					}
+				}
+				xmi.events.sort((one, two) => {
+					if (one.time < two.time) {
+						return -1;
+					}
+					if (one.time > two.time) {
+						return 1;
+					}
+					if (one.index < two.index) {
+						return -1;
+					}
+					if (one.index > two.index) {
+						return 1;
+					}
+					return 0;
+				});
+				let time = 0;
+				for (let event of xmi.events) {
+					let delay = event.time - time;
+					time = event.time;
+					event.time = delay;
+				}
 				xmi_delay = xmi.events[0].time;
 				xmi_offset = 0;
 			} else {

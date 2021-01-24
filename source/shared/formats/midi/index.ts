@@ -1,5 +1,5 @@
 import { IntegerAssert, StringAssert } from "../../asserts";
-import { Buffer, Chunk, Cursor, Reader } from "../../binary";
+import { Buffer, Chunk, Cursor, Reader, WindowedReader } from "../../binary";
 import { ByteString, Integer1, Integer2, Integer4, PackedInteger1 } from "../../binary/chunks";
 import { is } from "../../is";
 
@@ -111,7 +111,7 @@ export class Track {
 	static async fromReader(cursor: Cursor, reader: Reader): Promise<Track> {
 		let events = new Array<Event>();
 		let last_control: Control | undefined;
-		while (true) {
+		while (cursor.offset < reader.size()) {
 			let delay = await readVarlen(cursor, reader);
 			let control = await new Control().load(cursor, reader);
 			if (control.marker.value === 0) {
@@ -199,8 +199,13 @@ export class File {
 		for (let i = 0; i < header.track_count.value; i++) {
 			let chunk_header = await new ChunkHeader().load(cursor, reader);
 			StringAssert.identical(chunk_header.type.value, "MTrk");
-			let track = await Track.fromReader(cursor, reader);
+			let data = new WindowedReader(reader, {
+				offset: cursor.offset,
+				length: chunk_header.size.value
+			});
+			let track = await Track.fromReader(new Cursor(), data);
 			tracks.push(track);
+			cursor.offset += chunk_header.size.value;
 		}
 		return {
 			header,

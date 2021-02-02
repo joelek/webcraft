@@ -1,12 +1,12 @@
 {
 	"compilerOptions": {
 		"composite": true,
-		"module": "commonjs",
+		"module": "amd",
 		"moduleResolution": "node",
 		"outDir": "./build/",
 		"rootDir": "./source/",
 		"strict": true,
-		"target": "es2017"
+		"target": "esnext"
 	},
 	"include": [],
 	"references": [

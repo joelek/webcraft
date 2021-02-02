@@ -1,6 +1,5 @@
 import { is } from "../shared";
-import { Buffer, Cursor } from "../shared/binary";
-import { Integer2 } from "../shared/binary/chunks";
+import { Buffer, Chunk, Cursor } from "../shared/binary";
 import * as soundfont from "../shared/formats/soundfont";
 
 export type MidiChannel = {
@@ -199,7 +198,7 @@ export class Program {
 			buffer = context.createBuffer(1, sample_count, sample_header.sample_rate.value);
 			let ab = new ArrayBuffer(sample_count * 2);
 			let b = new Buffer(ab);
-			await b.load(cursor, reader);
+			await new Chunk(b).load(cursor, reader);
 			let c = buffer.getChannelData(0);
 			let v = new Int16Array(ab);
 			for (let s = 0; s < sample_count; s++) {

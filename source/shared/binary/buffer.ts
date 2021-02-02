@@ -1,11 +1,6 @@
 import { IntegerAssert } from "../asserts";
-import { Cursor } from "./cursor";
-import { Loadable } from "./loadable";
-import { Reader } from "./reader";
-import { Saveable } from "./saveable";
-import { Writer } from "./writer";
 
-export class Buffer implements Loadable, Saveable {
+export class Buffer {
 	private array: Uint8Array;
 
 	constructor(buffer: ArrayBuffer, options?: Partial<{ offset: number, length: number }>) {
@@ -14,16 +9,6 @@ export class Buffer implements Loadable, Saveable {
 		IntegerAssert.between(0, offset, buffer.byteLength);
 		IntegerAssert.between(0, length, buffer.byteLength - offset);
 		this.array = new Uint8Array(buffer, offset, length);
-	}
-
-	async save(cursor: Cursor, writer: Writer): Promise<this> {
-		await writer.write(cursor, this);
-		return this;
-	}
-
-	async load(cursor: Cursor, reader: Reader): Promise<this> {
-		await reader.read(cursor, this);
-		return this;
 	}
 
 	copy(target: Buffer): Buffer {

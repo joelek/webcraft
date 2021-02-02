@@ -146,13 +146,14 @@ export class Track {
 					return 2;
 				} else
 				if (type === Type.SYSEX) {
+					let length = Buffer.alloc(1);
 					if (channel < 15) {
-						let length = await Buffer.alloc(1).load({
+						await new Chunk(length).load({
 							offset: cursor.offset
 						}, reader)
 						return length.get(0) + 1;
 					} else {
-						let length = await Buffer.alloc(1).load({
+						await new Chunk(length).load({
 							offset: cursor.offset + 1
 						}, reader);
 						return length.get(0) + 2;
@@ -160,7 +161,8 @@ export class Track {
 				}
 				throw `Expected code to be unreachable!`;
 			})();
-			let data = await Buffer.alloc(length).load(cursor, reader);
+			let data = Buffer.alloc(length);
+			await new Chunk(data).load(cursor, reader);
 			let event: Event = {
 				delay,
 				type,

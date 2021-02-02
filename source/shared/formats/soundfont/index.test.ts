@@ -1,4 +1,4 @@
-import { Buffer, Cursor } from "../../binary";
+import { Buffer, Chunk, Cursor } from "../../binary";
 import { ByteString } from "../../binary/chunks";
 import { NodeFileReader, NodeFileWriter } from "../../binary.node";
 import * as soundfont from "./";
@@ -36,7 +36,7 @@ async function dump(sf: soundfont.File, target: string): Promise<void> {
 		await format_riff_header.save(cursor, writer);
 		await header.save(cursor, writer);
 		await data_riff_header.save(cursor, writer);
-		await buffer.save(cursor, writer);
+		await new Chunk(buffer).save(cursor, writer);
 		writer.close();
 	}
 };

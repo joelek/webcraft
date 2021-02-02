@@ -43,8 +43,7 @@ export class CachedReader implements Reader {
 	async read(cursor: Cursor, target: Buffer): Promise<Buffer> {
 		if (is.absent(this.cached)) {
 			let buffer = Buffer.alloc(this.reader.size());
-			let cursor = new Cursor();
-			await buffer.load(cursor, this.reader);
+			this.reader.read(new Cursor(), buffer);
 			this.cached = new BufferReader({
 				buffer: buffer
 			});

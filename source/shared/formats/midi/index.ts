@@ -111,6 +111,7 @@ export class Track {
 	static async fromReader(cursor: Cursor, reader: Reader): Promise<Track> {
 		let events = new Array<Event>();
 		let last_control: Control | undefined;
+		last_control = new Control();
 		while (cursor.offset < reader.size()) {
 			let delay = await readVarlen(cursor, reader);
 			let control = await new Control().load(cursor, reader);
@@ -174,7 +175,7 @@ export class Track {
 				if (channel === 15 && data.get(0) === 0x2F) {
 					break;
 				}
-				last_control = undefined;
+				last_control = new Control();
 			} else {
 				last_control = control;
 			}

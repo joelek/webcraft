@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"composite": true,
-		"module": "amd",
+		"module": "esnext",
 		"moduleResolution": "node",
 		"outDir": "./build/",
 		"rootDir": "./source/",

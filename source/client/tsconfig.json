@@ -1,7 +1,4 @@
 {
-	"compilerOptions": {
-		"outFile": "../../dist/static/client.js"
-	},
 	"extends": "../../tsconfig.json",
 	"include": [
 		"./"

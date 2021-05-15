@@ -2183,14 +2183,14 @@ async function soundUpdate(): Promise<void> {
 					//console.log(`${event.channel}: volume ${a} ${b}`);
 					volume(event.channel, b);
 				} else {
-					console.log(XMIEventType[event.type], a, b);
+					//console.log(XMIEventType[event.type], a, b);
 				}
 			} else if (event.type === XMIEventType.PITCH_BEND) {
 				let a = event.data[0];
 				let b = event.data[1];
 				let value = ((a & 0x7F) << 7) | ((b & 0x7F) << 0);
 				let o = channels[event.channel];
-				console.log(XMIEventType[event.type], event);
+				//console.log(XMIEventType[event.type], event);
 			} else if (event.type === XMIEventType.SYSEX) {
 				if (event.channel === 15) {
 					let type = event.data[0];
@@ -2213,14 +2213,16 @@ async function soundUpdate(): Promise<void> {
 					}
 				}
 			} else {
-				console.log(XMIEventType[event.type], event);
+				//console.log(XMIEventType[event.type], event);
 			}
 			if (xmi_offset < xmi.events.length) {
 				let xmi_delay = xmi.events[xmi_offset].time;
 				if (xmi_delay > 0) {
-					let delay_s = (xmi_delay / xmi_time_base) * tempo_seconds_per_beat * signature_num / signature_den * 96 / signature_clicks * signature_quarts / 32;
-					console.log({xmi_delay, xmi_time_base, tempo_seconds_per_beat, signature_num, signature_den, signature_clicks, signature_quarts});
-					console.log(delay_s);
+					// works nicely
+					let delay_s = (xmi_delay / xmi_time_base) * tempo_seconds_per_beat;
+					//let delay_s = (xmi_delay / xmi_time_base) * tempo_seconds_per_beat * signature_num / signature_den * 96 / signature_clicks * signature_quarts / 32;
+					//console.log({xmi_delay, xmi_time_base, tempo_seconds_per_beat, signature_num, signature_den, signature_clicks, signature_quarts});
+					//console.log(delay_s);
 					xmi_timer = window.setTimeout(soundUpdate, delay_s * 1000);
 					break;
 				}
@@ -2511,7 +2513,7 @@ canvas.addEventListener("drop", async (event) => {
 			let dataProvider = await new FileDataProvider(file).buffer();
 			if (/[.]xmi$/i.test(file.name)) {
 				xmi = await new XmiFile().load(dataProvider);
-				xmi_time_base = 60;
+				xmi_time_base = 68; // 15ms interrupts
 				playMusic();
 			} else
 			if (/[.]mid$/i.test(file.name)) {

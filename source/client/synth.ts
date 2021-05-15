@@ -222,6 +222,7 @@ export class Program {
 		mod_lfo_delayed.connect(mod_lfo_gained);
 		mod_lfo_gained.gain.value = 1 - Math.pow(10, (params.lfo.mod.to_volume_cb)/200); // should not add 1.02 but 0.02
 		let source = context.createBufferSource();
+		//source.detune.value = -500;
 		source.buffer = buffer;
 		source.loopStart = (sample_header.loop_start.value - sample_header.start.value) / sample_header.sample_rate.value;
 		source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;

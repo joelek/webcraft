@@ -3,6 +3,8 @@ import * as binary from "../shared/binary.web";
 import { midi } from "../shared/formats";
 import { MidiChannel, WavetableSynth } from "./synth";
 
+const ZOOM = 1;
+
 namespace is {
 	export function absent<A>(subject: A | null | undefined): subject is null | undefined {
 		return subject == null;
@@ -1643,7 +1645,7 @@ namespace wc1 {
 let audio_context: AudioContext | undefined;
 let synth: WavetableSynth | undefined;
 let canvas = document.createElement("canvas");
-let context = canvas.getContext("webgl2") as WebGL2RenderingContext;
+let context = canvas.getContext("webgl2", { antialias: false }) as WebGL2RenderingContext;
 if (is.absent(context)) {
 	throw `Expected a context!`;
 }
@@ -1668,7 +1670,7 @@ context.shaderSource(vertexShader, `#version 300 es
 	in vec2 vertexTexture;
 	out vec2 textureCoordinates;
 	void main() {
-		float zoom = 3.0;
+		float zoom = ${ZOOM}.0;
 		textureCoordinates = vertexTexture;
 		if (scaling.x) {
 			textureCoordinates.x = 1.0 - textureCoordinates.x;
@@ -1693,6 +1695,7 @@ if (is.absent(fragmentShader)) {
 }
 context.shaderSource(fragmentShader, `#version 300 es
 	precision highp float;
+	uniform int textureIndex;
 	uniform int transparentIndex;
 	uniform sampler2D colorCycleSampler;
 	uniform sampler2D paletteSampler;
@@ -1727,6 +1730,8 @@ let viewportLocation = context.getUniformLocation(program, "viewport");
 let quadLocation = context.getUniformLocation(program, "quad");
 let scalingLocation = context.getUniformLocation(program, "scaling");
 let anchorLocation = context.getUniformLocation(program, "anchor");
+let textureIndexLocation = context.getUniformLocation(program, "textureIndex");
+context.uniform1i(textureIndexLocation, 0); // not used currently
 let transparentIndexLocation = context.getUniformLocation(program, "transparentIndex");
 context.uniform1i(transparentIndexLocation, 0);
 let textureSamplerocation = context.getUniformLocation(program, "textureSampler");
@@ -1747,8 +1752,6 @@ context.bindBuffer(context.ARRAY_BUFFER, buffer);
 context.bufferData(context.ARRAY_BUFFER, new Float32Array([
 	0.0, 0.0,		0.0, 0.0,
 	0.0, 1.0,		0.0, 1.0,
-	1.0, 1.0,		1.0, 1.0,
-	0.0, 0.0,		0.0, 0.0,
 	1.0, 1.0,		1.0, 1.0,
 	1.0, 0.0,		1.0, 0.0
 ]), context.STATIC_DRAW);
@@ -1875,6 +1878,7 @@ type Entity = {
 	sprite: number,
 	sfx: number[]
 };
+let selectedEntities = new Array<Entity>();
 let entities: Array<Entity> = [
 	{ name: "Footman", script: 0, sprite: 279, sfx: [487, 488, 489] },
 	{ name: "Grunt", script: 1, sprite: 280, sfx: [487, 488, 489] },
@@ -2023,6 +2027,7 @@ let direction = 0;
 let frame = 0;
 let view: DataView | undefined;
 let sfx: Array<VocFile> = [];
+
 async function loadUnitScript(archive: Archive): Promise<wc1.UnitScriptHeader> {
 	let entitydata = entities[entity];
 	let sprite = await new wc1.Sprite(endianness).load(await archive.getRecord(entitydata.sprite));
@@ -2035,7 +2040,7 @@ async function loadUnitScript(archive: Archive): Promise<wc1.UnitScriptHeader> {
 		armorPiercingDamage: shared.armorPiercingDamage[entity],
 		damage: shared.damage[entity],
 		goldCost: shared.goldCost[entity] * 10,
-		health: shared.health[entity],
+		health: shared.hitPoints[entity],
 		timeCost: shared.timeCost[entity] * 10,
 		range: shared.range[entity],
 		woodCost: shared.woodCost[entity] * 10,
@@ -2233,12 +2238,32 @@ async function soundUpdate(): Promise<void> {
 		}
 	}
 }
+
+const YELLOW = 221;
+const RED = 222;
+const GREEN = 223;
+
+function getRectangleFromEntity(e: Entity): Rectangle {
+	let index = entities.indexOf(e) ?? entity;
+	let x = 12 * 16;
+	let y = 12 * 16;
+	let w = shared.rectangles[index*2+0];
+	let h = shared.rectangles[index*2+1];
+	return {
+		x,
+		y,
+		w,
+		h
+	};
+}
+
 async function render(ms: number): Promise<void> {
 	context.clear(context.COLOR_BUFFER_BIT);
 	updateCycle();
 	if (is.present(map) && is.present(tileset)) {
 		for (let y = 0; y < 64; y++) {
 			for (let x = 0; x < 64; x++) {
+				context.uniform1i(textureIndexLocation, 0);
 				context.uniform1i(transparentIndexLocation, 256);
 				context.uniform2f(anchorLocation, 0.0, 0.0);
 				context.uniform2f(quadLocation, x * 16, y * 16);
@@ -2246,7 +2271,7 @@ async function render(ms: number): Promise<void> {
 				context.activeTexture(context.TEXTURE0);
 				context.bindTexture(context.TEXTURE_2D, tileset[map[y*64 + x]]);
 				context.bindBuffer(context.ARRAY_BUFFER, buffer);
-				context.drawArrays(context.TRIANGLES, 0, 6);
+				context.drawArrays(context.TRIANGLE_FAN, 0, 4);
 			}
 		}
 	}
@@ -2289,14 +2314,21 @@ async function render(ms: number): Promise<void> {
 		if (index >= textures.length) {
 			//console.log({index, unit: entity});
 		}
+		context.uniform1i(textureIndexLocation, 0);
 		context.uniform1i(transparentIndexLocation, 0);
-		context.uniform2f(anchorLocation, 0.5, 0.5);
+		context.uniform2f(anchorLocation, 0.0, 0.0);
 		context.uniform2f(quadLocation, 192, 192);
 		context.uniform2i(scalingLocation, direction < 5 ? 0 : 1, 0);
 		context.activeTexture(context.TEXTURE0);
 		context.bindTexture(context.TEXTURE_2D, textures[index]);
 		context.bindBuffer(context.ARRAY_BUFFER, buffer);
-		context.drawArrays(context.TRIANGLES, 0, 6);
+		context.drawArrays(context.TRIANGLE_FAN, 0, 4);
+	}
+	for (let entity of selectedEntities) {
+		drawRectangle(getRectangleFromEntity(entity), GREEN);
+	}
+	if (is.present(dragStart) && is.present(dragEnd)) {
+		drawRectangle(makeRectangleFromPoints(dragStart, dragEnd), GREEN);
 	}
 	window.requestAnimationFrame(render);
 }
@@ -2432,6 +2464,121 @@ window.addEventListener("keyup", async (event) => {
 			}
 		} catch (error) {}
 	}
+});
+
+function makeSingleColoredTexture(w: number, h: number, colorIndex: number): WebGLTexture {
+	let texture = context.createTexture();
+	if (is.absent(texture)) {
+		throw `Expected a texture!`;
+	}
+	context.activeTexture(context.TEXTURE0);
+	context.bindTexture(context.TEXTURE_2D, texture);
+	context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);
+	context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);
+	context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);
+	context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);
+	context.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, w, h, 0, context.LUMINANCE, context.UNSIGNED_BYTE, null);
+	let array = new Uint8Array(w * h);
+	for (let i = 0; i < w * h; i++) {
+		array[i] = colorIndex;
+	}
+	context.texSubImage2D(context.TEXTURE_2D, 0, 0, 0, w, h, context.LUMINANCE, context.UNSIGNED_BYTE, array);
+	return texture;
+}
+
+function drawRectangle(rectangle: Rectangle, colorIndex: number): void {
+	context.uniform1i(textureIndexLocation, colorIndex);
+	context.uniform1i(transparentIndexLocation, 256);
+	context.uniform2f(anchorLocation, 0.0, 0.0);
+	context.uniform2f(quadLocation, rectangle.x, rectangle.y);
+	context.uniform2i(scalingLocation, 0, 0);
+	context.activeTexture(context.TEXTURE0);
+	context.bindTexture(context.TEXTURE_2D, makeSingleColoredTexture(rectangle.w, rectangle.h, colorIndex));
+	context.bindBuffer(context.ARRAY_BUFFER, buffer);
+	context.drawArrays(context.LINE_LOOP, 0, 4);
+}
+
+type Point = {
+	x: number;
+	y: number;
+};
+
+type Rectangle = {
+	 x: number;
+	 y: number;
+	 w: number;
+	 h: number;
+};
+
+function makeRectangleFromPoints(one: Point, two: Point): Rectangle {
+	let w = two.x - one.x + 1;
+	if (w < 0) {
+		w = 0 - w;
+	}
+	let h = two.y - one.y + 1;
+	if (h < 0) {
+		h = 0 - h;
+	}
+	let x = Math.min(one.x, two.x);
+	let y = Math.min(one.y, two.y);
+	return {
+		x,
+		y,
+		w,
+		h
+	};
+}
+
+function getEntitiesWithinRange(rectangle: Rectangle): Array<Entity> {
+	let e = new Array<any>();
+	e.push(entities[entity]);
+	return e;
+}
+
+function setSelection(entities: Array<Entity>): void {
+	selectedEntities = entities.slice(0, 9);
+}
+
+let dragStart: { x: number, y: number } | undefined;
+let dragEnd: { x: number, y: number } | undefined;
+function beginInteraction(x: number, y: number): void {
+	dragStart = { x: Math.floor(x / ZOOM), y: Math.floor(y / ZOOM) };
+}
+function continueInteraction(x: number, y: number): void {
+	dragEnd = { x: Math.floor(x / ZOOM), y: Math.floor(y / ZOOM) };
+}
+function completeInteraction(x: number, y: number): void {
+	continueInteraction(x, y);
+	if (is.present(dragStart) && is.present(dragEnd)) {
+		let rect = makeRectangleFromPoints(dragStart, dragEnd);
+		let entities = getEntitiesWithinRange(rect);
+		setSelection(entities);
+	}
+	cancelInteraction(x, y);
+}
+function cancelInteraction(x: number, y: number): void {
+	dragStart = undefined;
+	dragEnd = undefined;
+}
+window.addEventListener("pointerdown", async (event) => {
+	let x = event.pageX;
+	let y = event.pageY;
+	beginInteraction(x, y);
+});
+window.addEventListener("pointermove", async (event) => {
+	let x = event.pageX;
+	let y = event.pageY;
+	continueInteraction(x, y);
+});
+window.addEventListener("pointerup", async (event) => {
+	let x = event.pageX;
+	let y = event.pageY;
+	completeInteraction(x, y);
+});
+window.addEventListener("pointercancel", async (event) => {
+	let x = event.pageX;
+	let y = event.pageY;
+	cancelInteraction(x, y);
 });
 function unlock_context(): void {
 	if (is.absent(audio_context)) {

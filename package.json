@@ -1,12 +1,11 @@
 {
 	"bin": {},
-	"devDependencies": {
-		"@types/node": "^14",
-		"typescript": "^4",
-		"webpack": "^5",
-		"webpack-cli": "^4"
-	},
 	"dependencies": {},
+	"devDependencies": {
+		"@joelek/ts-bundle": "github:joelek/ts-bundle#semver:^0",
+		"@types/node": "^14",
+		"typescript": "^4"
+	},
 	"license": "UNLICENSED",
 	"main": "",
 	"name": "@joelek/webcraft",
@@ -16,11 +15,11 @@
 	},
 	"scripts": {
 		"build": "npm run compile && npm run bundle",
-		"bundle:client": "npx webpack --entry ./build/client/index.js --output-path ./dist/static/ --output-filename client.js --mode development --target web",
-		"bundle:server": "npx webpack --entry ./build/server/index.js --output-path ./dist/ --output-filename server.js --mode development --target node",
+		"bundle:client": "npx tsb --entry=./build/client/index.js --bundle=./dist/static/client.js",
+		"bundle:server": "npx tsb --entry=./build/server/index.js --bundle=./dist/server.js",
 		"bundle": "npm run bundle:client && npm run bundle:server",
 		"clean": "rm -rf ./build/ ./node_modules/",
-		"compile": "npx tsc -b",
+		"compile": "npx tsc --build",
 		"preversion": "npm run build && git add ./",
 		"postversion": "git push && git push --tags"
 	},

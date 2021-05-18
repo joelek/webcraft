@@ -1,64 +1,513 @@
-/*
- * ATTENTION: The "eval" devtool has been used (maybe by default in mode: "development").
- * This devtool is not neither made for production nor for readable output files.
- * It uses "eval()" calls to create a separate source file in the browser devtools.
- * If you are trying to read the output file, select a different devtool (https://webpack.js.org/configuration/devtool/)
- * or disable the default devtool with "devtool: false".
- * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
- */
-/******/ (() => { // webpackBootstrap
-/******/ 	"use strict";
-/******/ 	var __webpack_modules__ = ({
-
-/***/ "./build/server/index.js":
-/*!*******************************!*\
-  !*** ./build/server/index.js ***!
-  \*******************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nconst libfs = __webpack_require__(/*! fs */ \"fs\");\r\nconst DEBUG = true;\r\nfunction decompressRecord(archive, cursor) {\r\n    let header = archive.readUInt32LE(cursor);\r\n    cursor += 4;\r\n    let decompressedSize = (header >> 0) & 0xFFFFFF;\r\n    let isCompressed = (header >> 29) & 1;\r\n    if (!isCompressed) {\r\n        return archive.slice(cursor, cursor + decompressedSize);\r\n    }\r\n    let buffer = Buffer.alloc(decompressedSize);\r\n    let bytesWritten = 0;\r\n    let history = Buffer.alloc(4096);\r\n    let historyPosition = 0;\r\n    let controlByte = 0;\r\n    let controlShift = 8;\r\n    function append(byte) {\r\n        buffer[bytesWritten] = byte;\r\n        bytesWritten += 1;\r\n        history[historyPosition] = byte;\r\n        historyPosition = (historyPosition + 1) & 4095;\r\n    }\r\n    while (bytesWritten < buffer.length) {\r\n        if (controlShift >= 8) {\r\n            controlByte = archive.readUInt8(cursor);\r\n            cursor += 1;\r\n            controlShift = 0;\r\n        }\r\n        let bit = (controlByte >> controlShift) & 1;\r\n        controlShift += 1;\r\n        if (bit) {\r\n            let byte = archive.readUInt8(cursor);\r\n            cursor += 1;\r\n            append(byte);\r\n        }\r\n        else {\r\n            let header = archive.readUInt16LE(cursor);\r\n            cursor += 2;\r\n            let offset = (header >> 0) & 4095;\r\n            let length = (header >> 12) & 15;\r\n            for (let i = offset; i < offset + length + 3; i++) {\r\n                let byte = history[i & 4095];\r\n                append(byte);\r\n            }\r\n        }\r\n    }\r\n    return buffer;\r\n}\r\nfunction extract(source, target) {\r\n    libfs.mkdirSync(target, { recursive: true });\r\n    let archive = libfs.readFileSync(source);\r\n    let cursor = 0;\r\n    let version = archive.readUInt32LE(cursor);\r\n    cursor += 4;\r\n    let recordCount = archive.readUInt16LE(cursor);\r\n    cursor += 2;\r\n    let id = archive.readUInt16LE(cursor);\r\n    cursor += 2;\r\n    for (let i = 0; i < recordCount; i++) {\r\n        let offset = archive.readUInt32LE(cursor);\r\n        cursor += 4;\r\n        let buffer = decompressRecord(archive, offset);\r\n        let ext = \"\";\r\n        if (buffer.slice(0, 4).toString(\"binary\") === \"RIFF\") {\r\n            ext = \".wav\";\r\n        }\r\n        else if (buffer.slice(0, 20).toString(\"binary\") === \"Creative Voice File\\x1A\") {\r\n            ext = \".voc\";\r\n        }\r\n        else if (buffer.slice(0, 4).toString(\"binary\") === \"FORM\") {\r\n            ext = \".xmi\";\r\n        }\r\n        libfs.writeFileSync(`${target}${i.toString().padStart(3, \"0\")}${ext}`, buffer);\r\n    }\r\n}\r\nfunction pack(source, target) {\r\n    let entries = libfs.readdirSync(source, { withFileTypes: true })\r\n        .filter((entry) => entry.isFile())\r\n        .sort((one, two) => one.name.localeCompare(two.name));\r\n    let header = Buffer.alloc(8);\r\n    header.writeUInt32LE(24, 0);\r\n    header.writeUInt32LE(entries.length, 4);\r\n    let fd = libfs.openSync(target, \"w\");\r\n    libfs.writeSync(fd, header);\r\n    let offset = Buffer.alloc(4);\r\n    offset.writeUInt32LE(8 + 4 * entries.length);\r\n    for (let entry of entries) {\r\n        libfs.writeSync(fd, offset);\r\n        let stat = libfs.statSync(`${source}${entry.name}`);\r\n        offset.writeUInt32LE(offset.readUInt32LE(0) + 4 + stat.size, 0);\r\n    }\r\n    for (let entry of entries) {\r\n        let record = libfs.readFileSync(`${source}${entry.name}`);\r\n        offset.writeUInt32LE(record.length, 0);\r\n        libfs.writeSync(fd, offset);\r\n        libfs.writeSync(fd, record);\r\n    }\r\n    libfs.closeSync(fd);\r\n}\r\nfunction readType(buffer, options) {\r\n    let type = buffer.slice(options.cursor, options.cursor + 4).toString(\"binary\");\r\n    options.cursor += 4;\r\n    return type;\r\n}\r\nfunction readChunk(buffer, options) {\r\n    let type = readType(buffer, options);\r\n    let size = buffer.readUInt32BE(options.cursor);\r\n    options.cursor += 4;\r\n    let data = buffer.slice(options.cursor, options.cursor + size);\r\n    options.cursor += size;\r\n    if (options.cursor % 2 === 1) {\r\n        options.cursor += 1;\r\n    }\r\n    return {\r\n        type,\r\n        size,\r\n        data\r\n    };\r\n}\r\nfunction readVarlen(buffer, options) {\r\n    let value = 0;\r\n    for (let i = 0; i < 4; i++) {\r\n        let byte = buffer.readUInt8(options.cursor);\r\n        options.cursor += 1;\r\n        value = (value << 7) | (byte & 0x7F);\r\n        if (byte < 128) {\r\n            break;\r\n        }\r\n    }\r\n    return value;\r\n}\r\nfunction writeVarlen(value) {\r\n    if (value < 0) {\r\n        throw ``;\r\n    }\r\n    let bytes = Buffer.alloc(4);\r\n    for (let i = 0; i < 4; i++) {\r\n        bytes[i] = value & 0x7F;\r\n        if (i > 0) {\r\n            bytes[i] += 128;\r\n        }\r\n        if (value < 128) {\r\n            bytes = bytes.slice(0, i + 1).reverse();\r\n            return bytes;\r\n        }\r\n        value = (value >> 7);\r\n    }\r\n    throw `Unsupported value ${value}!`;\r\n}\r\nfunction xmi2mid_one(source, target) {\r\n    let buffer = libfs.readFileSync(source);\r\n    let options = { cursor: 0 };\r\n    let one = readChunk(buffer, options);\r\n    let two = readChunk(buffer, options);\r\n    {\r\n        options.cursor = 0;\r\n        readType(two.data, options);\r\n        let form = readChunk(two.data, options);\r\n        {\r\n            options.cursor = 0;\r\n            readType(form.data, options);\r\n            let timb = readChunk(form.data, options);\r\n            let evnt = readChunk(form.data, options);\r\n            {\r\n                options.cursor = 0;\r\n                let buffer = Buffer.from(evnt.data);\r\n                let g_tempo = 500000;\r\n                let g_ticks = 0;\r\n                let events = new Array();\r\n                while (options.cursor < buffer.length) {\r\n                    let byte = buffer.readUInt8(options.cursor);\r\n                    options.cursor += 1;\r\n                    let delay = 0;\r\n                    if (byte < 0x80) {\r\n                        options.cursor -= 1;\r\n                        while (true) {\r\n                            byte = buffer.readUInt8(options.cursor);\r\n                            options.cursor += 1;\r\n                            if (byte > 0x7F) {\r\n                                options.cursor -= 1;\r\n                                break;\r\n                            }\r\n                            delay += byte;\r\n                            if (byte < 0x7F) {\r\n                                break;\r\n                            }\r\n                        }\r\n                        byte = buffer.readUInt8(options.cursor);\r\n                        options.cursor += 1;\r\n                    }\r\n                    g_ticks += delay;\r\n                    //libfs.writeSync(fd, writeVarlen(delay));\r\n                    let event = (byte >> 4) & 0x0F;\r\n                    let channel = (byte >> 0) & 0x0F;\r\n                    if (event < 0x08) {\r\n                        throw `Invalid event ${event} @ ${options.cursor - 1} ${delay}`;\r\n                    }\r\n                    else if (event === 0x8) {\r\n                        let a = buffer.readUInt8(options.cursor);\r\n                        options.cursor += 1;\r\n                        let b = buffer.readUInt8(options.cursor);\r\n                        options.cursor += 1;\r\n                        if (DEBUG)\r\n                            console.log(`Note off @ ${options.cursor - 3}, channel: ${channel}`, a, b);\r\n                        //libfs.writeSync(fd, Uint8Array.of(byte, a, b));\r\n                        events.push({\r\n                            timestamp: g_ticks,\r\n                            index: events.length,\r\n                            event: Buffer.of(byte, a, b)\r\n                        });\r\n                    }\r\n                    else if (event === 0x9) {\r\n                        let a = buffer.readUInt8(options.cursor);\r\n                        options.cursor += 1;\r\n                        let b = buffer.readUInt8(options.cursor);\r\n                        options.cursor += 1;\r\n                        if (DEBUG)\r\n                            console.log(`Note on @ ${options.cursor - 3}, channel: ${channel}`, a, b);\r\n                        let ticks = readVarlen(buffer, options);\r\n                        //libfs.writeSync(fd, Uint8Array.of(byte, a, b));\r\n                        events.push({\r\n                            timestamp: g_ticks,\r\n                            index: events.length,\r\n                            event: Buffer.of(byte, a, b)\r\n                        });\r\n                        events.push({\r\n                            timestamp: g_ticks + ticks,\r\n                            index: events.length,\r\n                            event: Buffer.of((0x8 << 4) | channel, a, b)\r\n                        });\r\n                        //libfs.writeSync(fd, writeVarlen(ticks));\r\n                        //libfs.writeSync(fd, Uint8Array.of((0x8 << 4) | channel, a, 64));\r\n                    }\r\n                    else if (event === 0xA) {\r\n                        let a = buffer.readUInt8(options.cursor);\r\n                        options.cursor += 1;\r\n                        let b = buffer.readUInt8(options.cursor);\r\n                        options.cursor += 1;\r\n                        if (DEBUG)\r\n                            console.log(`Polyphonic key pressure @ ${options.cursor - 3}, channel: ${channel}`, a, b);\r\n                        //libfs.writeSync(fd, Uint8Array.of(byte, a, b));\r\n                        events.push({\r\n                            timestamp: g_ticks,\r\n                            index: events.length,\r\n                            event: Buffer.of(byte, a, b)\r\n                        });\r\n                    }\r\n                    else if (event === 0xB) {\r\n                        let a = buffer.readUInt8(options.cursor);\r\n                        options.cursor += 1;\r\n                        let b = buffer.readUInt8(options.cursor);\r\n                        options.cursor += 1;\r\n                        if (DEBUG)\r\n                            console.log(`Controller @ ${options.cursor - 3}, channel: ${channel}`, a, b);\r\n                        if (a === 116) {\r\n                            console.log(\"\\tstart loop\", b);\r\n                        }\r\n                        else if (a === 117) {\r\n                            console.log(\"\\tend loop\", b);\r\n                        }\r\n                        //libfs.writeSync(fd, Uint8Array.of(byte, a, b));\r\n                        events.push({\r\n                            timestamp: g_ticks,\r\n                            index: events.length,\r\n                            event: Buffer.of(byte, a, b)\r\n                        });\r\n                    }\r\n                    else if (event === 0xC) {\r\n                        let a = buffer.readUInt8(options.cursor);\r\n                        options.cursor += 1;\r\n                        if (DEBUG)\r\n                            console.log(`Instrument change @ ${options.cursor - 2}, channel: ${channel}`, a);\r\n                        //libfs.writeSync(fd, Uint8Array.of(byte, a));\r\n                        events.push({\r\n                            timestamp: g_ticks,\r\n                            index: events.length,\r\n                            event: Buffer.of(byte, a)\r\n                        });\r\n                    }\r\n                    else if (event === 0xD) {\r\n                        let a = buffer.readUInt8(options.cursor);\r\n                        options.cursor += 1;\r\n                        if (DEBUG)\r\n                            console.log(`Channel pressure @ ${options.cursor - 2}, channel: ${channel}`, a);\r\n                        //libfs.writeSync(fd, Uint8Array.of(byte, a));\r\n                        events.push({\r\n                            timestamp: g_ticks,\r\n                            index: events.length,\r\n                            event: Buffer.of(byte, a)\r\n                        });\r\n                    }\r\n                    else if (event === 0xE) {\r\n                        let a = buffer.readUInt8(options.cursor);\r\n                        options.cursor += 1;\r\n                        let b = buffer.readUInt8(options.cursor);\r\n                        options.cursor += 1;\r\n                        if (DEBUG)\r\n                            console.log(`Pitch bend @ ${options.cursor - 3}, channel: ${channel}`, a, b);\r\n                        console.log(\"pb\", ((a & 0x7F) << 7) | ((b & 0x7F) << 0));\r\n                        //libfs.writeSync(fd, Uint8Array.of(byte, a, b));\r\n                        events.push({\r\n                            timestamp: g_ticks,\r\n                            index: events.length,\r\n                            event: Buffer.of(byte, a, b)\r\n                        });\r\n                    }\r\n                    else if (event === 0xF) {\r\n                        if (channel < 0xF) {\r\n                            if (DEBUG)\r\n                                console.log(`Sysex @ ${options.cursor - 1}`);\r\n                            let size = readVarlen(buffer, options);\r\n                            let data = buffer.slice(options.cursor, options.cursor + size);\r\n                            options.cursor += size;\r\n                            //libfs.writeSync(fd, Uint8Array.of(byte));\r\n                            //libfs.writeSync(fd, writeVarlen(size));\r\n                            //libfs.writeSync(fd, data);\r\n                            events.push({\r\n                                timestamp: g_ticks,\r\n                                index: events.length,\r\n                                event: Buffer.concat([Buffer.of(byte), writeVarlen(size), data])\r\n                            });\r\n                        }\r\n                        else {\r\n                            if (DEBUG)\r\n                                console.log(`Meta @ ${options.cursor - 1}`);\r\n                            let type = buffer.readUInt8(options.cursor);\r\n                            options.cursor += 1;\r\n                            let size = readVarlen(buffer, options);\r\n                            let data = buffer.slice(options.cursor, options.cursor + size);\r\n                            options.cursor += size;\r\n                            //libfs.writeSync(fd, Uint8Array.of(byte, type));\r\n                            //libfs.writeSync(fd, writeVarlen(size));\r\n                            //libfs.writeSync(fd, data);\r\n                            events.push({\r\n                                timestamp: g_ticks,\r\n                                index: events.length,\r\n                                event: Buffer.concat([Buffer.of(byte, type), writeVarlen(size), data])\r\n                            });\r\n                            if (false) {}\r\n                            else if (type === 0x00) {\r\n                                //console.log(\"\\tSequence number\", data);\r\n                            }\r\n                            else if (type >= 0x01 && type <= 0x0F) {\r\n                                //console.log(\"\\tText\", data.toString(\"binary\"));\r\n                            }\r\n                            else if (type === 0x20) {\r\n                                //console.log(\"\\tSet active channel\", data);\r\n                                let channel = data.readUInt8(0);\r\n                                if (!(channel >= 0 && channel <= 15)) {\r\n                                    throw `Invalid channel!`;\r\n                                }\r\n                            }\r\n                            else if (type === 0x2F) {\r\n                                //console.log(\"\\tEnd of track\", data);\r\n                                break;\r\n                            }\r\n                            else if (type === 0x51) {\r\n                                //console.log(\"\\tSet tempo\", data);\r\n                                let a = data.readUInt8(0);\r\n                                let b = data.readUInt8(1);\r\n                                let c = data.readUInt8(2);\r\n                                let tempo = (a << 16) | (b << 8) | (c << 0);\r\n                                g_tempo = tempo;\r\n                            }\r\n                            else if (type === 0x54) {\r\n                                //console.log(\"\\tSet SMPTE offset\", data);\r\n                                let hours = data.readUInt8(0);\r\n                                let minutes = data.readUInt8(1);\r\n                                let seconds = data.readUInt8(2);\r\n                                let frames = data.readUInt8(3);\r\n                                let fractional_frames = data.readUInt8(4) / 100;\r\n                            }\r\n                            else if (type === 0x58) {\r\n                                //console.log(\"\\tTime signature\", data);\r\n                                let numerator = data.readUInt8(0);\r\n                                let denominator = (1 << data.readUInt8(1));\r\n                                let clocks_per_metronome_click = data.readUInt8(2);\r\n                                let quarter_32nd_notes = data.readUInt8(3);\r\n                            }\r\n                            else if (type === 0x7F) {\r\n                                //console.log(\"\\tSequencer specific\", data);\r\n                            }\r\n                            else {\r\n                                //console.log(\"\\tUnrecognized\", data);\r\n                            }\r\n                        }\r\n                    }\r\n                }\r\n                events = events.sort((one, two) => {\r\n                    if (one.timestamp < two.timestamp) {\r\n                        return -1;\r\n                    }\r\n                    if (one.timestamp > two.timestamp) {\r\n                        return 1;\r\n                    }\r\n                    if (one.index < two.index) {\r\n                        return -1;\r\n                    }\r\n                    if (one.index > two.index) {\r\n                        return 1;\r\n                    }\r\n                    return 0;\r\n                });\r\n                let temp = Buffer.alloc(4);\r\n                let fd = libfs.openSync(target, \"w\");\r\n                temp.write(\"MThd\", \"binary\");\r\n                libfs.writeSync(fd, temp, 0, 4);\r\n                temp.writeUInt32BE(6);\r\n                libfs.writeSync(fd, temp, 0, 4);\r\n                temp.writeUInt16BE(1);\r\n                libfs.writeSync(fd, temp, 0, 2);\r\n                temp.writeUInt16BE(2);\r\n                libfs.writeSync(fd, temp, 0, 2);\r\n                temp.writeUInt16BE(60);\r\n                libfs.writeSync(fd, temp, 0, 2);\r\n                let track0buf = new Array();\r\n                let timeevents = events.filter((event) => {\r\n                    if (event.event[0] === 0xFF) {\r\n                        if (event.event[1] === 0x51) {\r\n                            return false;\r\n                        }\r\n                        else if (event.event[1] === 0x58) {\r\n                            return true;\r\n                        }\r\n                        else if (event.event[1] === 0x2F) {\r\n                            return true;\r\n                        }\r\n                    }\r\n                    return false;\r\n                });\r\n                timeevents.unshift({\r\n                    timestamp: 0,\r\n                    index: -1,\r\n                    event: Buffer.of(0xff, 0x51, 0x03, 0x07, 0xa1, 0x20)\r\n                });\r\n                let notevents = events.filter((event) => {\r\n                    if (event.event[0] === 0xFF) {\r\n                        if (event.event[1] === 0x51) {\r\n                            return false;\r\n                        }\r\n                        else if (event.event[1] === 0x58) {\r\n                            return false;\r\n                        }\r\n                        else if (event.event[1] === 0x2F) {\r\n                            return true;\r\n                        }\r\n                    }\r\n                    return true;\r\n                });\r\n                g_ticks = 0;\r\n                for (let event of timeevents) {\r\n                    let delay = event.timestamp - g_ticks;\r\n                    track0buf.push(writeVarlen(delay), event.event);\r\n                    g_ticks = event.timestamp;\r\n                }\r\n                let track0head = Buffer.from(\"MTrk\\0\\0\\0\\0\", \"binary\");\r\n                let track0data = Buffer.concat(track0buf);\r\n                track0head.writeUInt32BE(track0data.length, 4);\r\n                let track0 = Buffer.concat([track0head, track0data]);\r\n                libfs.writeSync(fd, track0);\r\n                temp.write(\"MTrk\", \"binary\");\r\n                libfs.writeSync(fd, temp, 0, 4);\r\n                temp.writeUInt32BE(0);\r\n                libfs.writeSync(fd, temp, 0, 4);\r\n                g_ticks = 0;\r\n                for (let event of notevents) {\r\n                    let delay = event.timestamp - g_ticks;\r\n                    libfs.writeSync(fd, writeVarlen(delay));\r\n                    libfs.writeSync(fd, event.event);\r\n                    g_ticks = event.timestamp;\r\n                }\r\n                let size = libfs.fstatSync(fd).size;\r\n                temp.writeUInt32BE(size - 22 - track0.length);\r\n                libfs.writeSync(fd, temp, 0, 4, 18 + track0.length);\r\n                libfs.closeSync(fd);\r\n            }\r\n        }\r\n    }\r\n}\r\nfunction xmi2mid(source, target) {\r\n    libfs.mkdirSync(target, { recursive: true });\r\n    let entries = libfs.readdirSync(source, { withFileTypes: true });\r\n    for (let entry of entries) {\r\n        console.log(entry.name);\r\n        if (entry.isFile()) {\r\n            try {\r\n                xmi2mid_one(source + entry.name, target + entry.name + \".mid\");\r\n            }\r\n            catch (error) {\r\n                console.log(error);\r\n            }\r\n        }\r\n    }\r\n}\r\nlet command = process.argv[2];\r\nif (command === \"extract\") {\r\n    extract(\"./private/data.war.original\", \"./private/records/\");\r\n    extract(\"./private/data2.war.original\", \"./private/records2/\");\r\n}\r\nelse if (command === \"pack\") {\r\n    pack(\"./private/records/\", \"c:/dos/warcraft/data/data.war\");\r\n}\r\nelse if (command === \"xmi2mid\") {\r\n    xmi2mid(\"./private/xmi/\", \"./private/mid/\");\r\n}\r\nelse {\r\n    console.log(\"Please specify command.\");\r\n}\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/server/index.js?");
-
-/***/ }),
-
-/***/ "fs":
-/*!*********************!*\
-  !*** external "fs" ***!
-  \*********************/
-/***/ ((module) => {
-
-eval("module.exports = require(\"fs\");;\n\n//# sourceURL=webpack://@joelek/webcraft/external_%22fs%22?");
-
-/***/ })
-
-/******/ 	});
-/************************************************************************/
-/******/ 	// The module cache
-/******/ 	var __webpack_module_cache__ = {};
-/******/ 	
-/******/ 	// The require function
-/******/ 	function __webpack_require__(moduleId) {
-/******/ 		// Check if module is in cache
-/******/ 		if(__webpack_module_cache__[moduleId]) {
-/******/ 			return __webpack_module_cache__[moduleId].exports;
-/******/ 		}
-/******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			// no module.id needed
-/******/ 			// no module.loaded needed
-/******/ 			exports: {}
-/******/ 		};
-/******/ 	
-/******/ 		// Execute the module function
-/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-/******/ 	
-/******/ 		// Return the exports of the module
-/******/ 		return module.exports;
-/******/ 	}
-/******/ 	
-/************************************************************************/
-/******/ 	// startup
-/******/ 	// Load entry module
-/******/ 	__webpack_require__("./build/server/index.js");
-/******/ 	// This entry module used 'exports' so it can't be inlined
-/******/ })()
-;
+define("index", ["require", "exports", "fs"], function (require, exports, libfs) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    const DEBUG = true;
+    function decompressRecord(archive, cursor) {
+        let header = archive.readUInt32LE(cursor);
+        cursor += 4;
+        let decompressedSize = (header >> 0) & 0xFFFFFF;
+        let isCompressed = (header >> 29) & 1;
+        if (!isCompressed) {
+            return archive.slice(cursor, cursor + decompressedSize);
+        }
+        let buffer = Buffer.alloc(decompressedSize);
+        let bytesWritten = 0;
+        let history = Buffer.alloc(4096);
+        let historyPosition = 0;
+        let controlByte = 0;
+        let controlShift = 8;
+        function append(byte) {
+            buffer[bytesWritten] = byte;
+            bytesWritten += 1;
+            history[historyPosition] = byte;
+            historyPosition = (historyPosition + 1) & 4095;
+        }
+        while (bytesWritten < buffer.length) {
+            if (controlShift >= 8) {
+                controlByte = archive.readUInt8(cursor);
+                cursor += 1;
+                controlShift = 0;
+            }
+            let bit = (controlByte >> controlShift) & 1;
+            controlShift += 1;
+            if (bit) {
+                let byte = archive.readUInt8(cursor);
+                cursor += 1;
+                append(byte);
+            }
+            else {
+                let header = archive.readUInt16LE(cursor);
+                cursor += 2;
+                let offset = (header >> 0) & 4095;
+                let length = (header >> 12) & 15;
+                for (let i = offset; i < offset + length + 3; i++) {
+                    let byte = history[i & 4095];
+                    append(byte);
+                }
+            }
+        }
+        return buffer;
+    }
+    function extract(source, target) {
+        libfs.mkdirSync(target, { recursive: true });
+        let archive = libfs.readFileSync(source);
+        let cursor = 0;
+        let version = archive.readUInt32LE(cursor);
+        cursor += 4;
+        let recordCount = archive.readUInt16LE(cursor);
+        cursor += 2;
+        let id = archive.readUInt16LE(cursor);
+        cursor += 2;
+        for (let i = 0; i < recordCount; i++) {
+            let offset = archive.readUInt32LE(cursor);
+            cursor += 4;
+            let buffer = decompressRecord(archive, offset);
+            let ext = "";
+            if (buffer.slice(0, 4).toString("binary") === "RIFF") {
+                ext = ".wav";
+            }
+            else if (buffer.slice(0, 20).toString("binary") === "Creative Voice File\x1A") {
+                ext = ".voc";
+            }
+            else if (buffer.slice(0, 4).toString("binary") === "FORM") {
+                ext = ".xmi";
+            }
+            libfs.writeFileSync(`${target}${i.toString().padStart(3, "0")}${ext}`, buffer);
+        }
+    }
+    function pack(source, target) {
+        let entries = libfs.readdirSync(source, { withFileTypes: true })
+            .filter((entry) => entry.isFile())
+            .sort((one, two) => one.name.localeCompare(two.name));
+        let header = Buffer.alloc(8);
+        header.writeUInt32LE(24, 0);
+        header.writeUInt32LE(entries.length, 4);
+        let fd = libfs.openSync(target, "w");
+        libfs.writeSync(fd, header);
+        let offset = Buffer.alloc(4);
+        offset.writeUInt32LE(8 + 4 * entries.length);
+        for (let entry of entries) {
+            libfs.writeSync(fd, offset);
+            let stat = libfs.statSync(`${source}${entry.name}`);
+            offset.writeUInt32LE(offset.readUInt32LE(0) + 4 + stat.size, 0);
+        }
+        for (let entry of entries) {
+            let record = libfs.readFileSync(`${source}${entry.name}`);
+            offset.writeUInt32LE(record.length, 0);
+            libfs.writeSync(fd, offset);
+            libfs.writeSync(fd, record);
+        }
+        libfs.closeSync(fd);
+    }
+    function readType(buffer, options) {
+        let type = buffer.slice(options.cursor, options.cursor + 4).toString("binary");
+        options.cursor += 4;
+        return type;
+    }
+    function readChunk(buffer, options) {
+        let type = readType(buffer, options);
+        let size = buffer.readUInt32BE(options.cursor);
+        options.cursor += 4;
+        let data = buffer.slice(options.cursor, options.cursor + size);
+        options.cursor += size;
+        if (options.cursor % 2 === 1) {
+            options.cursor += 1;
+        }
+        return {
+            type,
+            size,
+            data
+        };
+    }
+    function readVarlen(buffer, options) {
+        let value = 0;
+        for (let i = 0; i < 4; i++) {
+            let byte = buffer.readUInt8(options.cursor);
+            options.cursor += 1;
+            value = (value << 7) | (byte & 0x7F);
+            if (byte < 128) {
+                break;
+            }
+        }
+        return value;
+    }
+    function writeVarlen(value) {
+        if (value < 0) {
+            throw ``;
+        }
+        let bytes = Buffer.alloc(4);
+        for (let i = 0; i < 4; i++) {
+            bytes[i] = value & 0x7F;
+            if (i > 0) {
+                bytes[i] += 128;
+            }
+            if (value < 128) {
+                bytes = bytes.slice(0, i + 1).reverse();
+                return bytes;
+            }
+            value = (value >> 7);
+        }
+        throw `Unsupported value ${value}!`;
+    }
+    function xmi2mid_one(source, target) {
+        let buffer = libfs.readFileSync(source);
+        let options = { cursor: 0 };
+        let one = readChunk(buffer, options);
+        let two = readChunk(buffer, options);
+        {
+            options.cursor = 0;
+            readType(two.data, options);
+            let form = readChunk(two.data, options);
+            {
+                options.cursor = 0;
+                readType(form.data, options);
+                let timb = readChunk(form.data, options);
+                let evnt = readChunk(form.data, options);
+                {
+                    options.cursor = 0;
+                    let buffer = Buffer.from(evnt.data);
+                    let g_tempo = 500000;
+                    let g_ticks = 0;
+                    let events = new Array();
+                    while (options.cursor < buffer.length) {
+                        let byte = buffer.readUInt8(options.cursor);
+                        options.cursor += 1;
+                        let delay = 0;
+                        if (byte < 0x80) {
+                            options.cursor -= 1;
+                            while (true) {
+                                byte = buffer.readUInt8(options.cursor);
+                                options.cursor += 1;
+                                if (byte > 0x7F) {
+                                    options.cursor -= 1;
+                                    break;
+                                }
+                                delay += byte;
+                                if (byte < 0x7F) {
+                                    break;
+                                }
+                            }
+                            byte = buffer.readUInt8(options.cursor);
+                            options.cursor += 1;
+                        }
+                        g_ticks += delay;
+                        //libfs.writeSync(fd, writeVarlen(delay));
+                        let event = (byte >> 4) & 0x0F;
+                        let channel = (byte >> 0) & 0x0F;
+                        if (event < 0x08) {
+                            throw `Invalid event ${event} @ ${options.cursor - 1} ${delay}`;
+                        }
+                        else if (event === 0x8) {
+                            let a = buffer.readUInt8(options.cursor);
+                            options.cursor += 1;
+                            let b = buffer.readUInt8(options.cursor);
+                            options.cursor += 1;
+                            if (DEBUG)
+                                console.log(`Note off @ ${options.cursor - 3}, channel: ${channel}`, a, b);
+                            //libfs.writeSync(fd, Uint8Array.of(byte, a, b));
+                            events.push({
+                                timestamp: g_ticks,
+                                index: events.length,
+                                event: Buffer.of(byte, a, b)
+                            });
+                        }
+                        else if (event === 0x9) {
+                            let a = buffer.readUInt8(options.cursor);
+                            options.cursor += 1;
+                            let b = buffer.readUInt8(options.cursor);
+                            options.cursor += 1;
+                            if (DEBUG)
+                                console.log(`Note on @ ${options.cursor - 3}, channel: ${channel}`, a, b);
+                            let ticks = readVarlen(buffer, options);
+                            //libfs.writeSync(fd, Uint8Array.of(byte, a, b));
+                            events.push({
+                                timestamp: g_ticks,
+                                index: events.length,
+                                event: Buffer.of(byte, a, b)
+                            });
+                            events.push({
+                                timestamp: g_ticks + ticks,
+                                index: events.length,
+                                event: Buffer.of((0x8 << 4) | channel, a, b)
+                            });
+                            //libfs.writeSync(fd, writeVarlen(ticks));
+                            //libfs.writeSync(fd, Uint8Array.of((0x8 << 4) | channel, a, 64));
+                        }
+                        else if (event === 0xA) {
+                            let a = buffer.readUInt8(options.cursor);
+                            options.cursor += 1;
+                            let b = buffer.readUInt8(options.cursor);
+                            options.cursor += 1;
+                            if (DEBUG)
+                                console.log(`Polyphonic key pressure @ ${options.cursor - 3}, channel: ${channel}`, a, b);
+                            //libfs.writeSync(fd, Uint8Array.of(byte, a, b));
+                            events.push({
+                                timestamp: g_ticks,
+                                index: events.length,
+                                event: Buffer.of(byte, a, b)
+                            });
+                        }
+                        else if (event === 0xB) {
+                            let a = buffer.readUInt8(options.cursor);
+                            options.cursor += 1;
+                            let b = buffer.readUInt8(options.cursor);
+                            options.cursor += 1;
+                            if (DEBUG)
+                                console.log(`Controller @ ${options.cursor - 3}, channel: ${channel}`, a, b);
+                            if (a === 116) {
+                                console.log("\tstart loop", b);
+                            }
+                            else if (a === 117) {
+                                console.log("\tend loop", b);
+                            }
+                            //libfs.writeSync(fd, Uint8Array.of(byte, a, b));
+                            events.push({
+                                timestamp: g_ticks,
+                                index: events.length,
+                                event: Buffer.of(byte, a, b)
+                            });
+                        }
+                        else if (event === 0xC) {
+                            let a = buffer.readUInt8(options.cursor);
+                            options.cursor += 1;
+                            if (DEBUG)
+                                console.log(`Instrument change @ ${options.cursor - 2}, channel: ${channel}`, a);
+                            //libfs.writeSync(fd, Uint8Array.of(byte, a));
+                            events.push({
+                                timestamp: g_ticks,
+                                index: events.length,
+                                event: Buffer.of(byte, a)
+                            });
+                        }
+                        else if (event === 0xD) {
+                            let a = buffer.readUInt8(options.cursor);
+                            options.cursor += 1;
+                            if (DEBUG)
+                                console.log(`Channel pressure @ ${options.cursor - 2}, channel: ${channel}`, a);
+                            //libfs.writeSync(fd, Uint8Array.of(byte, a));
+                            events.push({
+                                timestamp: g_ticks,
+                                index: events.length,
+                                event: Buffer.of(byte, a)
+                            });
+                        }
+                        else if (event === 0xE) {
+                            let a = buffer.readUInt8(options.cursor);
+                            options.cursor += 1;
+                            let b = buffer.readUInt8(options.cursor);
+                            options.cursor += 1;
+                            if (DEBUG)
+                                console.log(`Pitch bend @ ${options.cursor - 3}, channel: ${channel}`, a, b);
+                            console.log("pb", ((a & 0x7F) << 7) | ((b & 0x7F) << 0));
+                            //libfs.writeSync(fd, Uint8Array.of(byte, a, b));
+                            events.push({
+                                timestamp: g_ticks,
+                                index: events.length,
+                                event: Buffer.of(byte, a, b)
+                            });
+                        }
+                        else if (event === 0xF) {
+                            if (channel < 0xF) {
+                                if (DEBUG)
+                                    console.log(`Sysex @ ${options.cursor - 1}`);
+                                let size = readVarlen(buffer, options);
+                                let data = buffer.slice(options.cursor, options.cursor + size);
+                                options.cursor += size;
+                                //libfs.writeSync(fd, Uint8Array.of(byte));
+                                //libfs.writeSync(fd, writeVarlen(size));
+                                //libfs.writeSync(fd, data);
+                                events.push({
+                                    timestamp: g_ticks,
+                                    index: events.length,
+                                    event: Buffer.concat([Buffer.of(byte), writeVarlen(size), data])
+                                });
+                            }
+                            else {
+                                if (DEBUG)
+                                    console.log(`Meta @ ${options.cursor - 1}`);
+                                let type = buffer.readUInt8(options.cursor);
+                                options.cursor += 1;
+                                let size = readVarlen(buffer, options);
+                                let data = buffer.slice(options.cursor, options.cursor + size);
+                                options.cursor += size;
+                                //libfs.writeSync(fd, Uint8Array.of(byte, type));
+                                //libfs.writeSync(fd, writeVarlen(size));
+                                //libfs.writeSync(fd, data);
+                                events.push({
+                                    timestamp: g_ticks,
+                                    index: events.length,
+                                    event: Buffer.concat([Buffer.of(byte, type), writeVarlen(size), data])
+                                });
+                                if (false) {
+                                }
+                                else if (type === 0x00) {
+                                    //console.log("\tSequence number", data);
+                                }
+                                else if (type >= 0x01 && type <= 0x0F) {
+                                    //console.log("\tText", data.toString("binary"));
+                                }
+                                else if (type === 0x20) {
+                                    //console.log("\tSet active channel", data);
+                                    let channel = data.readUInt8(0);
+                                    if (!(channel >= 0 && channel <= 15)) {
+                                        throw `Invalid channel!`;
+                                    }
+                                }
+                                else if (type === 0x2F) {
+                                    //console.log("\tEnd of track", data);
+                                    break;
+                                }
+                                else if (type === 0x51) {
+                                    //console.log("\tSet tempo", data);
+                                    let a = data.readUInt8(0);
+                                    let b = data.readUInt8(1);
+                                    let c = data.readUInt8(2);
+                                    let tempo = (a << 16) | (b << 8) | (c << 0);
+                                    g_tempo = tempo;
+                                }
+                                else if (type === 0x54) {
+                                    //console.log("\tSet SMPTE offset", data);
+                                    let hours = data.readUInt8(0);
+                                    let minutes = data.readUInt8(1);
+                                    let seconds = data.readUInt8(2);
+                                    let frames = data.readUInt8(3);
+                                    let fractional_frames = data.readUInt8(4) / 100;
+                                }
+                                else if (type === 0x58) {
+                                    //console.log("\tTime signature", data);
+                                    let numerator = data.readUInt8(0);
+                                    let denominator = (1 << data.readUInt8(1));
+                                    let clocks_per_metronome_click = data.readUInt8(2);
+                                    let quarter_32nd_notes = data.readUInt8(3);
+                                }
+                                else if (type === 0x7F) {
+                                    //console.log("\tSequencer specific", data);
+                                }
+                                else {
+                                    //console.log("\tUnrecognized", data);
+                                }
+                            }
+                        }
+                    }
+                    events = events.sort((one, two) => {
+                        if (one.timestamp < two.timestamp) {
+                            return -1;
+                        }
+                        if (one.timestamp > two.timestamp) {
+                            return 1;
+                        }
+                        if (one.index < two.index) {
+                            return -1;
+                        }
+                        if (one.index > two.index) {
+                            return 1;
+                        }
+                        return 0;
+                    });
+                    let temp = Buffer.alloc(4);
+                    let fd = libfs.openSync(target, "w");
+                    temp.write("MThd", "binary");
+                    libfs.writeSync(fd, temp, 0, 4);
+                    temp.writeUInt32BE(6);
+                    libfs.writeSync(fd, temp, 0, 4);
+                    temp.writeUInt16BE(1);
+                    libfs.writeSync(fd, temp, 0, 2);
+                    temp.writeUInt16BE(2);
+                    libfs.writeSync(fd, temp, 0, 2);
+                    temp.writeUInt16BE(60);
+                    libfs.writeSync(fd, temp, 0, 2);
+                    let track0buf = new Array();
+                    let timeevents = events.filter((event) => {
+                        if (event.event[0] === 0xFF) {
+                            if (event.event[1] === 0x51) {
+                                return false;
+                            }
+                            else if (event.event[1] === 0x58) {
+                                return true;
+                            }
+                            else if (event.event[1] === 0x2F) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    });
+                    timeevents.unshift({
+                        timestamp: 0,
+                        index: -1,
+                        event: Buffer.of(0xff, 0x51, 0x03, 0x07, 0xa1, 0x20)
+                    });
+                    let notevents = events.filter((event) => {
+                        if (event.event[0] === 0xFF) {
+                            if (event.event[1] === 0x51) {
+                                return false;
+                            }
+                            else if (event.event[1] === 0x58) {
+                                return false;
+                            }
+                            else if (event.event[1] === 0x2F) {
+                                return true;
+                            }
+                        }
+                        return true;
+                    });
+                    g_ticks = 0;
+                    for (let event of timeevents) {
+                        let delay = event.timestamp - g_ticks;
+                        track0buf.push(writeVarlen(delay), event.event);
+                        g_ticks = event.timestamp;
+                    }
+                    let track0head = Buffer.from("MTrk\0\0\0\0", "binary");
+                    let track0data = Buffer.concat(track0buf);
+                    track0head.writeUInt32BE(track0data.length, 4);
+                    let track0 = Buffer.concat([track0head, track0data]);
+                    libfs.writeSync(fd, track0);
+                    temp.write("MTrk", "binary");
+                    libfs.writeSync(fd, temp, 0, 4);
+                    temp.writeUInt32BE(0);
+                    libfs.writeSync(fd, temp, 0, 4);
+                    g_ticks = 0;
+                    for (let event of notevents) {
+                        let delay = event.timestamp - g_ticks;
+                        libfs.writeSync(fd, writeVarlen(delay));
+                        libfs.writeSync(fd, event.event);
+                        g_ticks = event.timestamp;
+                    }
+                    let size = libfs.fstatSync(fd).size;
+                    temp.writeUInt32BE(size - 22 - track0.length);
+                    libfs.writeSync(fd, temp, 0, 4, 18 + track0.length);
+                    libfs.closeSync(fd);
+                }
+            }
+        }
+    }
+    function xmi2mid(source, target) {
+        libfs.mkdirSync(target, { recursive: true });
+        let entries = libfs.readdirSync(source, { withFileTypes: true });
+        for (let entry of entries) {
+            console.log(entry.name);
+            if (entry.isFile()) {
+                try {
+                    xmi2mid_one(source + entry.name, target + entry.name + ".mid");
+                }
+                catch (error) {
+                    console.log(error);
+                }
+            }
+        }
+    }
+    let command = process.argv[2];
+    if (command === "extract") {
+        extract("./private/data.war.original", "./private/records/");
+        extract("./private/data2.war.original", "./private/records2/");
+    }
+    else if (command === "pack") {
+        pack("./private/records/", "c:/dos/warcraft/data/data.war");
+    }
+    else if (command === "xmi2mid") {
+        xmi2mid("./private/xmi/", "./private/mid/");
+    }
+    else {
+        console.log("Please specify command.");
+    }
+});
+function define(e,t,l){null==this.x&&(this.x=new Map),null==this.z&&(this.z=(e=>require(e))),null==this.y&&(this.y=(e=>{let t=this.x.get(e);if(null==t||null!=t.module)return;let l=Array(),u={exports:{}};for(let e of t.dependencies){if("require"===e){l.push(this.z);continue}if("module"===e){l.push(u);continue}if("exports"===e){l.push(u.exports);continue}try{l.push(this.z(e));continue}catch(e){}let t=this.x.get(e);if(null==t||null==t.module)return;l.push(t.module.exports)}t.callback(...l),t.module=u;for(let e of t.dependencies)this.y(e)}));let u=this.x.get(e);if(null!=u)throw'Duplicate module found with name "'+e+'"!';u={callback:l,dependencies:t,module:null},this.x.set(e,u),this.y(e)}

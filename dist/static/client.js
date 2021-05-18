@@ -1,404 +1,4985 @@
-/*
- * ATTENTION: The "eval" devtool has been used (maybe by default in mode: "development").
- * This devtool is not neither made for production nor for readable output files.
- * It uses "eval()" calls to create a separate source file in the browser devtools.
- * If you are trying to read the output file, select a different devtool (https://webpack.js.org/configuration/devtool/)
- * or disable the default devtool with "devtool: false".
- * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
- */
-/******/ (() => { // webpackBootstrap
-/******/ 	"use strict";
-/******/ 	var __webpack_modules__ = ({
-
-/***/ "./build/client/index.js":
-/*!*******************************!*\
-  !*** ./build/client/index.js ***!
-  \*******************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nconst shared = __webpack_require__(/*! ../shared */ \"./build/shared/index.js\");\r\nconst binary = __webpack_require__(/*! ../shared/binary.web */ \"./build/shared/binary.web/index.js\");\r\nconst synth_1 = __webpack_require__(/*! ./synth */ \"./build/client/synth.js\");\r\nvar is;\r\n(function (is) {\r\n    function absent(subject) {\r\n        return subject == null;\r\n    }\r\n    is.absent = absent;\r\n    ;\r\n    function present(subject) {\r\n        return subject != null;\r\n    }\r\n    is.present = present;\r\n    ;\r\n})(is || (is = {}));\r\n;\r\nvar assert;\r\n(function (assert_1) {\r\n    function assert(assertion) {\r\n        if (!assertion) {\r\n            throw `Assertion failed!`;\r\n        }\r\n    }\r\n    assert_1.assert = assert;\r\n    function between(min, value, max) {\r\n        if ((value < min) || (value > max)) {\r\n            throw `Expected ${value} to be an integer between ${min} and ${max}!`;\r\n        }\r\n    }\r\n    assert_1.between = between;\r\n    function identical(one, two) {\r\n        if (one !== two) {\r\n            throw `Expected ${one} to be identical to ${two}!`;\r\n        }\r\n    }\r\n    assert_1.identical = identical;\r\n})(assert || (assert = {}));\r\nclass BufferLike {\r\n    constructor(buffer, endianness = \"BigEndian\") {\r\n        this.buffer = buffer;\r\n        this.endianness = endianness;\r\n    }\r\n    ui16(offset, endianness = this.endianness) {\r\n        return new ui16(endianness, this.buffer, offset);\r\n    }\r\n}\r\nclass BufferDataProvider {\r\n    constructor(buffer) {\r\n        this.buffer = buffer;\r\n    }\r\n    async read(cursor, buffer, offset, length) {\r\n        offset = offset !== null && offset !== void 0 ? offset : 0;\r\n        length = length !== null && length !== void 0 ? length : (buffer.byteLength - offset);\r\n        let slice = this.buffer.slice(cursor, cursor + length);\r\n        let source = new Uint8Array(slice);\r\n        let target = new Uint8Array(buffer, offset, length);\r\n        target.set(source, 0);\r\n        return length;\r\n    }\r\n    size() {\r\n        return this.buffer.byteLength;\r\n    }\r\n}\r\nclass FileDataProvider {\r\n    constructor(file) {\r\n        this.file = file;\r\n    }\r\n    async buffer() {\r\n        let buffer = new ArrayBuffer(this.size());\r\n        await this.read(0, buffer);\r\n        return new BufferDataProvider(buffer);\r\n    }\r\n    async read(cursor, buffer, offset, length) {\r\n        offset = offset !== null && offset !== void 0 ? offset : 0;\r\n        length = length !== null && length !== void 0 ? length : (buffer.byteLength - offset);\r\n        assert.between(0, offset, buffer.byteLength);\r\n        assert.between(0, length, buffer.byteLength - offset);\r\n        let blob = this.file.slice(cursor, cursor + length);\r\n        let source = new Uint8Array(await blob.arrayBuffer());\r\n        let target = new Uint8Array(buffer, offset, length);\r\n        target.set(source, 0);\r\n        return length;\r\n    }\r\n    size() {\r\n        return this.file.size;\r\n    }\r\n}\r\nclass si08 {\r\n    constructor(endianness, buffer = new ArrayBuffer(1), offset = 0) {\r\n        assert.between(0, offset, buffer.byteLength - 1);\r\n        this.endianness = endianness;\r\n        this.view = new DataView(buffer, offset, 1);\r\n    }\r\n    get value() {\r\n        return this.view.getInt8(0);\r\n    }\r\n    set value(next) {\r\n        let last = this.value;\r\n        this.view.setInt8(0, next);\r\n        if (this.value !== next) {\r\n            this.value = last;\r\n            throw `Unexpectedly encoded ${next} as ${this.value}!`;\r\n        }\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        let length = 0;\r\n        length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);\r\n        return length;\r\n    }\r\n}\r\nclass si16 {\r\n    constructor(endianness, buffer = new ArrayBuffer(2), offset = 0) {\r\n        assert.between(0, offset, buffer.byteLength - 2);\r\n        this.endianness = endianness;\r\n        this.view = new DataView(buffer, offset, 2);\r\n    }\r\n    get value() {\r\n        return this.view.getInt16(0, this.endianness === \"LittleEndian\");\r\n    }\r\n    set value(next) {\r\n        let last = this.value;\r\n        this.view.setUint16(0, next, this.endianness === \"LittleEndian\");\r\n        if (this.value !== next) {\r\n            this.value = last;\r\n            throw `Unexpectedly encoded ${next} as ${this.value}!`;\r\n        }\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        let length = 0;\r\n        length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);\r\n        return length;\r\n    }\r\n}\r\nclass si24 {\r\n    constructor(endianness, buffer = new ArrayBuffer(3), offset = 0) {\r\n        this.integer = new ui24(endianness, buffer, offset);\r\n    }\r\n    get value() {\r\n        let value = this.integer.value;\r\n        if (value > 0x7FFFFF) {\r\n            value -= 0x1000000;\r\n        }\r\n        return value;\r\n    }\r\n    set value(next) {\r\n        if (next < 0) {\r\n            next += 0x1000000;\r\n        }\r\n        this.integer.value = next;\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        return this.integer.load(cursor, dataProvider);\r\n    }\r\n}\r\nclass si32 {\r\n    constructor(endianness, buffer = new ArrayBuffer(4), offset = 0) {\r\n        assert.between(0, offset, buffer.byteLength - 4);\r\n        this.endianness = endianness;\r\n        this.view = new DataView(buffer, offset, 4);\r\n    }\r\n    get value() {\r\n        return this.view.getInt32(0, this.endianness === \"LittleEndian\");\r\n    }\r\n    set value(next) {\r\n        let last = this.value;\r\n        this.view.setInt32(0, next, this.endianness === \"LittleEndian\");\r\n        if (this.value !== next) {\r\n            this.value = last;\r\n            throw `Unexpectedly encoded ${next} as ${this.value}!`;\r\n        }\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        let length = 0;\r\n        length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);\r\n        return length;\r\n    }\r\n}\r\nclass ui08 {\r\n    constructor(endianness, buffer = new ArrayBuffer(1), offset = 0) {\r\n        assert.between(0, offset, buffer.byteLength - 1);\r\n        this.endianness = endianness;\r\n        this.view = new DataView(buffer, offset, 1);\r\n    }\r\n    get value() {\r\n        return this.view.getUint8(0);\r\n    }\r\n    set value(next) {\r\n        let last = this.value;\r\n        this.view.setUint8(0, next);\r\n        if (this.value !== next) {\r\n            this.value = last;\r\n            throw `Unexpectedly encoded ${next} as ${this.value}!`;\r\n        }\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        let length = 0;\r\n        length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);\r\n        return length;\r\n    }\r\n}\r\nclass ui16 {\r\n    constructor(endianness, buffer = new ArrayBuffer(2), offset = 0) {\r\n        assert.between(0, offset, buffer.byteLength - 2);\r\n        this.endianness = endianness;\r\n        this.view = new DataView(buffer, offset, 2);\r\n    }\r\n    get value() {\r\n        return this.view.getUint16(0, this.endianness === \"LittleEndian\");\r\n    }\r\n    set value(next) {\r\n        let last = this.value;\r\n        this.view.setUint16(0, next, this.endianness === \"LittleEndian\");\r\n        if (this.value !== next) {\r\n            this.value = last;\r\n            throw `Unexpectedly encoded ${next} as ${this.value}!`;\r\n        }\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        let length = 0;\r\n        length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);\r\n        return length;\r\n    }\r\n}\r\nclass ui24 {\r\n    constructor(endianness, buffer = new ArrayBuffer(3), offset = 0) {\r\n        assert.between(0, offset, buffer.byteLength - 3);\r\n        this.endianness = endianness;\r\n        this.view = new DataView(buffer, offset, 3);\r\n    }\r\n    get value() {\r\n        let a = this.view.getUint8(0);\r\n        let b = this.view.getUint8(1);\r\n        let c = this.view.getUint8(2);\r\n        if (this.endianness === \"LittleEndian\") {\r\n            return (c << 16) | (b << 8) | (a << 0);\r\n        }\r\n        else {\r\n            return (a << 16) | (b << 8) | (c << 0);\r\n        }\r\n    }\r\n    set value(next) {\r\n        let last = this.value;\r\n        let a = (next >>> 0) & 0xFF;\r\n        let b = (next >>> 8) & 0xFF;\r\n        let c = (next >>> 16) & 0xFF;\r\n        if (this.endianness === \"LittleEndian\") {\r\n            this.view.setUint8(0, a);\r\n            this.view.setUint8(1, b);\r\n            this.view.setUint8(2, c);\r\n        }\r\n        else {\r\n            this.view.setUint8(0, c);\r\n            this.view.setUint8(1, b);\r\n            this.view.setUint8(2, a);\r\n        }\r\n        if (this.value !== next) {\r\n            this.value = last;\r\n            throw `Unexpectedly encoded ${next} as ${this.value}!`;\r\n        }\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        let length = 0;\r\n        length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);\r\n        return length;\r\n    }\r\n}\r\nclass ui32 {\r\n    constructor(endianness, buffer = new ArrayBuffer(4), offset = 0) {\r\n        assert.between(0, offset, buffer.byteLength - 4);\r\n        this.endianness = endianness;\r\n        this.view = new DataView(buffer, offset, 4);\r\n    }\r\n    get value() {\r\n        return this.view.getUint32(0, this.endianness === \"LittleEndian\");\r\n    }\r\n    set value(next) {\r\n        let last = this.value;\r\n        this.view.setUint32(0, next, this.endianness === \"LittleEndian\");\r\n        if (this.value !== next) {\r\n            this.value = last;\r\n            throw `Unexpectedly encoded ${next} as ${this.value}!`;\r\n        }\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        let length = 0;\r\n        length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);\r\n        return length;\r\n    }\r\n}\r\nclass pi08 {\r\n    constructor(integer, offset, length) {\r\n        assert.between(0, offset, 8 - 1);\r\n        assert.between(1, length, 8 - offset);\r\n        this.integer = integer;\r\n        this.offset = offset;\r\n        this.length = length;\r\n    }\r\n    get value() {\r\n        let a = 32 - (this.offset + this.length);\r\n        let b = 32 - (this.length);\r\n        return (this.integer.value << a) >>> b;\r\n    }\r\n    set value(next) {\r\n        let last = this.integer.value;\r\n        let a = this.offset;\r\n        let b = 32 - (this.length);\r\n        let c = 32 - (this.offset + this.length);\r\n        let m = ((0xFFFFFFFF >> a) << b) >>> c;\r\n        this.integer.value = ((this.integer.value & ~m) | ((next << a) & m)) >>> 0;\r\n        if (this.value !== next) {\r\n            this.integer.value = last;\r\n            throw `Unexpectedly encoded ${next} as ${this.value}!`;\r\n        }\r\n    }\r\n}\r\nclass pi16 {\r\n    constructor(integer, offset, length) {\r\n        assert.between(0, offset, 16 - 1);\r\n        assert.between(1, length, 16 - offset);\r\n        this.integer = integer;\r\n        this.offset = offset;\r\n        this.length = length;\r\n    }\r\n    get value() {\r\n        let a = 32 - (this.offset + this.length);\r\n        let b = 32 - (this.length);\r\n        return (this.integer.value << a) >>> b;\r\n    }\r\n    set value(next) {\r\n        let last = this.integer.value;\r\n        let a = this.offset;\r\n        let b = 32 - (this.length);\r\n        let c = 32 - (this.offset + this.length);\r\n        let m = ((0xFFFFFFFF >> a) << b) >>> c;\r\n        this.integer.value = ((this.integer.value & ~m) | ((next << a) & m)) >>> 0;\r\n        if (this.value !== next) {\r\n            this.integer.value = last;\r\n            throw `Unexpectedly encoded ${next} as ${this.value}!`;\r\n        }\r\n    }\r\n}\r\nclass pi24 {\r\n    constructor(integer, offset, length) {\r\n        assert.between(0, offset, 24 - 1);\r\n        assert.between(1, length, 24 - offset);\r\n        this.integer = integer;\r\n        this.offset = offset;\r\n        this.length = length;\r\n    }\r\n    get value() {\r\n        let a = 32 - (this.offset + this.length);\r\n        let b = 32 - (this.length);\r\n        return (this.integer.value << a) >>> b;\r\n    }\r\n    set value(next) {\r\n        let last = this.integer.value;\r\n        let a = this.offset;\r\n        let b = 32 - (this.length);\r\n        let c = 32 - (this.offset + this.length);\r\n        let m = ((0xFFFFFFFF >> a) << b) >>> c;\r\n        this.integer.value = ((this.integer.value & ~m) | ((next << a) & m)) >>> 0;\r\n        if (this.value !== next) {\r\n            this.integer.value = last;\r\n            throw `Unexpectedly encoded ${next} as ${this.value}!`;\r\n        }\r\n    }\r\n}\r\nclass pi32 {\r\n    constructor(integer, offset, length) {\r\n        assert.between(0, offset, 32 - 1);\r\n        assert.between(1, length, 32 - offset);\r\n        this.integer = integer;\r\n        this.offset = offset;\r\n        this.length = length;\r\n    }\r\n    get value() {\r\n        let a = 32 - (this.offset + this.length);\r\n        let b = 32 - (this.length);\r\n        return (this.integer.value << a) >>> b;\r\n    }\r\n    set value(next) {\r\n        let last = this.integer.value;\r\n        let a = this.offset;\r\n        let b = 32 - (this.length);\r\n        let c = 32 - (this.offset + this.length);\r\n        let m = ((0xFFFFFFFF >> a) << b) >>> c;\r\n        this.integer.value = ((this.integer.value & ~m) | ((next << a) & m)) >>> 0;\r\n        if (this.value !== next) {\r\n            this.integer.value = last;\r\n            throw `Unexpectedly encoded ${next} as ${this.value}!`;\r\n        }\r\n    }\r\n}\r\nclass text {\r\n    constructor(buffer, offset, length) {\r\n        offset = offset !== null && offset !== void 0 ? offset : 0;\r\n        length = length !== null && length !== void 0 ? length : (buffer.byteLength - offset);\r\n        assert.between(0, offset, buffer.byteLength);\r\n        assert.between(0, length, buffer.byteLength - offset);\r\n        this.decoder = new TextDecoder();\r\n        this.encoder = new TextEncoder();\r\n        this.view = new Uint8Array(buffer, offset, length);\r\n    }\r\n    get value() {\r\n        return this.decoder.decode(this.view).replace(/([\\u0000]*)$/, \"\");\r\n    }\r\n    set value(next) {\r\n        let last = this.value;\r\n        this.view.fill(0);\r\n        this.encoder.encodeInto(next, this.view);\r\n        if (this.value !== next) {\r\n            this.value = last;\r\n            throw `Unexpectedly encoded \"${next}\" as \"${this.value}\"!`;\r\n        }\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        let length = 0;\r\n        length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);\r\n        return length;\r\n    }\r\n}\r\nclass ArchiveHeader {\r\n    constructor(endianness) {\r\n        this.buffer = new ArrayBuffer(8);\r\n        this.version = new ui32(endianness, this.buffer, 0);\r\n        this.recordCount = new ui32(endianness, this.buffer, 4);\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        let length = 0;\r\n        length += await dataProvider.read(cursor + length, this.buffer);\r\n        return length;\r\n    }\r\n}\r\nclass RecordHeader {\r\n    constructor(endianness) {\r\n        this.buffer = new ArrayBuffer(4);\r\n        let integer = new ui32(endianness, this.buffer, 0);\r\n        this.uncompressedSize = new pi32(integer, 0, 24);\r\n        this.isCompressed = new pi32(integer, 29, 1);\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        let length = 0;\r\n        length += await dataProvider.read(cursor + length, this.buffer);\r\n        return length;\r\n    }\r\n}\r\nclass Archive {\r\n    constructor(dataProvider, endianness) {\r\n        this.dataProvider = dataProvider;\r\n        this.endianness = endianness;\r\n    }\r\n    async decompress(cursor, buffer) {\r\n        let array = new Uint8Array(buffer);\r\n        let shift = 8;\r\n        let bytesWritten = 0;\r\n        let control = new Uint8Array(1);\r\n        let byte = new Uint8Array(1);\r\n        let history = new Uint8Array(1 << 12);\r\n        let historyPosition = 0;\r\n        function append(byte) {\r\n            history[historyPosition] = byte;\r\n            historyPosition += 1;\r\n            historyPosition %= (1 << 12);\r\n            array[bytesWritten] = byte;\r\n            bytesWritten += 1;\r\n        }\r\n        let data = new ui16(this.endianness);\r\n        let dataOffset = new pi16(data, 0, 12);\r\n        let dataLength = new pi16(data, 12, 4);\r\n        while (bytesWritten < buffer.byteLength) {\r\n            if (shift >= 8) {\r\n                cursor += await this.dataProvider.read(cursor, control.buffer);\r\n                shift = 0;\r\n            }\r\n            let bit = (control[0] >> shift) & 0x01;\r\n            shift += 1;\r\n            if (bit) {\r\n                cursor += await this.dataProvider.read(cursor, byte.buffer);\r\n                append(byte[0]);\r\n            }\r\n            else {\r\n                cursor += await data.load(cursor, this.dataProvider);\r\n                let offset = dataOffset.value;\r\n                let length = dataLength.value + 3;\r\n                for (let i = offset; i < offset + length; i++) {\r\n                    append(history[i % (1 << 12)]);\r\n                }\r\n            }\r\n        }\r\n    }\r\n    async getRecord(index) {\r\n        let archiveHeader = new ArchiveHeader(this.endianness);\r\n        let cursor = 0;\r\n        cursor += await archiveHeader.load(cursor, this.dataProvider);\r\n        assert.between(0, index, archiveHeader.recordCount.value - 1);\r\n        cursor += index * 4;\r\n        let offset = new ui32(this.endianness);\r\n        cursor += await offset.load(cursor, this.dataProvider);\r\n        let recordHeader = new RecordHeader(this.endianness);\r\n        cursor = offset.value;\r\n        cursor += await recordHeader.load(cursor, this.dataProvider);\r\n        let buffer = new ArrayBuffer(recordHeader.uncompressedSize.value);\r\n        if (recordHeader.isCompressed.value) {\r\n            await this.decompress(cursor, buffer);\r\n        }\r\n        else {\r\n            await this.dataProvider.read(cursor, buffer);\r\n        }\r\n        return new BufferDataProvider(buffer);\r\n    }\r\n}\r\nclass VocHeader {\r\n    constructor(endianness) {\r\n        this.buffer = new ArrayBuffer(26);\r\n        this.identifier = new text(this.buffer, 0, 20);\r\n        this.size = new ui16(endianness, this.buffer, 20);\r\n        this.version = new ui16(endianness, this.buffer, 22);\r\n        this.validity = new ui16(endianness, this.buffer, 24);\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        let length = 0;\r\n        length += await dataProvider.read(cursor + length, this.buffer);\r\n        return length;\r\n    }\r\n}\r\nclass VocSoundDataHeader {\r\n    constructor(endianness) {\r\n        this.buffer = new ArrayBuffer(2);\r\n        this.frequency = new ui08(endianness, this.buffer, 0);\r\n        this.codec = new ui08(endianness, this.buffer, 1);\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        let length = 0;\r\n        length += await dataProvider.read(cursor + length, this.buffer);\r\n        return length;\r\n    }\r\n}\r\nvar VocCodecType;\r\n(function (VocCodecType) {\r\n    VocCodecType[VocCodecType[\"PCM_8BIT_UNSIGNED\"] = 0] = \"PCM_8BIT_UNSIGNED\";\r\n    VocCodecType[VocCodecType[\"CREATIVE_ADPCM_4BIT_8BIT\"] = 1] = \"CREATIVE_ADPCM_4BIT_8BIT\";\r\n    VocCodecType[VocCodecType[\"CREATIVE_ADPCM_3BIT_8BIT\"] = 2] = \"CREATIVE_ADPCM_3BIT_8BIT\";\r\n    VocCodecType[VocCodecType[\"CREATIVE_ADPCM_2BIT_8BIT\"] = 3] = \"CREATIVE_ADPCM_2BIT_8BIT\";\r\n    VocCodecType[VocCodecType[\"PCM_16BIT_SIGNED\"] = 4] = \"PCM_16BIT_SIGNED\";\r\n    VocCodecType[VocCodecType[\"UNKNOWN\"] = 5] = \"UNKNOWN\";\r\n    VocCodecType[VocCodecType[\"ALAW\"] = 6] = \"ALAW\";\r\n    VocCodecType[VocCodecType[\"ULAW\"] = 7] = \"ULAW\";\r\n})(VocCodecType || (VocCodecType = {}));\r\n;\r\nvar VocBlockType;\r\n(function (VocBlockType) {\r\n    VocBlockType[VocBlockType[\"TERMINATOR\"] = 0] = \"TERMINATOR\";\r\n    VocBlockType[VocBlockType[\"SOUND_DATA\"] = 1] = \"SOUND_DATA\";\r\n    VocBlockType[VocBlockType[\"CONTINUED_SOUND_DATA\"] = 2] = \"CONTINUED_SOUND_DATA\";\r\n    VocBlockType[VocBlockType[\"SILENCE\"] = 3] = \"SILENCE\";\r\n    VocBlockType[VocBlockType[\"MARKER\"] = 4] = \"MARKER\";\r\n    VocBlockType[VocBlockType[\"TEXT\"] = 5] = \"TEXT\";\r\n    VocBlockType[VocBlockType[\"REPEAT_START\"] = 6] = \"REPEAT_START\";\r\n    VocBlockType[VocBlockType[\"REPEAT_END\"] = 7] = \"REPEAT_END\";\r\n    VocBlockType[VocBlockType[\"EXTRA_INFO\"] = 8] = \"EXTRA_INFO\";\r\n    VocBlockType[VocBlockType[\"NEW_SOUND_DATA\"] = 9] = \"NEW_SOUND_DATA\";\r\n})(VocBlockType || (VocBlockType = {}));\r\n;\r\nclass VocFile {\r\n    constructor(endianness = \"LittleEndian\") {\r\n        this.endianness = endianness;\r\n        this.header = new VocHeader(endianness);\r\n        this.blocks = new Array();\r\n    }\r\n    async load(dataProvider) {\r\n        this.blocks.splice(0, this.blocks.length);\r\n        let cursor = 0;\r\n        cursor += await this.header.load(cursor, dataProvider);\r\n        assert.identical(this.header.identifier.value, \"Creative Voice File\\x1A\");\r\n        while (cursor < dataProvider.size()) {\r\n            let type = new ui08(this.endianness);\r\n            cursor += await type.load(cursor, dataProvider);\r\n            if (type.value === VocBlockType.TERMINATOR) {\r\n                this.blocks.push({\r\n                    type: type.value,\r\n                    buffer: new ArrayBuffer(0)\r\n                });\r\n                break;\r\n            }\r\n            else if (type.value === VocBlockType.REPEAT_END) {\r\n                this.blocks.push({\r\n                    type: type.value,\r\n                    buffer: new ArrayBuffer(0)\r\n                });\r\n            }\r\n            else {\r\n                let size = new ui24(this.endianness);\r\n                cursor += await size.load(cursor, dataProvider);\r\n                let buffer = new ArrayBuffer(size.value);\r\n                cursor += await dataProvider.read(cursor, buffer);\r\n                this.blocks.push({\r\n                    type: type.value,\r\n                    buffer: buffer\r\n                });\r\n            }\r\n        }\r\n        return this;\r\n    }\r\n    async play() {\r\n        if (is.absent(audio_context)) {\r\n            audio_context = new AudioContext();\r\n        }\r\n        if (this.blocks.length === 0) {\r\n            return;\r\n        }\r\n        let block = this.blocks[0];\r\n        if (block.type !== VocBlockType.SOUND_DATA) {\r\n            throw `Unsupported voc block!`;\r\n        }\r\n        let dataProvider = new BufferDataProvider(block.buffer);\r\n        let cursor = 0;\r\n        let header = new VocSoundDataHeader(this.endianness);\r\n        cursor += await header.load(cursor, dataProvider);\r\n        if (![VocCodecType.PCM_8BIT_UNSIGNED, VocCodecType.PCM_16BIT_SIGNED].includes(header.codec.value)) {\r\n            throw `Unsupported voc codec!`;\r\n        }\r\n        let channels = 1;\r\n        let bytesPerChannel = header.codec.value === VocCodecType.PCM_8BIT_UNSIGNED ? 1 : 2;\r\n        let bytesPerFrame = bytesPerChannel * channels;\r\n        let samples = (dataProvider.size() - cursor) / bytesPerFrame;\r\n        let sampleRate = Math.floor(1000000 / (256 - header.frequency.value));\r\n        let buffer = audio_context.createBuffer(channels, samples, sampleRate);\r\n        if (bytesPerChannel === 1) {\r\n            let sample = new ui08(this.endianness);\r\n            for (let s = 0; s < samples; s++) {\r\n                for (let c = 0; c < channels; c++) {\r\n                    cursor += await sample.load(cursor, dataProvider);\r\n                    let value = ((sample.value + 0) / 255) * 2.0 - 1.0;\r\n                    buffer.getChannelData(c)[s] = value;\r\n                }\r\n            }\r\n        }\r\n        else if (bytesPerChannel === 2) {\r\n            let sample = new si16(this.endianness);\r\n            for (let s = 0; s < samples; s++) {\r\n                for (let c = 0; c < channels; c++) {\r\n                    cursor += await sample.load(cursor, dataProvider);\r\n                    let value = ((sample.value + 32768) / 65535) * 2.0 - 1.0;\r\n                    buffer.getChannelData(c)[s] = value;\r\n                }\r\n            }\r\n        }\r\n        else {\r\n            throw `Expected 8 or 16 bits per sample!`;\r\n        }\r\n        let source = audio_context.createBufferSource();\r\n        source.buffer = buffer;\r\n        source.connect(audio_context.destination);\r\n        source.start();\r\n    }\r\n}\r\nclass RiffChunkHeader {\r\n    constructor(endianness) {\r\n        this.buffer = new ArrayBuffer(8);\r\n        this.id = new text(this.buffer, 0, 4);\r\n        this.size = new ui32(endianness, this.buffer, 4);\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        let length = 0;\r\n        length += await dataProvider.read(cursor + length, this.buffer);\r\n        return length;\r\n    }\r\n}\r\nclass WavHeader {\r\n    constructor(endianness) {\r\n        this.buffer = new ArrayBuffer(16);\r\n        this.audioFormat = new ui16(endianness, this.buffer, 0);\r\n        this.numChannels = new ui16(endianness, this.buffer, 2);\r\n        this.sampleRate = new ui32(endianness, this.buffer, 4);\r\n        this.byteRate = new ui32(endianness, this.buffer, 8);\r\n        this.blockAlign = new ui16(endianness, this.buffer, 12);\r\n        this.bitsPerSample = new ui16(endianness, this.buffer, 14);\r\n    }\r\n    async load(cursor, dataProvider) {\r\n        let length = 0;\r\n        length += await dataProvider.read(cursor + length, this.buffer);\r\n        return length;\r\n    }\r\n}\r\nvar XMIEventType;\r\n(function (XMIEventType) {\r\n    XMIEventType[XMIEventType[\"NOTE_OFF\"] = 8] = \"NOTE_OFF\";\r\n    XMIEventType[XMIEventType[\"NOTE_ON\"] = 9] = \"NOTE_ON\";\r\n    XMIEventType[XMIEventType[\"KEY_PRESSURE\"] = 10] = \"KEY_PRESSURE\";\r\n    XMIEventType[XMIEventType[\"CONTROLLER\"] = 11] = \"CONTROLLER\";\r\n    XMIEventType[XMIEventType[\"INSTRUMENT_CHANGE\"] = 12] = \"INSTRUMENT_CHANGE\";\r\n    XMIEventType[XMIEventType[\"CHANNEL_PRESSURE\"] = 13] = \"CHANNEL_PRESSURE\";\r\n    XMIEventType[XMIEventType[\"PITCH_BEND\"] = 14] = \"PITCH_BEND\";\r\n    XMIEventType[XMIEventType[\"SYSEX\"] = 15] = \"SYSEX\";\r\n})(XMIEventType || (XMIEventType = {}));\r\n;\r\nclass XmiFile {\r\n    constructor() {\r\n        this.events = new Array();\r\n    }\r\n    readVarlen(buffer, cursor) {\r\n        let value = 0;\r\n        for (let i = 0; i < 4; i++) {\r\n            let byte = buffer[cursor.offset++];\r\n            value = (value << 7) | (byte & 0x7F);\r\n            if (byte < 128) {\r\n                break;\r\n            }\r\n        }\r\n        return value;\r\n    }\r\n    async loadEvents(array) {\r\n        this.events.splice(0, this.events.length);\r\n        let cursor = {\r\n            offset: 0\r\n        };\r\n        let timestamp = 0;\r\n        while (cursor.offset < array.length) {\r\n            let byte = array[cursor.offset++];\r\n            let delay = 0;\r\n            if (byte < 0x80) {\r\n                cursor.offset -= 1;\r\n                while (true) {\r\n                    byte = array[cursor.offset++];\r\n                    if (byte > 0x7F) {\r\n                        cursor.offset -= 1;\r\n                        break;\r\n                    }\r\n                    delay += byte;\r\n                    if (byte < 0x7F) {\r\n                        break;\r\n                    }\r\n                }\r\n                byte = array[cursor.offset++];\r\n            }\r\n            timestamp += delay;\r\n            let event = (byte >> 4) & 0x0F;\r\n            let channel = (byte >> 0) & 0x0F;\r\n            if (event < 0x08) {\r\n                throw `Invalid event!`;\r\n            }\r\n            else if (event === 0x8) {\r\n                let a = array[cursor.offset++];\r\n                let b = array[cursor.offset++];\r\n                this.events.push({\r\n                    index: this.events.length,\r\n                    type: XMIEventType.NOTE_OFF,\r\n                    channel: channel,\r\n                    time: timestamp,\r\n                    data: Uint8Array.of(a, b)\r\n                });\r\n            }\r\n            else if (event === 0x9) {\r\n                let a = array[cursor.offset++];\r\n                let b = array[cursor.offset++];\r\n                let ticks = this.readVarlen(array, cursor);\r\n                this.events.push({\r\n                    index: this.events.length,\r\n                    type: XMIEventType.NOTE_ON,\r\n                    channel: channel,\r\n                    time: timestamp,\r\n                    data: Uint8Array.of(a, b)\r\n                });\r\n                this.events.push({\r\n                    index: this.events.length,\r\n                    type: XMIEventType.NOTE_OFF,\r\n                    channel: channel,\r\n                    time: timestamp + ticks,\r\n                    data: Uint8Array.of(a, b)\r\n                });\r\n            }\r\n            else if (event === 0xA) {\r\n                let a = array[cursor.offset++];\r\n                let b = array[cursor.offset++];\r\n                this.events.push({\r\n                    index: this.events.length,\r\n                    type: XMIEventType.KEY_PRESSURE,\r\n                    channel: channel,\r\n                    time: timestamp,\r\n                    data: Uint8Array.of(a, b)\r\n                });\r\n            }\r\n            else if (event === 0xB) {\r\n                let a = array[cursor.offset++];\r\n                let b = array[cursor.offset++];\r\n                this.events.push({\r\n                    index: this.events.length,\r\n                    type: XMIEventType.CONTROLLER,\r\n                    channel: channel,\r\n                    time: timestamp,\r\n                    data: Uint8Array.of(a, b)\r\n                });\r\n            }\r\n            else if (event === 0xC) {\r\n                let a = array[cursor.offset++];\r\n                this.events.push({\r\n                    index: this.events.length,\r\n                    type: XMIEventType.INSTRUMENT_CHANGE,\r\n                    channel: channel,\r\n                    time: timestamp,\r\n                    data: Uint8Array.of(a)\r\n                });\r\n            }\r\n            else if (event === 0xD) {\r\n                let a = array[cursor.offset++];\r\n                this.events.push({\r\n                    index: this.events.length,\r\n                    type: XMIEventType.CHANNEL_PRESSURE,\r\n                    channel: channel,\r\n                    time: timestamp,\r\n                    data: Uint8Array.of(a)\r\n                });\r\n            }\r\n            else if (event === 0xE) {\r\n                let a = array[cursor.offset++];\r\n                let b = array[cursor.offset++];\r\n                this.events.push({\r\n                    index: this.events.length,\r\n                    type: XMIEventType.PITCH_BEND,\r\n                    channel: channel,\r\n                    time: timestamp,\r\n                    data: Uint8Array.of(a, b)\r\n                });\r\n            }\r\n            else if (event === 0xF) {\r\n                if (channel < 0xF) {\r\n                    let size = this.readVarlen(array, cursor);\r\n                    let data = array.slice(cursor.offset, cursor.offset + size);\r\n                    cursor.offset += size;\r\n                    this.events.push({\r\n                        index: this.events.length,\r\n                        type: XMIEventType.SYSEX,\r\n                        channel: channel,\r\n                        time: timestamp,\r\n                        data: data\r\n                    });\r\n                }\r\n                else {\r\n                    let type = array[cursor.offset++];\r\n                    let size = this.readVarlen(array, cursor);\r\n                    let data = array.slice(cursor.offset, cursor.offset + size);\r\n                    cursor.offset += size;\r\n                    this.events.push({\r\n                        index: this.events.length,\r\n                        type: XMIEventType.SYSEX,\r\n                        channel: channel,\r\n                        time: timestamp,\r\n                        data: Uint8Array.of(type, ...data)\r\n                    });\r\n                    if (type === 0x2F) {\r\n                        break;\r\n                    }\r\n                }\r\n            }\r\n        }\r\n        this.events.sort((one, two) => {\r\n            if (one.time < two.time) {\r\n                return -1;\r\n            }\r\n            if (one.time > two.time) {\r\n                return 1;\r\n            }\r\n            if (one.index < two.index) {\r\n                return -1;\r\n            }\r\n            if (one.index > two.index) {\r\n                return 1;\r\n            }\r\n            return 0;\r\n        });\r\n        let time = 0;\r\n        for (let event of this.events) {\r\n            let delay = event.time - time;\r\n            time = event.time;\r\n            event.time = delay;\r\n        }\r\n        return this;\r\n    }\r\n    async load(dataProvider) {\r\n        let cursor = 0;\r\n        let form = new RiffChunkHeader(\"BigEndian\");\r\n        cursor += await form.load(cursor, dataProvider);\r\n        assert.identical(form.id.value, \"FORM\");\r\n        {\r\n            let xdir = new text(new ArrayBuffer(4));\r\n            cursor += await xdir.load(cursor, dataProvider);\r\n            assert.identical(xdir.value, \"XDIR\");\r\n            let info = new RiffChunkHeader(\"BigEndian\");\r\n            cursor += await info.load(cursor, dataProvider);\r\n            assert.identical(info.id.value, \"INFO\");\r\n            cursor += info.size.value;\r\n            cursor += info.size.value % 2;\r\n        }\r\n        cursor += form.size.value % 2;\r\n        let cat = new RiffChunkHeader(\"BigEndian\");\r\n        cursor += await cat.load(cursor, dataProvider);\r\n        assert.identical(cat.id.value, \"CAT \");\r\n        {\r\n            let xmid = new text(new ArrayBuffer(4));\r\n            cursor += await xmid.load(cursor, dataProvider);\r\n            assert.identical(xmid.value, \"XMID\");\r\n            let form = new RiffChunkHeader(\"BigEndian\");\r\n            cursor += await form.load(cursor, dataProvider);\r\n            assert.identical(form.id.value, \"FORM\");\r\n            {\r\n                let xmid = new text(new ArrayBuffer(4));\r\n                cursor += await xmid.load(cursor, dataProvider);\r\n                assert.identical(xmid.value, \"XMID\");\r\n                let timb = new RiffChunkHeader(\"BigEndian\");\r\n                cursor += await timb.load(cursor, dataProvider);\r\n                assert.identical(timb.id.value, \"TIMB\");\r\n                cursor += timb.size.value;\r\n                cursor += timb.size.value % 2;\r\n                let evnt = new RiffChunkHeader(\"BigEndian\");\r\n                cursor += await evnt.load(cursor, dataProvider);\r\n                assert.identical(evnt.id.value, \"EVNT\");\r\n                let array = new Uint8Array(evnt.size.value);\r\n                cursor += await dataProvider.read(cursor, array.buffer);\r\n                cursor += evnt.size.value % 2;\r\n                await this.loadEvents(array);\r\n            }\r\n            cursor += form.size.value % 2;\r\n        }\r\n        cursor += cat.size.value % 2;\r\n        return this;\r\n    }\r\n}\r\nclass WavFile {\r\n    constructor(endianness = \"LittleEndian\") {\r\n        this.endianness = endianness;\r\n        this.header = new WavHeader(endianness);\r\n        this.buffer = new ArrayBuffer(0);\r\n    }\r\n    async load(dataProvider) {\r\n        let cursor = 0;\r\n        let chunk = new RiffChunkHeader(this.endianness);\r\n        cursor += await chunk.load(cursor, dataProvider);\r\n        assert.identical(chunk.id.value, \"RIFF\");\r\n        let buffer = new ArrayBuffer(chunk.size.value);\r\n        await dataProvider.read(cursor, buffer);\r\n        {\r\n            let dataProvider = new BufferDataProvider(buffer);\r\n            let cursor = 0;\r\n            let id = new text(new ArrayBuffer(4));\r\n            cursor += await id.load(cursor, dataProvider);\r\n            assert.identical(id.value, \"WAVE\");\r\n            let format = new RiffChunkHeader(this.endianness);\r\n            cursor += await format.load(cursor, dataProvider);\r\n            assert.identical(format.id.value, \"fmt \");\r\n            cursor += await this.header.load(cursor, dataProvider);\r\n            cursor += format.size.value % 2;\r\n            let data = new RiffChunkHeader(this.endianness);\r\n            cursor += await data.load(cursor, dataProvider);\r\n            assert.identical(data.id.value, \"data\");\r\n            this.buffer = new ArrayBuffer(data.size.value);\r\n            length += await dataProvider.read(cursor, this.buffer);\r\n            cursor += format.size.value % 2;\r\n        }\r\n        return this;\r\n    }\r\n    async play() {\r\n        let channels = this.header.numChannels.value;\r\n        let samples = this.buffer.byteLength / this.header.blockAlign.value;\r\n        let sampleRate = this.header.sampleRate.value;\r\n        let context = new AudioContext();\r\n        let buffer = context.createBuffer(channels, samples, sampleRate);\r\n        let dataProvider = new BufferDataProvider(this.buffer);\r\n        let cursor = 0;\r\n        if (this.header.bitsPerSample.value === 8) {\r\n            let sample = new ui08(this.endianness);\r\n            for (let s = 0; s < samples; s++) {\r\n                for (let c = 0; c < channels; c++) {\r\n                    cursor += await sample.load(cursor, dataProvider);\r\n                    let value = ((sample.value + 0) / 255) * 2.0 - 1.0;\r\n                    buffer.getChannelData(c)[s] = value;\r\n                }\r\n            }\r\n        }\r\n        else if (this.header.bitsPerSample.value === 16) {\r\n            let sample = new si16(this.endianness);\r\n            for (let s = 0; s < samples; s++) {\r\n                for (let c = 0; c < channels; c++) {\r\n                    cursor += await sample.load(cursor, dataProvider);\r\n                    let value = ((sample.value + 32768) / 65535) * 2.0 - 1.0;\r\n                    buffer.getChannelData(c)[s] = value;\r\n                }\r\n            }\r\n        }\r\n        else {\r\n            throw `Expected 8 or 16 bits per sample!`;\r\n        }\r\n        let source = context.createBufferSource();\r\n        source.buffer = buffer;\r\n        source.connect(context.destination);\r\n        source.start();\r\n    }\r\n}\r\nvar wc1;\r\n(function (wc1) {\r\n    class MicrotileHeader {\r\n        constructor(endianness) {\r\n            this.buffer = new ArrayBuffer(2);\r\n            let integer = new ui16(endianness, this.buffer);\r\n            this.inverted = new pi16(integer, 0, 1);\r\n            this.mirrored = new pi16(integer, 1, 1);\r\n            this.index = new pi16(integer, 5, 11);\r\n        }\r\n        async load(cursor, dataProvider) {\r\n            let length = 0;\r\n            length += await dataProvider.read(cursor + length, this.buffer);\r\n            return length;\r\n        }\r\n    }\r\n    wc1.MicrotileHeader = MicrotileHeader;\r\n    ;\r\n    class TileHeader {\r\n        constructor(endianness) {\r\n            let a = new MicrotileHeader(endianness);\r\n            let b = new MicrotileHeader(endianness);\r\n            let c = new MicrotileHeader(endianness);\r\n            let d = new MicrotileHeader(endianness);\r\n            this.layout = [\r\n                [a, b],\r\n                [c, d]\r\n            ];\r\n        }\r\n        async load(cursor, dataProvider) {\r\n            let length = 0;\r\n            for (let y = 0; y < this.layout.length; y++) {\r\n                for (let x = 0; x < this.layout[y].length; x++) {\r\n                    length += await this.layout[y][x].load(cursor + length, dataProvider);\r\n                }\r\n            }\r\n            return length;\r\n        }\r\n    }\r\n    wc1.TileHeader = TileHeader;\r\n    ;\r\n    class UnitScriptHeader {\r\n        constructor(endianness) {\r\n            this.buffer = new ArrayBuffer(12);\r\n            this.spawnOffset = new ui16(endianness, this.buffer, 0);\r\n            this.deathOffset = new ui16(endianness, this.buffer, 2);\r\n            this.idleOffset = new ui16(endianness, this.buffer, 4);\r\n            this.movementOffset = new ui16(endianness, this.buffer, 6);\r\n            this.actionOffset = new ui16(endianness, this.buffer, 8);\r\n            this.trainOffset = new ui16(endianness, this.buffer, 10);\r\n        }\r\n        async load(cursor, dataProvider) {\r\n            let length = 0;\r\n            length += await dataProvider.read(cursor + length, this.buffer);\r\n            return length;\r\n        }\r\n    }\r\n    wc1.UnitScriptHeader = UnitScriptHeader;\r\n    ;\r\n    class ParticleScriptHeader {\r\n        constructor(endianness) {\r\n            this.buffer = new ArrayBuffer(6);\r\n            this.spawnOffset = new ui16(endianness, this.buffer, 0);\r\n            this.movementOffset = new ui16(endianness, this.buffer, 2);\r\n            this.hitOffset = new ui16(endianness, this.buffer, 4);\r\n        }\r\n        async load(cursor, dataProvider) {\r\n            let length = 0;\r\n            length += await dataProvider.read(cursor + length, this.buffer);\r\n            return length;\r\n        }\r\n    }\r\n    wc1.ParticleScriptHeader = ParticleScriptHeader;\r\n    ;\r\n    class ScriptHeader {\r\n        constructor(endianness) {\r\n            this.buffer = new ArrayBuffer(6);\r\n            this.headerOffset = new ui16(endianness, this.buffer, 0);\r\n            this.unitScriptCount = new ui16(endianness, this.buffer, 2);\r\n            this.particleScriptCount = new ui16(endianness, this.buffer, 4);\r\n        }\r\n        async load(cursor, dataProvider) {\r\n            let length = 0;\r\n            length += await dataProvider.read(cursor + length, this.buffer);\r\n            return length;\r\n        }\r\n    }\r\n    wc1.ScriptHeader = ScriptHeader;\r\n    ;\r\n    class Script {\r\n        constructor(endianness) {\r\n            this.endianness = endianness;\r\n            this.header = new ScriptHeader(endianness);\r\n            this.unitScriptHeaders = new Array();\r\n            this.particleScriptHeaders = new Array();\r\n            this.buffer = new ArrayBuffer(0);\r\n        }\r\n        async load(dataProvider) {\r\n            this.unitScriptHeaders.splice(0, this.unitScriptHeaders.length);\r\n            this.particleScriptHeaders.splice(0, this.particleScriptHeaders.length);\r\n            let cursor = 0;\r\n            let offsets = new Array();\r\n            let offset = new ui16(this.endianness);\r\n            while (true) {\r\n                cursor += await offset.load(cursor, dataProvider);\r\n                if (cursor - 2 === offset.value) {\r\n                    cursor -= 2;\r\n                    break;\r\n                }\r\n                offsets.push(offset.value);\r\n            }\r\n            cursor += await this.header.load(cursor, dataProvider);\r\n            for (let i = 0; i < this.header.unitScriptCount.value; i++) {\r\n                let offset = offsets[i];\r\n                let unitScriptHeader = new UnitScriptHeader(this.endianness);\r\n                await unitScriptHeader.load(offset, dataProvider);\r\n                this.unitScriptHeaders.push(unitScriptHeader);\r\n            }\r\n            for (let i = 0; i < this.header.particleScriptCount.value; i++) {\r\n                let offset = offsets[this.header.unitScriptCount.value + i];\r\n                let particleScriptHeader = new ParticleScriptHeader(this.endianness);\r\n                await particleScriptHeader.load(offset, dataProvider);\r\n                this.particleScriptHeaders.push(particleScriptHeader);\r\n            }\r\n            this.buffer = new ArrayBuffer(dataProvider.size());\r\n            await dataProvider.read(0, this.buffer);\r\n            return this;\r\n        }\r\n        getUnitScript(index) {\r\n            assert.between(0, index, this.unitScriptHeaders.length - 1);\r\n            let header = this.unitScriptHeaders[index];\r\n            let buffer = this.buffer;\r\n            return {\r\n                header,\r\n                buffer\r\n            };\r\n        }\r\n        getParticle(index) {\r\n            assert.between(0, index, this.particleScriptHeaders.length - 1);\r\n            let header = this.particleScriptHeaders[index];\r\n            let buffer = this.buffer;\r\n            return {\r\n                header,\r\n                buffer\r\n            };\r\n        }\r\n    }\r\n    wc1.Script = Script;\r\n    class SpriteFrameHeader {\r\n        constructor(endianness) {\r\n            this.buffer = new ArrayBuffer(8);\r\n            this.x = new ui08(endianness, this.buffer, 0);\r\n            this.y = new ui08(endianness, this.buffer, 1);\r\n            this.w = new ui08(endianness, this.buffer, 2);\r\n            this.h = new ui08(endianness, this.buffer, 3);\r\n            this.offset = new ui32(endianness, this.buffer, 4);\r\n        }\r\n        async load(cursor, dataProvider) {\r\n            let length = 0;\r\n            length += await dataProvider.read(cursor + length, this.buffer);\r\n            return length;\r\n        }\r\n    }\r\n    wc1.SpriteFrameHeader = SpriteFrameHeader;\r\n    ;\r\n    class SpriteFrame {\r\n        constructor(endianness) {\r\n            this.header = new SpriteFrameHeader(endianness);\r\n            this.buffer = new ArrayBuffer(0);\r\n        }\r\n        async load(cursor, dataProvider) {\r\n            let length = 0;\r\n            length += await this.header.load(cursor + length, dataProvider);\r\n            this.buffer = new ArrayBuffer(this.header.w.value * this.header.h.value);\r\n            await dataProvider.read(this.header.offset.value, this.buffer);\r\n            return length;\r\n        }\r\n        makeTexture(context, width, height) {\r\n            let x = this.header.x.value;\r\n            let y = this.header.y.value;\r\n            let w = this.header.w.value;\r\n            let h = this.header.h.value;\r\n            let texture = context.createTexture();\r\n            if (is.absent(texture)) {\r\n                throw `Expected a texture!`;\r\n            }\r\n            context.activeTexture(context.TEXTURE0);\r\n            context.bindTexture(context.TEXTURE_2D, texture);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);\r\n            context.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, width, height, 0, context.LUMINANCE, context.UNSIGNED_BYTE, null);\r\n            context.texSubImage2D(context.TEXTURE_2D, 0, x, y, w, h, context.LUMINANCE, context.UNSIGNED_BYTE, new Uint8Array(this.buffer));\r\n            return texture;\r\n        }\r\n    }\r\n    wc1.SpriteFrame = SpriteFrame;\r\n    ;\r\n    class SpriteHeader {\r\n        constructor(endianness) {\r\n            this.buffer = new ArrayBuffer(4);\r\n            this.spriteCount = new ui16(endianness, this.buffer, 0);\r\n            this.w = new ui08(endianness, this.buffer, 2);\r\n            this.h = new ui08(endianness, this.buffer, 3);\r\n        }\r\n        async load(cursor, dataProvider) {\r\n            let length = 0;\r\n            length += await dataProvider.read(cursor + length, this.buffer);\r\n            return length;\r\n        }\r\n    }\r\n    wc1.SpriteHeader = SpriteHeader;\r\n    ;\r\n    class Sprite {\r\n        constructor(endianness) {\r\n            this.endianness = endianness;\r\n            this.header = new SpriteHeader(endianness);\r\n            this.frames = new Array();\r\n        }\r\n        async load(dataProvider) {\r\n            this.frames.splice(0, this.frames.length);\r\n            let cursor = 0;\r\n            cursor += await this.header.load(cursor, dataProvider);\r\n            for (let i = 0; i < this.header.spriteCount.value; i++) {\r\n                let frame = new SpriteFrame(this.endianness);\r\n                cursor += await frame.load(cursor, dataProvider);\r\n                this.frames.push(frame);\r\n            }\r\n            return this;\r\n        }\r\n        makeTextures(context) {\r\n            let w = this.header.w.value;\r\n            let h = this.header.h.value;\r\n            let textures = new Array();\r\n            for (let frame of this.frames) {\r\n                let texture = frame.makeTexture(context, w, h);\r\n                textures.push(texture);\r\n            }\r\n            return textures;\r\n        }\r\n    }\r\n    wc1.Sprite = Sprite;\r\n    ;\r\n    class Map {\r\n        constructor(endianness) {\r\n            this.buffer = new ArrayBuffer(0);\r\n        }\r\n        async load(dataProvider) {\r\n            let cursor = 0;\r\n            this.buffer = new ArrayBuffer(64 * 64 * 2);\r\n            cursor += await dataProvider.read(cursor, this.buffer);\r\n            return this;\r\n        }\r\n    }\r\n    wc1.Map = Map;\r\n    ;\r\n    class CursorHeader {\r\n        constructor(endianness) {\r\n            this.buffer = new ArrayBuffer(8);\r\n            this.x = new ui16(endianness, this.buffer, 0);\r\n            this.y = new ui16(endianness, this.buffer, 2);\r\n            this.w = new ui16(endianness, this.buffer, 4);\r\n            this.h = new ui16(endianness, this.buffer, 6);\r\n        }\r\n        async load(cursor, dataProvider) {\r\n            let length = 0;\r\n            length += await dataProvider.read(cursor + length, this.buffer);\r\n            return length;\r\n        }\r\n    }\r\n    wc1.CursorHeader = CursorHeader;\r\n    ;\r\n    class Cursor {\r\n        constructor(endianness) {\r\n            this.header = new CursorHeader(endianness);\r\n            this.buffer = new ArrayBuffer(0);\r\n        }\r\n        async load(dataProvider) {\r\n            let cursor = 0;\r\n            cursor += await this.header.load(cursor, dataProvider);\r\n            this.buffer = new ArrayBuffer(this.header.w.value * this.header.h.value);\r\n            cursor += await dataProvider.read(cursor, this.buffer);\r\n            return this;\r\n        }\r\n        makeTexture(context) {\r\n            let w = this.header.w.value;\r\n            let h = this.header.h.value;\r\n            let texture = context.createTexture();\r\n            if (is.absent(texture)) {\r\n                throw `Expected a texture!`;\r\n            }\r\n            context.activeTexture(context.TEXTURE0);\r\n            context.bindTexture(context.TEXTURE_2D, texture);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);\r\n            context.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, w, h, 0, context.LUMINANCE, context.UNSIGNED_BYTE, null);\r\n            context.texSubImage2D(context.TEXTURE_2D, 0, 0, 0, w, h, context.LUMINANCE, context.UNSIGNED_BYTE, new Uint8Array(this.buffer));\r\n            return texture;\r\n        }\r\n    }\r\n    wc1.Cursor = Cursor;\r\n    ;\r\n    class Palette {\r\n        constructor(endianness) {\r\n            this.buffer = new ArrayBuffer(0);\r\n        }\r\n        async load(dataProvider) {\r\n            assert.between(0, dataProvider.size() % 3, 0);\r\n            let cursor = 0;\r\n            this.buffer = new ArrayBuffer(dataProvider.size());\r\n            cursor += await dataProvider.read(cursor, this.buffer);\r\n            return this;\r\n        }\r\n        makeTexture(context) {\r\n            let w = this.buffer.byteLength / 3;\r\n            let h = 1;\r\n            let texture = context.createTexture();\r\n            if (is.absent(texture)) {\r\n                throw `Expected a texture!`;\r\n            }\r\n            context.activeTexture(context.TEXTURE0);\r\n            context.bindTexture(context.TEXTURE_2D, texture);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);\r\n            context.texImage2D(context.TEXTURE_2D, 0, context.RGB, 256, 1, 0, context.RGB, context.UNSIGNED_BYTE, null);\r\n            context.texSubImage2D(context.TEXTURE_2D, 0, 0, 0, w, h, context.RGB, context.UNSIGNED_BYTE, new Uint8Array(this.buffer));\r\n            return texture;\r\n        }\r\n        updateTexture(texture, start) {\r\n            let w = this.buffer.byteLength / 3;\r\n            let h = 1;\r\n            context.activeTexture(context.TEXTURE0);\r\n            context.bindTexture(context.TEXTURE_2D, texture);\r\n            context.texSubImage2D(context.TEXTURE_2D, 0, start, 0, w, h, context.RGB, context.UNSIGNED_BYTE, new Uint8Array(this.buffer));\r\n            return this;\r\n        }\r\n    }\r\n    wc1.Palette = Palette;\r\n    ;\r\n    class BitmapHeader {\r\n        constructor(endianness) {\r\n            this.buffer = new ArrayBuffer(4);\r\n            this.w = new ui16(endianness, this.buffer, 0);\r\n            this.h = new ui16(endianness, this.buffer, 2);\r\n        }\r\n        async load(cursor, dataProvider) {\r\n            let length = 0;\r\n            length += await dataProvider.read(cursor + length, this.buffer);\r\n            return length;\r\n        }\r\n    }\r\n    wc1.BitmapHeader = BitmapHeader;\r\n    ;\r\n    class Bitmap {\r\n        constructor(endianness) {\r\n            this.header = new BitmapHeader(endianness);\r\n            this.buffer = new ArrayBuffer(0);\r\n        }\r\n        async load(dataProvider) {\r\n            let cursor = 0;\r\n            cursor += await this.header.load(cursor, dataProvider);\r\n            this.buffer = new ArrayBuffer(this.header.w.value * this.header.h.value);\r\n            cursor += await dataProvider.read(cursor, this.buffer);\r\n            return this;\r\n        }\r\n        makeTexture(context) {\r\n            let w = this.header.w.value;\r\n            let h = this.header.h.value;\r\n            let texture = context.createTexture();\r\n            if (is.absent(texture)) {\r\n                throw `Expected a texture!`;\r\n            }\r\n            context.activeTexture(context.TEXTURE0);\r\n            context.bindTexture(context.TEXTURE_2D, texture);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);\r\n            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);\r\n            context.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, w, h, 0, context.LUMINANCE, context.UNSIGNED_BYTE, null);\r\n            context.texSubImage2D(context.TEXTURE_2D, 0, 0, 0, w, h, context.LUMINANCE, context.UNSIGNED_BYTE, new Uint8Array(this.buffer));\r\n            return texture;\r\n        }\r\n    }\r\n    wc1.Bitmap = Bitmap;\r\n    ;\r\n})(wc1 || (wc1 = {}));\r\n// ============================================================================\r\nlet audio_context;\r\nlet synth;\r\nlet canvas = document.createElement(\"canvas\");\r\nlet context = canvas.getContext(\"webgl2\");\r\nif (is.absent(context)) {\r\n    throw `Expected a context!`;\r\n}\r\ncontext.clearColor(0.0, 0.0, 0.0, 1.0);\r\ncontext.pixelStorei(context.UNPACK_ALIGNMENT, 1);\r\nlet program = context.createProgram();\r\nif (is.absent(program)) {\r\n    throw `Expected a program!`;\r\n}\r\nlet vertexShader = context.createShader(context.VERTEX_SHADER);\r\nif (is.absent(vertexShader)) {\r\n    throw `Expected a shader!`;\r\n}\r\ncontext.shaderSource(vertexShader, `#version 300 es\r\n\tuniform ivec2 viewport;\r\n\tuniform bvec2 scaling;\r\n\tuniform vec2 anchor;\r\n\tuniform vec2 quad;\r\n\tuniform sampler2D paletteSampler;\r\n\tuniform sampler2D textureSampler;\r\n\tin vec2 vertexPosition;\r\n\tin vec2 vertexTexture;\r\n\tout vec2 textureCoordinates;\r\n\tvoid main() {\r\n\t\tfloat zoom = 3.0;\r\n\t\ttextureCoordinates = vertexTexture;\r\n\t\tif (scaling.x) {\r\n\t\t\ttextureCoordinates.x = 1.0 - textureCoordinates.x;\r\n\t\t}\r\n\t\tif (scaling.y) {\r\n\t\t\ttextureCoordinates.y = 1.0 - textureCoordinates.y;\r\n\t\t}\r\n\t\tivec2 texSize = textureSize(textureSampler, 0);\r\n\t\tvec2 vvpos = vec2(quad) + (vertexPosition - anchor) * vec2(texSize);\r\n\t\tmat3x3 transform = mat3x3(vec3(2.0 / float(viewport.x), 0.0, 0.0), vec3(0.0, -2.0 / float(viewport.y), 0.0), vec3(-1.0, 1.0, 1.0));\r\n\t\tgl_Position = vec4((transform * vec3(vvpos * zoom, 1.0)).xy, 0.0, 1.0);\r\n\t}\r\n`);\r\ncontext.compileShader(vertexShader);\r\nif (!context.getShaderParameter(vertexShader, context.COMPILE_STATUS)) {\r\n    let info = context.getShaderInfoLog(vertexShader);\r\n    throw `${info}`;\r\n}\r\nlet fragmentShader = context.createShader(context.FRAGMENT_SHADER);\r\nif (is.absent(fragmentShader)) {\r\n    throw `Expected a shader!`;\r\n}\r\ncontext.shaderSource(fragmentShader, `#version 300 es\r\n\tprecision highp float;\r\n\tuniform int transparentIndex;\r\n\tuniform sampler2D colorCycleSampler;\r\n\tuniform sampler2D paletteSampler;\r\n\tuniform sampler2D textureSampler;\r\n\tin vec2 textureCoordinates;\r\n\tout vec4 fragmentColor;\r\n\tvoid main() {\r\n\t\tfloat index = texture(textureSampler, textureCoordinates).x;\r\n\t\tint indexInt = int(index * float(textureSize(textureSampler, 0).x));\r\n\t\tif (indexInt == transparentIndex) {\r\n\t\t\tdiscard;\r\n\t\t}\r\n\t\tfloat shiftedIndex = texture(colorCycleSampler, vec2(index, 0.0)).x;\r\n\t\tvec3 color = texture(paletteSampler, vec2(shiftedIndex, 0.0)).rgb * 4.0;\r\n\t\tfragmentColor = vec4(color, 1.0);\r\n\t}\r\n`);\r\ncontext.compileShader(fragmentShader);\r\nif (!context.getShaderParameter(fragmentShader, context.COMPILE_STATUS)) {\r\n    let info = context.getShaderInfoLog(fragmentShader);\r\n    throw `${info}`;\r\n}\r\ncontext.attachShader(program, vertexShader);\r\ncontext.attachShader(program, fragmentShader);\r\ncontext.linkProgram(program);\r\nif (!context.getProgramParameter(program, context.LINK_STATUS)) {\r\n    let info = context.getProgramInfoLog(program);\r\n    throw `${info}`;\r\n}\r\ncontext.useProgram(program);\r\nlet viewportLocation = context.getUniformLocation(program, \"viewport\");\r\nlet quadLocation = context.getUniformLocation(program, \"quad\");\r\nlet scalingLocation = context.getUniformLocation(program, \"scaling\");\r\nlet anchorLocation = context.getUniformLocation(program, \"anchor\");\r\nlet transparentIndexLocation = context.getUniformLocation(program, \"transparentIndex\");\r\ncontext.uniform1i(transparentIndexLocation, 0);\r\nlet textureSamplerocation = context.getUniformLocation(program, \"textureSampler\");\r\ncontext.uniform1i(textureSamplerocation, 0);\r\nlet paletteSamplerLocation = context.getUniformLocation(program, \"paletteSampler\");\r\ncontext.uniform1i(paletteSamplerLocation, 1);\r\nlet colorCycleSamplerLocation = context.getUniformLocation(program, \"colorCycleSampler\");\r\ncontext.uniform1i(colorCycleSamplerLocation, 2);\r\nlet vertexPosition = context.getAttribLocation(program, \"vertexPosition\");\r\ncontext.enableVertexAttribArray(vertexPosition);\r\nlet vertexTexture = context.getAttribLocation(program, \"vertexTexture\");\r\ncontext.enableVertexAttribArray(vertexTexture);\r\nlet buffer = context.createBuffer();\r\nif (is.absent(buffer)) {\r\n    throw `Expected a buffer!`;\r\n}\r\ncontext.bindBuffer(context.ARRAY_BUFFER, buffer);\r\ncontext.bufferData(context.ARRAY_BUFFER, new Float32Array([\r\n    0.0, 0.0, 0.0, 0.0,\r\n    0.0, 1.0, 0.0, 1.0,\r\n    1.0, 1.0, 1.0, 1.0,\r\n    0.0, 0.0, 0.0, 0.0,\r\n    1.0, 1.0, 1.0, 1.0,\r\n    1.0, 0.0, 1.0, 0.0\r\n]), context.STATIC_DRAW);\r\ncontext.vertexAttribPointer(vertexPosition, 2, context.FLOAT, false, 16, 0);\r\ncontext.vertexAttribPointer(vertexTexture, 2, context.FLOAT, false, 16, 8);\r\ncanvas.setAttribute(\"style\", \"height: 100%; width: 100%;\");\r\ncanvas.addEventListener(\"dragenter\", async (event) => {\r\n    event.stopPropagation();\r\n    event.preventDefault();\r\n});\r\ncanvas.addEventListener(\"dragover\", async (event) => {\r\n    event.stopPropagation();\r\n    event.preventDefault();\r\n});\r\nlet endianness = \"LittleEndian\";\r\nlet archive;\r\nlet xmi;\r\nasync function load(dataProvider) {\r\n    if (is.absent(audio_context)) {\r\n        audio_context = new AudioContext();\r\n    }\r\n    archive = new Archive(dataProvider, endianness);\r\n    tileset = await loadTileset(context, archive, endianness, 189, 190, 191);\r\n    //tileset = await loadTileset(context, archive, endianness, 192, 193, 194);\r\n    //tileset = await loadTileset(context, archive, endianness, 195, 196, 197);\r\n    map = await loadMap(archive, endianness, 47);\r\n    try {\r\n        await loadUnitScript(archive);\r\n    }\r\n    catch (error) {\r\n        try {\r\n            await loadParticleScript(archive);\r\n        }\r\n        catch (error) { }\r\n    }\r\n    xmi = await new XmiFile().load(await archive.getRecord(0));\r\n    xmi_delay = xmi.events[0].time;\r\n    //setEntityColor(\"red\");\r\n}\r\nasync function loadTileset(context, archive, endianness, tilesetIndex, tilesIndex, paletteIndex) {\r\n    let base_palette = await new wc1.Palette(endianness).load(await archive.getRecord(paletteIndex));\r\n    let paletteTexture = await base_palette.makeTexture(context);\r\n    let palette = await new wc1.Palette(endianness).load(await archive.getRecord(210));\r\n    palette.updateTexture(paletteTexture, 128);\r\n    context.activeTexture(context.TEXTURE1);\r\n    context.bindTexture(context.TEXTURE_2D, paletteTexture);\r\n    let tiles = await archive.getRecord(tilesIndex);\r\n    assert.assert((tiles.size() % (8 * 8)) === 0);\r\n    let headers = await archive.getRecord(tilesetIndex);\r\n    let cursor = 0;\r\n    assert.assert((tiles.size() % 8) === 0);\r\n    let textures = new Array();\r\n    let array = new Uint8Array(8 * 8);\r\n    while (cursor < headers.size()) {\r\n        let w = 2 * 8;\r\n        let h = 2 * 8;\r\n        let texture = context.createTexture();\r\n        if (is.absent(texture)) {\r\n            throw `Expected a texture!`;\r\n        }\r\n        context.activeTexture(context.TEXTURE0);\r\n        context.bindTexture(context.TEXTURE_2D, texture);\r\n        context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);\r\n        context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);\r\n        context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);\r\n        context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);\r\n        context.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, w, h, 0, context.LUMINANCE, context.UNSIGNED_BYTE, null);\r\n        let tileHeader = new wc1.TileHeader(endianness);\r\n        cursor += await tileHeader.load(cursor, headers);\r\n        for (let y = 0; y < tileHeader.layout.length; y++) {\r\n            for (let x = 0; x < tileHeader.layout[y].length; x++) {\r\n                let header = tileHeader.layout[y][x];\r\n                await tiles.read(header.index.value * 8 * 8, array.buffer);\r\n                if (header.inverted.value) {\r\n                    for (let y = 0; y < 8 / 2; y++) {\r\n                        for (let x = 0; x < 8; x++) {\r\n                            let indexOne = (y * 8) + x;\r\n                            let indexTwo = ((8 - y - 1) * 8) + x;\r\n                            let valueOne = array[indexOne];\r\n                            let valueTwo = array[indexTwo];\r\n                            array[indexOne] = valueTwo;\r\n                            array[indexTwo] = valueOne;\r\n                        }\r\n                    }\r\n                }\r\n                if (header.mirrored.value) {\r\n                    for (let y = 0; y < 8; y++) {\r\n                        for (let x = 0; x < 8 / 2; x++) {\r\n                            let indexOne = (y * 8) + x;\r\n                            let indexTwo = (y * 8) + 8 - x - 1;\r\n                            let valueOne = array[indexOne];\r\n                            let valueTwo = array[indexTwo];\r\n                            array[indexOne] = valueTwo;\r\n                            array[indexTwo] = valueOne;\r\n                        }\r\n                    }\r\n                }\r\n                context.texSubImage2D(context.TEXTURE_2D, 0, x * 8, y * 8, 8, 8, context.LUMINANCE, context.UNSIGNED_BYTE, array);\r\n            }\r\n        }\r\n        textures.push(texture);\r\n    }\r\n    return textures;\r\n}\r\nasync function loadMap(archive, endianness, mapIndex) {\r\n    let indices = new Array();\r\n    let integer = new ui16(endianness);\r\n    let dataProider = await archive.getRecord(mapIndex);\r\n    assert.assert(dataProider.size() === 64 * 64 * 2);\r\n    let cursor = 0;\r\n    for (let y = 0; y < 64; y++) {\r\n        for (let x = 0; x < 64; x++) {\r\n            cursor += await integer.load(cursor, dataProider);\r\n            indices.push(integer.value);\r\n        }\r\n    }\r\n    return indices;\r\n}\r\nlet entities = [\r\n    { name: \"Footman\", script: 0, sprite: 279, sfx: [487, 488, 489] },\r\n    { name: \"Grunt\", script: 1, sprite: 280, sfx: [487, 488, 489] },\r\n    { name: \"Peasant\", script: 2, sprite: 281, sfx: [477, 478, 479] },\r\n    { name: \"Peon\", script: 3, sprite: 282, sfx: [477, 478, 479] },\r\n    { name: \"Catapult\", script: 4, sprite: 283, sfx: [476] },\r\n    { name: \"Catapult\", script: 5, sprite: 284, sfx: [476] },\r\n    { name: \"Knight\", script: 6, sprite: 285, sfx: [487, 488, 489] },\r\n    { name: \"Raider\", script: 7, sprite: 286, sfx: [487, 488, 489] },\r\n    { name: \"Archer\", script: 8, sprite: 287, sfx: [493] },\r\n    { name: \"Spearman\", script: 9, sprite: 288, sfx: [493] },\r\n    { name: \"Conjurer\", script: 10, sprite: 289, sfx: [] },\r\n    { name: \"Warlock\", script: 11, sprite: 290, sfx: [] },\r\n    { name: \"Cleric\", script: 12, sprite: 291, sfx: [] },\r\n    { name: \"Necrolyte\", script: 13, sprite: 292, sfx: [] },\r\n    { name: \"Medivh\", script: 14, sprite: 293, sfx: [] },\r\n    { name: \"Sir Lothar\", script: 15, sprite: 294, sfx: [] },\r\n    { name: \"Grunt (copy)\", script: 16, sprite: 280, sfx: [] },\r\n    { name: \"Griselda\", script: 17, sprite: 296, sfx: [] },\r\n    { name: \"Garona\", script: 18, sprite: 296, sfx: [] },\r\n    { name: \"Ogre\", script: 19, sprite: 297, sfx: [] },\r\n    { name: \"Ogre (copy)\", script: 20, sprite: 297, sfx: [] },\r\n    { name: \"Spider\", script: 21, sprite: 298, sfx: [] },\r\n    { name: \"Slime\", script: 22, sprite: 299, sfx: [] },\r\n    { name: \"Fire Elemental\", script: 23, sprite: 300, sfx: [] },\r\n    { name: \"Scorpion\", script: 24, sprite: 301, sfx: [] },\r\n    { name: \"Brigand\", script: 25, sprite: 302, sfx: [] },\r\n    { name: \"Skeleton\", script: 26, sprite: 303, sfx: [] },\r\n    { name: \"Skeleton\", script: 27, sprite: 304, sfx: [] },\r\n    { name: \"Daemon\", script: 28, sprite: 305, sfx: [] },\r\n    { name: \"Ogre (copy 2)\", script: 29, sprite: 297, sfx: [] },\r\n    { name: \"Ogre (copy 3)\", script: 30, sprite: 297, sfx: [] },\r\n    { name: \"Water Elemental\", script: 31, sprite: 306, sfx: [] },\r\n    { name: \"Farm\", script: 32, sprite: 307, sfx: [] },\r\n    { name: \"Farm\", script: 33, sprite: 308, sfx: [] },\r\n    { name: \"Barracks\", script: 34, sprite: 309, sfx: [] },\r\n    { name: \"Barracks\", script: 35, sprite: 310, sfx: [] },\r\n    { name: \"Church\", script: 36, sprite: 311, sfx: [] },\r\n    { name: \"Temple\", script: 37, sprite: 312, sfx: [] },\r\n    { name: \"Tower\", script: 38, sprite: 313, sfx: [] },\r\n    { name: \"Tower\", script: 39, sprite: 314, sfx: [] },\r\n    { name: \"Town Hall\", script: 40, sprite: 315, sfx: [] },\r\n    { name: \"Town Hall\", script: 41, sprite: 316, sfx: [] },\r\n    { name: \"Mill\", script: 42, sprite: 317, sfx: [] },\r\n    { name: \"Mill\", script: 43, sprite: 318, sfx: [] },\r\n    { name: \"Stables\", script: 44, sprite: 319, sfx: [] },\r\n    { name: \"Kennel\", script: 45, sprite: 320, sfx: [] },\r\n    { name: \"Blacksmith\", script: 46, sprite: 321, sfx: [] },\r\n    { name: \"Blacksmith\", script: 47, sprite: 322, sfx: [] },\r\n    { name: \"Stormwind Keep\", script: 48, sprite: 323, sfx: [] },\r\n    { name: \"Black Rock Spire\", script: 49, sprite: 324, sfx: [] },\r\n    { name: \"Gold Mine\", script: 50, sprite: 325, sfx: [] },\r\n    { name: \"Blob\", script: 0, type: \"effect\", sprite: 347, sfx: [] },\r\n    { name: \"Fire Ball\", script: 1, type: \"effect\", sprite: 348, sfx: [] },\r\n    { name: \"Spear\", script: 2, type: \"effect\", sprite: 349, sfx: [] },\r\n    { name: \"Poison Cloud\", script: 3, type: \"effect\", sprite: 350, sfx: [] },\r\n    { name: \"Catapult Projectile\", script: 4, type: \"effect\", sprite: 351, sfx: [] },\r\n    { name: \"Burning Small\", script: 5, type: \"effect\", sprite: 352, sfx: [] },\r\n    { name: \"Burning Medium\", script: 6, type: \"effect\", sprite: 353, sfx: [] },\r\n    { name: \"Explosion\", script: 7, type: \"effect\", sprite: 354, sfx: [] },\r\n    { name: \"Sparkle\", script: 8, type: \"effect\", sprite: 355, sfx: [] },\r\n    { name: \"Building Collapse\", script: 9, type: \"effect\", sprite: 356, sfx: [] },\r\n    { name: \"Water Elemental\", script: 10, type: \"effect\", sprite: 357, sfx: [] },\r\n    { name: \"Fire Elemental\", script: 11, type: \"effect\", sprite: 358, sfx: [] },\r\n];\r\nlet w = 256;\r\nlet h = 1;\r\nlet colorCycleTexture = context.createTexture();\r\nlet colorCycleBuffer = new Uint8Array(w * h);\r\nfor (let i = 0; i < 256; i++) {\r\n    colorCycleBuffer[i] = i;\r\n}\r\nif (is.absent(colorCycleTexture)) {\r\n    throw `Expected a texture!`;\r\n}\r\ncontext.activeTexture(context.TEXTURE2);\r\ncontext.bindTexture(context.TEXTURE_2D, colorCycleTexture);\r\ncontext.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);\r\ncontext.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);\r\ncontext.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);\r\ncontext.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);\r\ncontext.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, 256, 1, 0, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer);\r\nlet cycleWait = 0;\r\nfunction updateCycle() {\r\n    if (cycleWait > 0) {\r\n        cycleWait -= 1;\r\n        return;\r\n    }\r\n    cycleWait = 15;\r\n    function update(offset, length, direction) {\r\n        if (direction === \"forward\") {\r\n            let first = colorCycleBuffer[offset];\r\n            for (let i = offset; i < offset + length - 1; i++) {\r\n                colorCycleBuffer[i] = colorCycleBuffer[i + 1];\r\n            }\r\n            colorCycleBuffer[offset + length - 1] = first;\r\n        }\r\n        else {\r\n            let last = colorCycleBuffer[offset + length - 1];\r\n            for (let i = offset + length - 1; i > offset; i--) {\r\n                colorCycleBuffer[i] = colorCycleBuffer[i - 1];\r\n            }\r\n            colorCycleBuffer[offset] = last;\r\n        }\r\n        context.activeTexture(context.TEXTURE2);\r\n        context.bindTexture(context.TEXTURE_2D, colorCycleTexture);\r\n        context.texSubImage2D(context.TEXTURE_2D, 0, offset, 0, length, 1, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer, offset);\r\n    }\r\n    update(114, 6, \"reverse\");\r\n    update(121, 6, \"reverse\");\r\n}\r\nfunction setEntityColor(color) {\r\n    if (color === \"red\") {\r\n        for (let i = 0; i < 8; i++) {\r\n            colorCycleBuffer[176 + i] = 176 + i;\r\n            colorCycleBuffer[200 + i] = 176 + i;\r\n        }\r\n    }\r\n    else if (color === \"green\") {\r\n        for (let i = 0; i < 8; i++) {\r\n            colorCycleBuffer[176 + i] = 168 + i;\r\n            colorCycleBuffer[200 + i] = 168 + i;\r\n        }\r\n    }\r\n    else if (color === \"blue\") {\r\n        for (let i = 0; i < 8; i++) {\r\n            colorCycleBuffer[176 + i] = 200 + i;\r\n            colorCycleBuffer[200 + i] = 200 + i;\r\n        }\r\n    }\r\n    else if (color === \"white\") {\r\n        for (let i = 0; i < 8; i++) {\r\n            colorCycleBuffer[176 + i] = 184 + i;\r\n            colorCycleBuffer[200 + i] = 184 + i;\r\n        }\r\n    }\r\n    context.activeTexture(context.TEXTURE2);\r\n    context.bindTexture(context.TEXTURE_2D, colorCycleTexture);\r\n    context.texSubImage2D(context.TEXTURE_2D, 0, 176, 0, 8, 1, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer, 176);\r\n    context.texSubImage2D(context.TEXTURE_2D, 0, 200, 0, 8, 1, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer, 200);\r\n}\r\nlet textures = new Array();\r\nlet entity = 0;\r\nlet offset;\r\nlet delay = 0;\r\nlet direction = 0;\r\nlet frame = 0;\r\nlet view;\r\nlet sfx = [];\r\nasync function loadUnitScript(archive) {\r\n    let entitydata = entities[entity];\r\n    let sprite = await new wc1.Sprite(endianness).load(await archive.getRecord(entitydata.sprite));\r\n    textures = await sprite.makeTextures(context);\r\n    let script = await new wc1.Script(endianness).load(await archive.getRecord(212));\r\n    let us = script.getUnitScript(entitydata.script);\r\n    console.log(JSON.stringify(Object.assign(Object.assign({}, entitydata), { armor: shared.armor[entity], armorPiercingDamage: shared.armorPiercingDamage[entity], damage: shared.damage[entity], goldCost: shared.goldCost[entity] * 10, health: shared.health[entity], timeCost: shared.timeCost[entity] * 10, range: shared.range[entity], woodCost: shared.woodCost[entity] * 10 }), null, \"\\t\"));\r\n    view = new DataView(us.buffer);\r\n    frame = 0;\r\n    offset = us.header.movementOffset.value;\r\n    delay = 0;\r\n    sfx = await Promise.all(entitydata.sfx.map(async (index) => await new VocFile().load(await archive.getRecord(index))));\r\n    return us.header;\r\n}\r\nasync function loadParticleScript(archive) {\r\n    let entitydata = entities[entity];\r\n    let sprite = await new wc1.Sprite(endianness).load(await archive.getRecord(entitydata.sprite));\r\n    textures = await sprite.makeTextures(context);\r\n    let script = await new wc1.Script(endianness).load(await archive.getRecord(212));\r\n    let us = script.getParticle(entitydata.script);\r\n    console.log(Object.assign({}, entitydata));\r\n    view = new DataView(us.buffer);\r\n    frame = 0;\r\n    offset = us.header.movementOffset.value;\r\n    delay = 0;\r\n    return us.header;\r\n}\r\nlet tileset;\r\nlet map;\r\nlet xmi_offset = 0;\r\nlet xmi_loop;\r\nlet xmi_delay = 0;\r\nlet channels = new Array();\r\nlet instruments = new Array();\r\nlet channel_mixers = new Array();\r\nlet channel_muters = new Array();\r\nasync function keyon(channel_index, midikey, velocity) {\r\n    if (is.absent(synth) || is.absent(audio_context)) {\r\n        return;\r\n    }\r\n    if (channel_muters[channel_index].gain.value === 0) {\r\n        return;\r\n    }\r\n    let instrument = instruments[channel_index];\r\n    let program = synth.banks[instrument[0]].programs[instrument[1]];\r\n    if (is.absent(program)) {\r\n        return;\r\n    }\r\n    let map = channels[channel_index];\r\n    let channel = map.get(midikey);\r\n    if (is.present(channel)) {\r\n        channel.stop();\r\n        map.delete(midikey);\r\n    }\r\n    channel = await program.makeChannel(audio_context, midikey, velocity, channel_mixers[channel_index], channel_index);\r\n    map.set(midikey, channel);\r\n    channel.start();\r\n}\r\nfunction keyoff(channel_index, midikey, velocity) {\r\n    let map = channels[channel_index];\r\n    let channel = map.get(midikey);\r\n    if (is.present(channel)) {\r\n        channel.release(midikey, velocity);\r\n        map.delete(midikey);\r\n    }\r\n}\r\nfunction volume(channel_index, byte) {\r\n    // Volume is set for the loaded instrument, not the channel. Instruments loaded on multiple channels are affected.\r\n    let ins = instruments[channel_index];\r\n    for (let i = 0; i < 16; i++) {\r\n        if (instruments[i] === ins) {\r\n            channel_mixers[channel_index].gain.value = 10 ** (-960 * (1 - byte / 128) * (1 - byte / 128) / 200);\r\n        }\r\n    }\r\n}\r\nasync function soundUpdate() {\r\n    // TODO: Queue sounds.\r\n    if (is.present(xmi)) {\r\n        if (xmi_delay > 0) {\r\n            xmi_delay -= 1;\r\n        }\r\n        else {\r\n            xmi_delay = 0;\r\n            while (xmi_delay === 0) {\r\n                let event = xmi.events[xmi_offset];\r\n                if (false) {}\r\n                else if (event.type === XMIEventType.NOTE_OFF) {\r\n                    let a = event.data[0];\r\n                    let b = event.data[1];\r\n                    keyoff(event.channel, a, b);\r\n                }\r\n                else if (event.type === XMIEventType.NOTE_ON) {\r\n                    let a = event.data[0];\r\n                    let b = event.data[1];\r\n                    if (b === 0) {\r\n                        keyoff(event.channel, a, b);\r\n                    }\r\n                    else {\r\n                        await keyon(event.channel, a, b);\r\n                    }\r\n                }\r\n                else if (event.type === XMIEventType.INSTRUMENT_CHANGE) {\r\n                    let a = event.data[0];\r\n                    //console.log(`${event.channel}: instrument ${a}`);\r\n                    for (let i = 0; i < 16; i++) {\r\n                        if (instruments[i][1] === a) {\r\n                            channel_mixers[event.channel].gain.value = channel_mixers[i].gain.value;\r\n                            break;\r\n                        }\r\n                    }\r\n                    instruments[event.channel][1] = a;\r\n                }\r\n                else if (event.type === XMIEventType.CONTROLLER) {\r\n                    let a = event.data[0];\r\n                    let b = event.data[1];\r\n                    if (a === 64) {\r\n                        // SUSTAIN PEDAL ON OR OFF\r\n                    }\r\n                    else if (a === 10) {\r\n                        // PANNING\r\n                    }\r\n                    else if (a === 116) {\r\n                        xmi_loop = xmi_offset;\r\n                    }\r\n                    else if (a === 117) {\r\n                        xmi_offset = (xmi_loop !== null && xmi_loop !== void 0 ? xmi_loop : 0);\r\n                        continue;\r\n                    }\r\n                    else if ((a === 7) || (a === 11)) {\r\n                        //console.log(`${event.channel}: volume ${a} ${b}`);\r\n                        volume(event.channel, b);\r\n                    }\r\n                    else {\r\n                        console.log(XMIEventType[event.type], a, b);\r\n                    }\r\n                }\r\n                else if (event.type === XMIEventType.PITCH_BEND) {\r\n                    let a = event.data[0];\r\n                    let b = event.data[1];\r\n                    let value = ((a & 0x7F) << 7) | ((b & 0x7F) << 0);\r\n                    let o = channels[event.channel];\r\n                    console.log(XMIEventType[event.type], event);\r\n                }\r\n                else {\r\n                    console.log(XMIEventType[event.type], event);\r\n                }\r\n                xmi_offset += 1;\r\n                if (xmi_offset < xmi.events.length) {\r\n                    xmi_delay = xmi.events[xmi_offset].time;\r\n                }\r\n                else {\r\n                    xmi = undefined;\r\n                    break;\r\n                }\r\n            }\r\n        }\r\n    }\r\n}\r\nsetInterval(soundUpdate, 7);\r\nasync function render(ms) {\r\n    context.clear(context.COLOR_BUFFER_BIT);\r\n    updateCycle();\r\n    if (is.present(map) && is.present(tileset)) {\r\n        for (let y = 0; y < 64; y++) {\r\n            for (let x = 0; x < 64; x++) {\r\n                context.uniform1i(transparentIndexLocation, 256);\r\n                context.uniform2f(anchorLocation, 0.0, 0.0);\r\n                context.uniform2f(quadLocation, x * 16, y * 16);\r\n                context.uniform2i(scalingLocation, 0, 0);\r\n                context.activeTexture(context.TEXTURE0);\r\n                context.bindTexture(context.TEXTURE_2D, tileset[map[y * 64 + x]]);\r\n                context.bindBuffer(context.ARRAY_BUFFER, buffer);\r\n                context.drawArrays(context.TRIANGLES, 0, 6);\r\n            }\r\n        }\r\n    }\r\n    if (is.present(offset) && is.present(view)) {\r\n        if (delay > 0) {\r\n            delay -= 1;\r\n        }\r\n        else {\r\n            let opcode = view.getUint8(offset++);\r\n            if (opcode === 0) {\r\n            }\r\n            else if (opcode === 1) {\r\n                delay = view.getUint8(offset++);\r\n            }\r\n            else if (opcode === 2) {\r\n                throw \"\";\r\n            }\r\n            else if (opcode === 3) {\r\n                offset = view.getUint16(offset, true);\r\n            }\r\n            else if (opcode === 4) {\r\n                frame = view.getUint8(offset++);\r\n            }\r\n            else if (opcode === 5) {\r\n                let movement = view.getUint8(offset++);\r\n            }\r\n            else if (opcode === 6) {\r\n                let movement = view.getUint8(offset++);\r\n                frame = view.getUint8(offset++);\r\n            }\r\n            else if (opcode === 7) {\r\n                delay = view.getUint8(offset++);\r\n            }\r\n            else if (opcode === 8) {\r\n                setTimeout(() => {\r\n                    if (sfx.length > 0) {\r\n                        sfx[Math.floor(Math.random() * sfx.length)].play();\r\n                    }\r\n                });\r\n            }\r\n            else if (opcode === 9) {\r\n                console.log(\"damage!\");\r\n            }\r\n            else if (opcode === 10) {\r\n                delay = view.getUint8(offset++);\r\n            }\r\n            else {\r\n                throw `Invalid opcode ${opcode}!`;\r\n            }\r\n        }\r\n        let index = direction < 5 ? frame + direction : frame + 8 - direction;\r\n        if (index >= textures.length) {\r\n            //console.log({index, unit: entity});\r\n        }\r\n        context.uniform1i(transparentIndexLocation, 0);\r\n        context.uniform2f(anchorLocation, 0.5, 0.5);\r\n        context.uniform2f(quadLocation, 192, 192);\r\n        context.uniform2i(scalingLocation, direction < 5 ? 0 : 1, 0);\r\n        context.activeTexture(context.TEXTURE0);\r\n        context.bindTexture(context.TEXTURE_2D, textures[index]);\r\n        context.bindBuffer(context.ARRAY_BUFFER, buffer);\r\n        context.drawArrays(context.TRIANGLES, 0, 6);\r\n    }\r\n    window.requestAnimationFrame(render);\r\n}\r\nwindow.requestAnimationFrame(render);\r\nlet keymap = {\r\n    z: 48,\r\n    x: 49,\r\n    c: 50,\r\n    v: 51,\r\n    b: 52,\r\n    n: 53,\r\n    m: 54,\r\n    a: 36,\r\n    s: 37,\r\n    d: 38,\r\n    f: 39,\r\n    g: 40,\r\n    h: 41,\r\n    j: 42,\r\n    k: 43,\r\n    l: 44,\r\n    q: 24,\r\n    w: 25,\r\n    e: 26,\r\n    r: 27,\r\n    t: 28,\r\n    y: 29,\r\n    u: 30,\r\n    i: 31,\r\n    o: 32,\r\n    p: 33\r\n};\r\nlet keysdown = {};\r\nwindow.addEventListener(\"keydown\", async (event) => {\r\n    if (keysdown[event.key]) {\r\n        return;\r\n    }\r\n    keysdown[event.key] = true;\r\n    await keyon(0, keymap[event.key], 127);\r\n});\r\nwindow.addEventListener(\"keyup\", async (event) => {\r\n    delete keysdown[event.key];\r\n    keyoff(0, keymap[event.key], 127);\r\n});\r\nwindow.addEventListener(\"keyup\", async (event) => {\r\n    if (false) {}\r\n    else if (event.key === \"0\") {\r\n        channel_muters[0].gain.value = channel_muters[0].gain.value > 0 ? 0 : 1;\r\n    }\r\n    else if (event.key === \"1\") {\r\n        channel_muters[1].gain.value = channel_muters[1].gain.value > 0 ? 0 : 1;\r\n    }\r\n    else if (event.key === \"2\") {\r\n        channel_muters[2].gain.value = channel_muters[2].gain.value > 0 ? 0 : 1;\r\n    }\r\n    else if (event.key === \"3\") {\r\n        channel_muters[3].gain.value = channel_muters[3].gain.value > 0 ? 0 : 1;\r\n    }\r\n    else if (event.key === \"4\") {\r\n        channel_muters[4].gain.value = channel_muters[4].gain.value > 0 ? 0 : 1;\r\n    }\r\n    else if (event.key === \"5\") {\r\n        channel_muters[5].gain.value = channel_muters[5].gain.value > 0 ? 0 : 1;\r\n    }\r\n    else if (event.key === \"6\") {\r\n        channel_muters[6].gain.value = channel_muters[6].gain.value > 0 ? 0 : 1;\r\n    }\r\n    else if (event.key === \"7\") {\r\n        channel_muters[7].gain.value = channel_muters[7].gain.value > 0 ? 0 : 1;\r\n    }\r\n    else if (event.key === \"8\") {\r\n        channel_muters[8].gain.value = channel_muters[8].gain.value > 0 ? 0 : 1;\r\n    }\r\n    else if (event.key === \"9\") {\r\n        channel_muters[9].gain.value = channel_muters[9].gain.value > 0 ? 0 : 1;\r\n    }\r\n    if (false) {}\r\n    else if (event.key === \"8\") {\r\n        direction = 0;\r\n    }\r\n    else if (event.key === \"9\") {\r\n        direction = 1;\r\n    }\r\n    else if (event.key === \"6\") {\r\n        direction = 2;\r\n    }\r\n    else if (event.key === \"3\") {\r\n        direction = 3;\r\n    }\r\n    else if (event.key === \"2\") {\r\n        direction = 4;\r\n    }\r\n    else if (event.key === \"1\") {\r\n        direction = 5;\r\n    }\r\n    else if (event.key === \"4\") {\r\n        direction = 6;\r\n    }\r\n    else if (event.key === \"7\") {\r\n        direction = 7;\r\n    }\r\n    if (is.present(archive)) {\r\n        try {\r\n            if (false) {}\r\n            else if (event.key === \"a\") {\r\n                offset = (await loadUnitScript(archive)).actionOffset.value;\r\n            }\r\n            else if (event.key === \"d\") {\r\n                offset = (await loadUnitScript(archive)).deathOffset.value;\r\n            }\r\n            else if (event.key === \"i\") {\r\n                offset = (await loadUnitScript(archive)).idleOffset.value;\r\n            }\r\n            else if (event.key === \"m\") {\r\n                offset = (await loadUnitScript(archive)).movementOffset.value;\r\n            }\r\n            else if (event.key === \"s\") {\r\n                offset = (await loadUnitScript(archive)).spawnOffset.value;\r\n            }\r\n            else if (event.key === \"t\") {\r\n                offset = (await loadUnitScript(archive)).trainOffset.value;\r\n            }\r\n            else if (event.key === \"z\") {\r\n                offset = (await loadParticleScript(archive)).spawnOffset.value;\r\n            }\r\n            else if (event.key === \"x\") {\r\n                offset = (await loadParticleScript(archive)).movementOffset.value;\r\n            }\r\n            else if (event.key === \"c\") {\r\n                offset = (await loadParticleScript(archive)).hitOffset.value;\r\n            }\r\n            else if (event.key === \"ArrowUp\") {\r\n                entity = (((entity - 1) % entities.length) + entities.length) % entities.length;\r\n                let ed = entities[entity];\r\n                if (ed.type === \"effect\") {\r\n                    await loadParticleScript(archive);\r\n                }\r\n                else {\r\n                    await loadUnitScript(archive);\r\n                }\r\n            }\r\n            else if (event.key === \"ArrowDown\") {\r\n                entity = (((entity + 1) % entities.length) + entities.length) % entities.length;\r\n                let ed = entities[entity];\r\n                if (ed.type === \"effect\") {\r\n                    await loadParticleScript(archive);\r\n                }\r\n                else {\r\n                    await loadUnitScript(archive);\r\n                }\r\n            }\r\n        }\r\n        catch (error) { }\r\n    }\r\n});\r\nfunction unlock_context() {\r\n    if (is.absent(audio_context)) {\r\n        audio_context = new AudioContext();\r\n        for (let i = channels.length; i < 16; i++) {\r\n            channels[i] = new Map();\r\n        }\r\n        for (let i = instruments.length; i < 16; i++) {\r\n            instruments[i] = i === 9 ? [128, 0] : [0, 0];\r\n        }\r\n        for (let i = channel_muters.length; i < 16; i++) {\r\n            channel_muters[i] = audio_context.createGain();\r\n            channel_muters[i].connect(audio_context.destination);\r\n        }\r\n        for (let i = channel_mixers.length; i < 16; i++) {\r\n            channel_mixers[i] = audio_context.createGain();\r\n            channel_mixers[i].connect(channel_muters[i]);\r\n        }\r\n    }\r\n}\r\nfunction reset_synth() {\r\n    for (let [i, instrument] of instruments.entries()) {\r\n        instruments[i] = i === 9 ? [128, 0] : [0, 0];\r\n    }\r\n    for (let [i, channel_mixer] of channel_mixers.entries()) {\r\n        channel_mixer.gain.value = 1;\r\n    }\r\n    for (let channel of channels) {\r\n        for (let mc of channel.values()) {\r\n            mc.stop();\r\n        }\r\n    }\r\n}\r\nwindow.addEventListener(\"keydown\", () => {\r\n    unlock_context();\r\n});\r\nfetch(\"gm.sf2\").then(async (response) => {\r\n    let array_buffer = await response.arrayBuffer();\r\n    let cursor = new binary.Cursor();\r\n    let reader = new binary.BufferReader({\r\n        buffer: new binary.Buffer(array_buffer)\r\n    });\r\n    let sf = new shared.formats.soundfont.File();\r\n    await sf.load(cursor, reader);\r\n    synth = await synth_1.WavetableSynth.fromSoundfont(sf);\r\n    console.log(\"synth initialized\");\r\n    let select = document.createElement(\"select\");\r\n    select.style.setProperty(\"font-size\", \"20px\");\r\n    for (let [bank_index, bank] of synth.banks.entries()) {\r\n        for (let [program_index, program] of bank.programs.entries()) {\r\n            if (is.present(program)) {\r\n                let option = document.createElement(\"option\");\r\n                option.style.setProperty(\"font-size\", \"20px\");\r\n                option.textContent = program.name;\r\n                option.value = \"\" + bank_index + \":\" + program_index;\r\n                select.appendChild(option);\r\n            }\r\n        }\r\n    }\r\n    select.addEventListener(\"change\", (event) => {\r\n        let parts = select.value.split(\":\");\r\n        let b = Number.parseInt(parts[0]);\r\n        let i = Number.parseInt(parts[1]);\r\n        instruments[0] = [b, i];\r\n    });\r\n    document.body.appendChild(select);\r\n});\r\ncanvas.addEventListener(\"drop\", async (event) => {\r\n    event.stopPropagation();\r\n    event.preventDefault();\r\n    unlock_context();\r\n    reset_synth();\r\n    let dataTransfer = event.dataTransfer;\r\n    if (is.present(dataTransfer)) {\r\n        let files = dataTransfer.files;\r\n        for (let file of files) {\r\n            let dataProvider = await new FileDataProvider(file).buffer();\r\n            if (/[.]xmi$/i.test(file.name)) {\r\n                xmi = await new XmiFile().load(dataProvider);\r\n                xmi_delay = xmi.events[0].time;\r\n                xmi_offset = 0;\r\n            }\r\n            else {\r\n                await load(dataProvider);\r\n            }\r\n        }\r\n    }\r\n});\r\nasync function resize() {\r\n    let w = canvas.offsetWidth * window.devicePixelRatio;\r\n    let h = canvas.offsetHeight * window.devicePixelRatio;\r\n    canvas.setAttribute(\"width\", `${w}px`);\r\n    canvas.setAttribute(\"height\", `${h}px`);\r\n    context.viewport(0, 0, w, h);\r\n    context.uniform2i(viewportLocation, w, h);\r\n}\r\ndocument.body.appendChild(canvas);\r\nwindow.addEventListener(\"resize\", () => {\r\n    resize();\r\n});\r\nresize();\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/client/index.js?");
-
-/***/ }),
-
-/***/ "./build/client/synth.js":
-/*!*******************************!*\
-  !*** ./build/client/synth.js ***!
-  \*******************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.WavetableSynth = exports.Bank = exports.Program = void 0;\r\nconst shared_1 = __webpack_require__(/*! ../shared */ \"./build/shared/index.js\");\r\nconst binary_1 = __webpack_require__(/*! ../shared/binary */ \"./build/shared/binary/index.js\");\r\nconst chunks_1 = __webpack_require__(/*! ../shared/binary/chunks */ \"./build/shared/binary/chunks/index.js\");\r\nconst soundfont = __webpack_require__(/*! ../shared/formats/soundfont */ \"./build/shared/formats/soundfont/index.js\");\r\nclass Program {\r\n    constructor() {\r\n        this.name = \"\";\r\n        this.file = new soundfont.File();\r\n        this.igen_indices = new Array();\r\n        this.buffers = new Map();\r\n    }\r\n    getParms(key, velocity) {\r\n        outer: for (let igen_index of this.igen_indices) {\r\n            let params = {\r\n                env: {\r\n                    vol: {\r\n                        delay_tc: -12000,\r\n                        attack_tc: -12000,\r\n                        hold_tc: -12000,\r\n                        deacy_tc: -12000,\r\n                        sustain_level: 1,\r\n                        release_tc: -12000,\r\n                        hold_time_factor: 1,\r\n                        decay_time_factor: 1\r\n                    },\r\n                    mod: {\r\n                        delay_tc: -12000,\r\n                        attack_tc: -12000,\r\n                        hold_tc: -12000,\r\n                        deacy_tc: -12000,\r\n                        sustain_level: 1,\r\n                        release_tc: -12000,\r\n                        hold_time_factor: 1,\r\n                        decay_time_factor: 1,\r\n                        to_pitch_c: 0\r\n                    }\r\n                },\r\n                lfo: {\r\n                    mod: {\r\n                        delay_tc: -12000,\r\n                        freq_hz: 8.176,\r\n                        to_pitch_c: 0,\r\n                        to_volume_cb: 0\r\n                    },\r\n                    vib: {\r\n                        delay_tc: -12000,\r\n                        freq_hz: 8.176\r\n                    }\r\n                },\r\n                filter: {\r\n                    cutoff_c: 13500,\r\n                    q_cb: 0\r\n                },\r\n                sample: {\r\n                    index: 0,\r\n                    loop: false,\r\n                    attenuation_cb: 0,\r\n                    root_key_override: undefined\r\n                }\r\n            };\r\n            inner: for (let i = igen_index; i < this.file.igen.length; i++) {\r\n                let generator = this.file.igen[i];\r\n                if (shared_1.is.absent(generator)) {\r\n                    throw ``;\r\n                }\r\n                let type = generator.generator.type.value;\r\n                if (false) {}\r\n                else if (type === soundfont.GeneratorType.INITIAL_FILTER_FC) {\r\n                    params.filter.cutoff_c = generator.parameters.signed.value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.INITIAL_FILTER_Q) {\r\n                    params.filter.q_cb = generator.parameters.signed.value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.INITIAL_ATTENUATION) {\r\n                    params.sample.attenuation_cb = generator.parameters.signed.value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.MOD_ENV_TO_PITCH) {\r\n                    params.env.mod.to_pitch_c = generator.parameters.signed.value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.VOL_ENV_KEY_TO_HOLD) {\r\n                    let value = Math.max(-1200, Math.min(generator.parameters.signed.value, 1200));\r\n                    params.env.vol.hold_time_factor = 2 ** (value / 100 * (60 - key) / 12);\r\n                }\r\n                else if (type === soundfont.GeneratorType.VOL_ENV_KEY_TO_DECAY) {\r\n                    let value = Math.max(-1200, Math.min(generator.parameters.signed.value, 1200));\r\n                    params.env.vol.decay_time_factor = 2 ** (value / 100 * (60 - key) / 12);\r\n                }\r\n                else if (type === soundfont.GeneratorType.VOL_ENV_DELAY) {\r\n                    let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));\r\n                    params.env.vol.delay_tc = value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.VOL_ENV_ATTACK) {\r\n                    let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));\r\n                    params.env.vol.attack_tc = value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.VOL_ENV_HOLD) {\r\n                    let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));\r\n                    params.env.vol.hold_tc = value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.VOL_ENV_DECAY) {\r\n                    let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));\r\n                    params.env.vol.deacy_tc = value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.VOL_ENV_SUSTAIN) {\r\n                    let value_cb = Math.max(0, Math.min(generator.parameters.signed.value, 1440));\r\n                    params.env.vol.sustain_level = Math.pow(10, -value_cb / 200);\r\n                }\r\n                else if (type === soundfont.GeneratorType.VOL_ENV_RELEASE) {\r\n                    let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));\r\n                    params.env.vol.release_tc = value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_HOLD) {\r\n                    let value = Math.max(-1200, Math.min(generator.parameters.signed.value, 1200));\r\n                    params.env.mod.hold_time_factor = 2 ** (value / 100 * (60 - key) / 12);\r\n                }\r\n                else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_DECAY) {\r\n                    let value = Math.max(-1200, Math.min(generator.parameters.signed.value, 1200));\r\n                    params.env.mod.decay_time_factor = 2 ** (value / 100 * (60 - key) / 12);\r\n                }\r\n                else if (type === soundfont.GeneratorType.MOD_ENV_DELAY) {\r\n                    let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));\r\n                    params.env.mod.delay_tc = value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.MOD_ENV_ATTACK) {\r\n                    let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));\r\n                    params.env.mod.attack_tc = value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.MOD_ENV_HOLD) {\r\n                    let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));\r\n                    params.env.mod.hold_tc = value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.MOD_ENV_DECAY) {\r\n                    let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));\r\n                    params.env.mod.deacy_tc = value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.MOD_ENV_SUSTAIN) {\r\n                    let value_pm = Math.max(0, Math.min(generator.parameters.signed.value, 1000));\r\n                    params.env.mod.sustain_level = 1.0 - value_pm / 1000;\r\n                }\r\n                else if (type === soundfont.GeneratorType.MOD_ENV_RELEASE) {\r\n                    let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));\r\n                    params.env.mod.release_tc = value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.KEY_RANGE) {\r\n                    let lower = generator.parameters.first.value;\r\n                    let upper = generator.parameters.second.value;\r\n                    if (i === igen_index) {\r\n                        if (key < lower || key > upper) {\r\n                            continue outer;\r\n                        }\r\n                    }\r\n                }\r\n                else if (type === soundfont.GeneratorType.VEL_RANGE) {\r\n                    let lower = generator.parameters.first.value;\r\n                    let upper = generator.parameters.second.value;\r\n                    if (i === igen_index || i === igen_index + 1) {\r\n                        if (velocity < lower || velocity > upper) {\r\n                            continue outer;\r\n                        }\r\n                    }\r\n                }\r\n                else if (type === soundfont.GeneratorType.MOD_LFO_DELAY) {\r\n                    let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));\r\n                    params.lfo.mod.delay_tc = value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.MOD_LFO_FREQ) {\r\n                    let value = generator.parameters.signed.value;\r\n                    params.lfo.mod.freq_hz = 8.176 * 2 ** (value / 1200);\r\n                }\r\n                else if (type === soundfont.GeneratorType.MOD_LFO_TO_PITCH) {\r\n                    let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 12000));\r\n                    params.lfo.mod.to_pitch_c = value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.MOD_LFO_TO_VOLUME) {\r\n                    let value = generator.parameters.signed.value;\r\n                    params.lfo.mod.to_volume_cb = value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.SAMPLE_ID) {\r\n                    params.sample.index = generator.parameters.signed.value;\r\n                    return params;\r\n                }\r\n                else if (type === soundfont.GeneratorType.SAMPLE_MODES) {\r\n                    // TODO: Support loop during key depression (mode 3).\r\n                    let value = generator.parameters.signed.value;\r\n                    if (value >= 0 && value <= 3) {\r\n                        params.sample.loop = value === 1;\r\n                    }\r\n                }\r\n                else if (type === soundfont.GeneratorType.OVERRIDING_ROOT_KEY) {\r\n                    let value = generator.parameters.signed.value;\r\n                    if (value >= 0 && value <= 127) {\r\n                        params.sample.root_key_override = value;\r\n                    }\r\n                }\r\n                else if (type === soundfont.GeneratorType.START_ADDRESS_OFFSET) {\r\n                    let value = generator.parameters.signed.value;\r\n                }\r\n                else if (type === soundfont.GeneratorType.PAN) {\r\n                    let value = generator.parameters.signed.value;\r\n                }\r\n                else {\r\n                    //console.log(soundfont.GeneratorType[type], generator.parameters.signed.value);\r\n                }\r\n            }\r\n        }\r\n        throw ``;\r\n    }\r\n    async makeChannel(context, midikey, velocity, mixer, channel) {\r\n        var _a;\r\n        let params = this.getParms(midikey, velocity);\r\n        let sample_header = this.file.shdr[params.sample.index];\r\n        let buffer = this.buffers.get(params.sample.index);\r\n        if (shared_1.is.absent(buffer)) {\r\n            let sample_count = sample_header.end.value - sample_header.start.value;\r\n            let reader = this.file.smpl;\r\n            let cursor = new binary_1.Cursor({ offset: sample_header.start.value * 2 });\r\n            buffer = context.createBuffer(1, sample_count, sample_header.sample_rate.value);\r\n            let sample = new chunks_1.Integer2({ complement: \"twos\" });\r\n            for (let s = 0; s < sample_count; s++) {\r\n                await sample.load(cursor, reader);\r\n                let value = ((sample.value + 32768) / 65535) * 2.0 - 1.0;\r\n                buffer.getChannelData(0)[s] = value;\r\n            }\r\n            this.buffers.set(params.sample.index, buffer);\r\n            console.log(channel, JSON.stringify(params, null, 2));\r\n        }\r\n        let root_key_semitones = (_a = params.sample.root_key_override) !== null && _a !== void 0 ? _a : sample_header.original_key.value;\r\n        let mod_lfo_osc = context.createOscillator();\r\n        mod_lfo_osc.type = \"triangle\";\r\n        mod_lfo_osc.frequency.value = params.lfo.mod.freq_hz;\r\n        let mod_lfo_delayed = context.createDelay(20);\r\n        mod_lfo_delayed.delayTime.value = 2 ** (params.lfo.mod.delay_tc / 1200);\r\n        mod_lfo_osc.connect(mod_lfo_delayed);\r\n        let mod_lfo_gained = context.createGain();\r\n        mod_lfo_delayed.connect(mod_lfo_gained);\r\n        mod_lfo_gained.gain.value = 1 - Math.pow(10, (params.lfo.mod.to_volume_cb) / 200); // should not add 1.02 but 0.02\r\n        let source = context.createBufferSource();\r\n        source.buffer = buffer;\r\n        source.loopStart = (sample_header.loop_start.value - sample_header.start.value) / sample_header.sample_rate.value;\r\n        source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;\r\n        source.loop = params.sample.loop;\r\n        let initial_attenuation = context.createGain();\r\n        source.connect(initial_attenuation);\r\n        // OKish\r\n        initial_attenuation.gain.value = Math.pow(10, -(params.sample.attenuation_cb + 960 * (1 - velocity / 128) * (1 - velocity / 128)) / 200);\r\n        let lowpass_filter = context.createBiquadFilter();\r\n        initial_attenuation.connect(lowpass_filter);\r\n        lowpass_filter.type = \"lowpass\";\r\n        // OK\r\n        let initial_filter_cutoff_hz = 8.176 * 2 ** ((params.filter.cutoff_c - 2400 * (1 - velocity / 128)) / 1200);\r\n        lowpass_filter.frequency.value = initial_filter_cutoff_hz;\r\n        lowpass_filter.Q.value = params.filter.q_cb / 10;\r\n        let amplifier = context.createGain();\r\n        amplifier.gain.value = 0;\r\n        lowpass_filter.connect(amplifier);\r\n        if (params.lfo.mod.to_volume_cb > 0) {\r\n            mod_lfo_gained.connect(amplifier.gain);\r\n        }\r\n        let vol_env = context.createConstantSource();\r\n        vol_env.offset.value = 0;\r\n        vol_env.connect(amplifier.gain);\r\n        let mod_env = context.createConstantSource();\r\n        mod_env.offset.value = 0;\r\n        let modenv_to_pitch_source = context.createConstantSource();\r\n        {\r\n            let gain = context.createGain();\r\n            gain.gain.value = 0;\r\n            modenv_to_pitch_source.offset.value = params.env.mod.to_pitch_c;\r\n            modenv_to_pitch_source.connect(gain);\r\n            mod_env.connect(gain.gain);\r\n            gain.connect(source.detune);\r\n        }\r\n        let detune_source = context.createConstantSource();\r\n        //midikey = channel === 9 ? root_key_semitones : midikey\r\n        let detune_cents = (midikey - root_key_semitones) * 100 + sample_header.correction.value;\r\n        detune_source.offset.value = detune_cents;\r\n        detune_source.connect(source.detune);\r\n        let mod_lfo_to_pitch_const = context.createConstantSource();\r\n        {\r\n            let gain = context.createGain();\r\n            gain.gain.value = 0;\r\n            mod_lfo_to_pitch_const.offset.value = params.lfo.mod.to_pitch_c;\r\n            mod_lfo_to_pitch_const.connect(gain);\r\n            mod_lfo_delayed.connect(gain.gain);\r\n            gain.connect(source.detune);\r\n        }\r\n        function start() {\r\n            let t0 = context.currentTime;\r\n            {\r\n                let t1 = t0 + 2 ** (params.env.mod.delay_tc / 1200);\r\n                let t2 = t1 + 2 ** (params.env.mod.attack_tc / 1200);\r\n                let t3 = t2 + (2 ** (params.env.mod.hold_tc / 1200) * params.env.mod.hold_time_factor);\r\n                let t4 = t3 + (2 ** (params.env.mod.deacy_tc / 1200) * params.env.mod.decay_time_factor);\r\n                mod_env.offset.linearRampToValueAtTime(0.0, t1);\r\n                mod_env.offset.exponentialRampToValueAtTime(1.0, t2);\r\n                mod_env.offset.linearRampToValueAtTime(1.0, t3);\r\n                mod_env.offset.linearRampToValueAtTime(params.env.mod.sustain_level, t4);\r\n            }\r\n            {\r\n                let t1 = t0 + 2 ** (params.env.vol.delay_tc / 1200);\r\n                let t2 = t1 + 2 ** (params.env.vol.attack_tc / 1200);\r\n                let t3 = t2 + (2 ** (params.env.vol.hold_tc / 1200) * params.env.vol.hold_time_factor);\r\n                let t4 = t3 + (2 ** (params.env.vol.deacy_tc / 1200) * params.env.vol.decay_time_factor);\r\n                vol_env.offset.linearRampToValueAtTime(0.0, t1);\r\n                vol_env.offset.exponentialRampToValueAtTime(1.0, t2);\r\n                vol_env.offset.linearRampToValueAtTime(1.0, t3);\r\n                vol_env.offset.linearRampToValueAtTime(params.env.vol.sustain_level, t4);\r\n            }\r\n            amplifier.connect(mixer);\r\n            source.start();\r\n            mod_lfo_osc.start();\r\n            mod_env.start();\r\n            vol_env.start();\r\n            modenv_to_pitch_source.start();\r\n            detune_source.start();\r\n            mod_lfo_to_pitch_const.start();\r\n        }\r\n        function stop() {\r\n            amplifier.disconnect();\r\n            source.stop();\r\n            mod_lfo_osc.stop();\r\n            mod_env.stop();\r\n            vol_env.stop();\r\n            modenv_to_pitch_source.stop();\r\n            detune_source.stop();\r\n            mod_lfo_to_pitch_const.stop();\r\n        }\r\n        function release(midikey, velocity) {\r\n            let t0 = context.currentTime;\r\n            let tm = 2 ** (params.env.mod.release_tc / 1200);\r\n            let tv = 2 ** (params.env.vol.release_tc / 1200);\r\n            tm *= (1 - velocity / 128);\r\n            tv *= (1 - velocity / 128);\r\n            mod_env.offset.linearRampToValueAtTime(0.0, t0 + tm);\r\n            vol_env.offset.linearRampToValueAtTime(0.0, t0 + tv);\r\n            setTimeout(stop, (context.baseLatency + tv) * 1000);\r\n        }\r\n        return {\r\n            start,\r\n            stop,\r\n            release\r\n        };\r\n    }\r\n}\r\nexports.Program = Program;\r\n;\r\nclass Bank {\r\n    constructor() {\r\n        this.programs = new Array();\r\n    }\r\n}\r\nexports.Bank = Bank;\r\n;\r\nclass WavetableSynth {\r\n    constructor() {\r\n        this.banks = new Array();\r\n        for (let i = 0; i < 255; i++) {\r\n            this.banks.push(new Bank());\r\n        }\r\n    }\r\n    static async fromSoundfont(file) {\r\n        let synth = new WavetableSynth();\r\n        outer: for (let preset_header of file.phdr) {\r\n            let bank = synth.banks[preset_header.bank.value];\r\n            if (shared_1.is.absent(bank)) {\r\n                continue;\r\n            }\r\n            let program = bank.programs[preset_header.preset.value];\r\n            let preset_bag = file.pbag[preset_header.pbag_index.value];\r\n            if (shared_1.is.absent(preset_bag)) {\r\n                continue;\r\n            }\r\n            let preset_generator = file.pgen[preset_bag.pgen_index.value];\r\n            if (shared_1.is.absent(preset_generator)) {\r\n                continue;\r\n            }\r\n            let preset_generator_index = preset_generator.generator.type.value;\r\n            if (preset_generator_index !== 41) {\r\n                continue;\r\n            }\r\n            let instrument = file.inst[preset_generator.parameters.signed.value];\r\n            if (shared_1.is.absent(instrument)) {\r\n                continue;\r\n            }\r\n            let next_instrument = file.inst[preset_generator.parameters.signed.value + 1];\r\n            if (shared_1.is.absent(next_instrument)) {\r\n                continue;\r\n            }\r\n            program = new Program();\r\n            program.file = file;\r\n            program.name = preset_header.name.value;\r\n            for (let i = instrument.ibag_index.value; i < next_instrument.ibag_index.value; i++) {\r\n                let instrument_bag = file.ibag[i];\r\n                if (shared_1.is.absent(instrument_bag)) {\r\n                    continue;\r\n                }\r\n                program.igen_indices.push(instrument_bag.igen_index.value);\r\n            }\r\n            bank.programs[preset_header.preset.value] = program;\r\n        }\r\n        return synth;\r\n    }\r\n}\r\nexports.WavetableSynth = WavetableSynth;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/client/synth.js?");
-
-/***/ }),
-
-/***/ "./build/shared/asserts/index.js":
-/*!***************************************!*\
-  !*** ./build/shared/asserts/index.js ***!
-  \***************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-eval("\r\nvar __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {\r\n    if (k2 === undefined) k2 = k;\r\n    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });\r\n}) : (function(o, m, k, k2) {\r\n    if (k2 === undefined) k2 = k;\r\n    o[k2] = m[k];\r\n}));\r\nvar __exportStar = (this && this.__exportStar) || function(m, exports) {\r\n    for (var p in m) if (p !== \"default\" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);\r\n};\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\n__exportStar(__webpack_require__(/*! ./integer */ \"./build/shared/asserts/integer.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./string */ \"./build/shared/asserts/string.js\"), exports);\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/asserts/index.js?");
-
-/***/ }),
-
-/***/ "./build/shared/asserts/integer.js":
-/*!*****************************************!*\
-  !*** ./build/shared/asserts/integer.js ***!
-  \*****************************************/
-/***/ ((__unused_webpack_module, exports) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.IntegerAssert = void 0;\r\nclass IntegerAssert {\r\n    constructor() { }\r\n    static atLeast(min, value) {\r\n        this.integer(min);\r\n        this.integer(value);\r\n        if (value < min) {\r\n            throw `Expected ${value} to be at least ${min}!`;\r\n        }\r\n    }\r\n    static atMost(max, value) {\r\n        this.integer(value);\r\n        this.integer(max);\r\n        if (value > max) {\r\n            throw `Expected ${value} to be at most ${max}!`;\r\n        }\r\n    }\r\n    static between(min, value, max) {\r\n        this.atLeast(min, value);\r\n        this.atMost(max, value);\r\n    }\r\n    static exactly(value, expected) {\r\n        this.integer(expected);\r\n        this.integer(value);\r\n        if (value !== expected) {\r\n            throw `Expected ${value} to be exactly ${expected}!`;\r\n        }\r\n    }\r\n    static integer(value) {\r\n        if (!Number.isInteger(value)) {\r\n            throw `Expected ${value} to be an integer!`;\r\n        }\r\n    }\r\n}\r\nexports.IntegerAssert = IntegerAssert;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/asserts/integer.js?");
-
-/***/ }),
-
-/***/ "./build/shared/asserts/string.js":
-/*!****************************************!*\
-  !*** ./build/shared/asserts/string.js ***!
-  \****************************************/
-/***/ ((__unused_webpack_module, exports) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.StringAssert = void 0;\r\nclass StringAssert {\r\n    constructor() { }\r\n    static identical(value, expected) {\r\n        if (value !== expected) {\r\n            throw `Expected \"${value}\" to be identical to ${expected}!`;\r\n        }\r\n    }\r\n}\r\nexports.StringAssert = StringAssert;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/asserts/string.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary.web/index.js":
-/*!******************************************!*\
-  !*** ./build/shared/binary.web/index.js ***!
-  \******************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-eval("\r\nvar __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {\r\n    if (k2 === undefined) k2 = k;\r\n    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });\r\n}) : (function(o, m, k, k2) {\r\n    if (k2 === undefined) k2 = k;\r\n    o[k2] = m[k];\r\n}));\r\nvar __exportStar = (this && this.__exportStar) || function(m, exports) {\r\n    for (var p in m) if (p !== \"default\" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);\r\n};\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.WebFileReader = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../asserts */ \"./build/shared/asserts/index.js\");\r\n__exportStar(__webpack_require__(/*! ../binary */ \"./build/shared/binary/index.js\"), exports);\r\nclass WebFileReader {\r\n    constructor(file) {\r\n        this.file = file;\r\n    }\r\n    async read(cursor, target) {\r\n        let offset = cursor.offset;\r\n        let length = target.size();\r\n        asserts_1.IntegerAssert.between(0, offset, this.file.size);\r\n        asserts_1.IntegerAssert.between(0, length, this.file.size - offset);\r\n        let blob = this.file.slice(offset, offset + length);\r\n        let source = new Uint8Array(await blob.arrayBuffer());\r\n        target.place(source);\r\n        cursor.offset += length;\r\n        return target;\r\n    }\r\n    size() {\r\n        return this.file.size;\r\n    }\r\n}\r\nexports.WebFileReader = WebFileReader;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary.web/index.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/buffer.js":
-/*!***************************************!*\
-  !*** ./build/shared/binary/buffer.js ***!
-  \***************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.Buffer = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../asserts */ \"./build/shared/asserts/index.js\");\r\nclass Buffer {\r\n    constructor(buffer, options) {\r\n        var _a, _b;\r\n        let offset = (_a = options === null || options === void 0 ? void 0 : options.offset) !== null && _a !== void 0 ? _a : 0;\r\n        let length = (_b = options === null || options === void 0 ? void 0 : options.length) !== null && _b !== void 0 ? _b : buffer.byteLength - offset;\r\n        asserts_1.IntegerAssert.between(0, offset, buffer.byteLength);\r\n        asserts_1.IntegerAssert.between(0, length, buffer.byteLength - offset);\r\n        this.array = new Uint8Array(buffer, offset, length);\r\n    }\r\n    async save(cursor, writer) {\r\n        await writer.write(cursor, this);\r\n        return this;\r\n    }\r\n    async load(cursor, reader) {\r\n        await reader.read(cursor, this);\r\n        return this;\r\n    }\r\n    copy(target) {\r\n        asserts_1.IntegerAssert.exactly(target.size(), this.size());\r\n        target.array.set(this.array);\r\n        return target;\r\n    }\r\n    get(index) {\r\n        asserts_1.IntegerAssert.between(0, index, this.array.length - 1);\r\n        return this.array[index];\r\n    }\r\n    place(array) {\r\n        asserts_1.IntegerAssert.atMost(this.array.length, array.length);\r\n        this.array.set(array);\r\n    }\r\n    set(index, value) {\r\n        asserts_1.IntegerAssert.between(0, index, this.array.length - 1);\r\n        asserts_1.IntegerAssert.between(0, value, 255);\r\n        return this.array[index] = value;\r\n    }\r\n    size() {\r\n        return this.array.length;\r\n    }\r\n    window(options) {\r\n        var _a, _b;\r\n        let offset = (_a = options === null || options === void 0 ? void 0 : options.offset) !== null && _a !== void 0 ? _a : 0;\r\n        let length = (_b = options === null || options === void 0 ? void 0 : options.length) !== null && _b !== void 0 ? _b : this.array.length - offset;\r\n        return new Buffer(this.array.buffer, {\r\n            offset: this.array.byteOffset + offset,\r\n            length: length\r\n        });\r\n    }\r\n    static alloc(length) {\r\n        asserts_1.IntegerAssert.atLeast(0, length);\r\n        let buffer = new ArrayBuffer(length);\r\n        return new Buffer(buffer);\r\n    }\r\n}\r\nexports.Buffer = Buffer;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/buffer.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/chunk.js":
-/*!**************************************!*\
-  !*** ./build/shared/binary/chunk.js ***!
-  \**************************************/
-/***/ ((__unused_webpack_module, exports) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.Chunk = void 0;\r\nclass Chunk {\r\n    constructor(buffer) {\r\n        this.buffer = buffer;\r\n    }\r\n    async load(cursor, reader) {\r\n        await reader.read(cursor, this.buffer);\r\n        return this;\r\n    }\r\n    async save(cursor, writer) {\r\n        await writer.write(cursor, this.buffer);\r\n        return this;\r\n    }\r\n    sizeOf() {\r\n        return this.buffer.size();\r\n    }\r\n}\r\nexports.Chunk = Chunk;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/chunk.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/chunks/bytestring.js":
-/*!**************************************************!*\
-  !*** ./build/shared/binary/chunks/bytestring.js ***!
-  \**************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.ByteString = void 0;\r\nconst buffer_1 = __webpack_require__(/*! ../buffer */ \"./build/shared/binary/buffer.js\");\r\nconst chunk_1 = __webpack_require__(/*! ../chunk */ \"./build/shared/binary/chunk.js\");\r\nclass ByteString extends chunk_1.Chunk {\r\n    getContinuationByte(index) {\r\n        let byte = this.buffer.get(index);\r\n        if ((byte & 0b11000000) !== 0b10000000) {\r\n            throw `Expected ${byte} to be a continuation byte!`;\r\n        }\r\n        return byte & 0b00111111;\r\n    }\r\n    encode(value, write) {\r\n        var _a;\r\n        let i = 0;\r\n        while (i < value.length) {\r\n            let cp = (_a = value.codePointAt(i++)) !== null && _a !== void 0 ? _a : 0;\r\n            if (cp >= 0xD800 && cp <= 0xDFFF) {\r\n                throw `Expected ${cp} to be a non-surrogate code point!`;\r\n            }\r\n            if (cp < 0x0080) {\r\n                write(((cp >> 0) & 0b01111111) | 0b00000000);\r\n            }\r\n            else if (cp < 0x0800) {\r\n                write(((cp >> 6) & 0b00011111) | 0b11000000);\r\n                write(((cp >> 0) & 0b00111111) | 0b10000000);\r\n            }\r\n            else if (cp < 0x10000) {\r\n                write(((cp >> 12) & 0b00001111) | 0b11100000);\r\n                write(((cp >> 6) & 0b00111111) | 0b10000000);\r\n                write(((cp >> 0) & 0b00111111) | 0b10000000);\r\n            }\r\n            else {\r\n                i += 1;\r\n                write(((cp >> 18) & 0b00000111) | 0b11110000);\r\n                write(((cp >> 12) & 0b00111111) | 0b10000000);\r\n                write(((cp >> 6) & 0b00111111) | 0b10000000);\r\n                write(((cp >> 0) & 0b00111111) | 0b10000000);\r\n            }\r\n        }\r\n    }\r\n    get value() {\r\n        let value = \"\";\r\n        let i = 0;\r\n        while (i < this.buffer.size()) {\r\n            let byte = this.buffer.get(i++);\r\n            let cp = 0;\r\n            if ((byte & 0b10000000) === 0b00000000) {\r\n                let a = byte & 0b01111111;\r\n                cp = (a << 0);\r\n            }\r\n            else if ((byte & 0b11100000) === 0b11000000) {\r\n                let a = byte & 0b00011111;\r\n                let b = this.getContinuationByte(i++);\r\n                cp = (a << 6) | (b << 0);\r\n            }\r\n            else if ((byte & 0b11110000) === 0b11100000) {\r\n                let a = byte & 0b00001111;\r\n                let b = this.getContinuationByte(i++);\r\n                let c = this.getContinuationByte(i++);\r\n                cp = (a << 12) | (b << 6) | (c << 0);\r\n            }\r\n            else if ((byte & 0b11111000) === 0b11110000) {\r\n                let a = byte & 0b00000111;\r\n                let b = this.getContinuationByte(i++);\r\n                let c = this.getContinuationByte(i++);\r\n                let d = this.getContinuationByte(i++);\r\n                cp = (a << 18) | (b << 12) | (c << 6) | (d << 0);\r\n            }\r\n            else {\r\n                throw `Expected ${byte} to be a starting byte!`;\r\n            }\r\n            if (cp === 0) {\r\n                break;\r\n            }\r\n            value += String.fromCodePoint(cp);\r\n        }\r\n        return value;\r\n    }\r\n    set value(value) {\r\n        let length = 0;\r\n        this.encode(value, (byte) => {\r\n            length += 1;\r\n        });\r\n        if (length > this.buffer.size()) {\r\n            throw `Expected \"${value}\" to be encoded using at most ${this.buffer.size()} bytes!`;\r\n        }\r\n        let i = 0;\r\n        this.encode(value, (byte) => {\r\n            this.buffer.set(i++, byte);\r\n        });\r\n        while (i < this.buffer.size()) {\r\n            this.buffer.set(i++, 0);\r\n        }\r\n    }\r\n    constructor(options) {\r\n        var _a;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : buffer_1.Buffer.alloc(0);\r\n        super(buffer);\r\n    }\r\n}\r\nexports.ByteString = ByteString;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/chunks/bytestring.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/chunks/index.js":
-/*!*********************************************!*\
-  !*** ./build/shared/binary/chunks/index.js ***!
-  \*********************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-eval("\r\nvar __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {\r\n    if (k2 === undefined) k2 = k;\r\n    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });\r\n}) : (function(o, m, k, k2) {\r\n    if (k2 === undefined) k2 = k;\r\n    o[k2] = m[k];\r\n}));\r\nvar __exportStar = (this && this.__exportStar) || function(m, exports) {\r\n    for (var p in m) if (p !== \"default\" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);\r\n};\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\n__exportStar(__webpack_require__(/*! ./bytestring */ \"./build/shared/binary/chunks/bytestring.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./integer1 */ \"./build/shared/binary/chunks/integer1.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./integer2 */ \"./build/shared/binary/chunks/integer2.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./integer3 */ \"./build/shared/binary/chunks/integer3.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./integer4 */ \"./build/shared/binary/chunks/integer4.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./packed_integer1 */ \"./build/shared/binary/chunks/packed_integer1.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./packed_integer2 */ \"./build/shared/binary/chunks/packed_integer2.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./packed_integer3 */ \"./build/shared/binary/chunks/packed_integer3.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./packed_integer4 */ \"./build/shared/binary/chunks/packed_integer4.js\"), exports);\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/chunks/index.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/chunks/integer1.js":
-/*!************************************************!*\
-  !*** ./build/shared/binary/chunks/integer1.js ***!
-  \************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.Integer1 = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../../asserts */ \"./build/shared/asserts/index.js\");\r\nconst buffer_1 = __webpack_require__(/*! ../buffer */ \"./build/shared/binary/buffer.js\");\r\nconst chunk_1 = __webpack_require__(/*! ../chunk */ \"./build/shared/binary/chunk.js\");\r\nclass Integer1 extends chunk_1.Chunk {\r\n    constructor(options) {\r\n        var _a, _b;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : buffer_1.Buffer.alloc(1);\r\n        let complement = (_b = options === null || options === void 0 ? void 0 : options.complement) !== null && _b !== void 0 ? _b : \"none\";\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 1);\r\n        super(buffer);\r\n        this.complement = complement;\r\n    }\r\n    get value() {\r\n        let value = this.buffer.get(0);\r\n        if (false) {}\r\n        else if (this.complement === \"none\") {\r\n        }\r\n        else if (this.complement === \"ones\") {\r\n            if (value > 0x7F) {\r\n                value -= 0xFF;\r\n            }\r\n        }\r\n        else if (this.complement === \"twos\") {\r\n            if (value > 0x7F) {\r\n                value -= 0xFF + 1;\r\n            }\r\n        }\r\n        return value;\r\n    }\r\n    set value(value) {\r\n        if (false) {}\r\n        else if (this.complement === \"none\") {\r\n        }\r\n        else if (this.complement === \"ones\") {\r\n            if (value < 0) {\r\n                value += 0xFF;\r\n            }\r\n        }\r\n        else if (this.complement === \"twos\") {\r\n            if (value < 0) {\r\n                value += 0xFF + 1;\r\n            }\r\n        }\r\n        asserts_1.IntegerAssert.between(0, value, 0xFF);\r\n        this.buffer.set(0, value);\r\n    }\r\n}\r\nexports.Integer1 = Integer1;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/chunks/integer1.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/chunks/integer2.js":
-/*!************************************************!*\
-  !*** ./build/shared/binary/chunks/integer2.js ***!
-  \************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.Integer2 = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../../asserts */ \"./build/shared/asserts/index.js\");\r\nconst buffer_1 = __webpack_require__(/*! ../buffer */ \"./build/shared/binary/buffer.js\");\r\nconst chunk_1 = __webpack_require__(/*! ../chunk */ \"./build/shared/binary/chunk.js\");\r\nclass Integer2 extends chunk_1.Chunk {\r\n    constructor(options) {\r\n        var _a, _b, _c;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : buffer_1.Buffer.alloc(2);\r\n        let complement = (_b = options === null || options === void 0 ? void 0 : options.complement) !== null && _b !== void 0 ? _b : \"none\";\r\n        let endian = (_c = options === null || options === void 0 ? void 0 : options.endian) !== null && _c !== void 0 ? _c : \"little\";\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 2);\r\n        super(buffer);\r\n        this.complement = complement;\r\n        this.endian = endian;\r\n    }\r\n    get value() {\r\n        let a = this.buffer.get(0);\r\n        let b = this.buffer.get(1);\r\n        let value = 0;\r\n        if (false) {}\r\n        else if (this.endian === \"big\") {\r\n            value = ((a << 8) | (b << 0)) >>> 0;\r\n        }\r\n        else if (this.endian === \"little\") {\r\n            value = ((b << 8) | (a << 0)) >>> 0;\r\n        }\r\n        if (false) {}\r\n        else if (this.complement === \"none\") {\r\n        }\r\n        else if (this.complement === \"ones\") {\r\n            if (value > 0x7FFF) {\r\n                value -= 0xFFFF;\r\n            }\r\n        }\r\n        else if (this.complement === \"twos\") {\r\n            if (value > 0x7FFF) {\r\n                value -= 0xFFFF + 1;\r\n            }\r\n        }\r\n        return value;\r\n    }\r\n    set value(value) {\r\n        if (false) {}\r\n        else if (this.complement === \"none\") {\r\n        }\r\n        else if (this.complement === \"ones\") {\r\n            if (value < 0) {\r\n                value += 0xFFFF;\r\n            }\r\n        }\r\n        else if (this.complement === \"twos\") {\r\n            if (value < 0) {\r\n                value += 0xFFFF + 1;\r\n            }\r\n        }\r\n        asserts_1.IntegerAssert.between(0, value, 0xFFFF);\r\n        if (false) {}\r\n        else if (this.endian === \"big\") {\r\n            this.buffer.set(0, (value >>> 8) & 0xFF);\r\n            this.buffer.set(1, (value >>> 0) & 0xFF);\r\n        }\r\n        else if (this.endian === \"little\") {\r\n            this.buffer.set(0, (value >>> 0) & 0xFF);\r\n            this.buffer.set(1, (value >>> 8) & 0xFF);\r\n        }\r\n    }\r\n}\r\nexports.Integer2 = Integer2;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/chunks/integer2.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/chunks/integer3.js":
-/*!************************************************!*\
-  !*** ./build/shared/binary/chunks/integer3.js ***!
-  \************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.Integer3 = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../../asserts */ \"./build/shared/asserts/index.js\");\r\nconst buffer_1 = __webpack_require__(/*! ../buffer */ \"./build/shared/binary/buffer.js\");\r\nconst chunk_1 = __webpack_require__(/*! ../chunk */ \"./build/shared/binary/chunk.js\");\r\nclass Integer3 extends chunk_1.Chunk {\r\n    constructor(options) {\r\n        var _a, _b, _c;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : buffer_1.Buffer.alloc(3);\r\n        let complement = (_b = options === null || options === void 0 ? void 0 : options.complement) !== null && _b !== void 0 ? _b : \"none\";\r\n        let endian = (_c = options === null || options === void 0 ? void 0 : options.endian) !== null && _c !== void 0 ? _c : \"little\";\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 3);\r\n        super(buffer);\r\n        this.complement = complement;\r\n        this.endian = endian;\r\n    }\r\n    get value() {\r\n        let a = this.buffer.get(0);\r\n        let b = this.buffer.get(1);\r\n        let c = this.buffer.get(2);\r\n        let value = 0;\r\n        if (false) {}\r\n        else if (this.endian === \"big\") {\r\n            value = ((a << 16) | (b << 8) | (c << 0)) >>> 0;\r\n        }\r\n        else if (this.endian === \"little\") {\r\n            value = ((c << 16) | (b << 8) | (a << 0)) >>> 0;\r\n        }\r\n        if (false) {}\r\n        else if (this.complement === \"none\") {\r\n        }\r\n        else if (this.complement === \"ones\") {\r\n            if (value > 0x7FFFFF) {\r\n                value -= 0xFFFFFF;\r\n            }\r\n        }\r\n        else if (this.complement === \"twos\") {\r\n            if (value > 0x7FFFFF) {\r\n                value -= 0xFFFFFF + 1;\r\n            }\r\n        }\r\n        return value;\r\n    }\r\n    set value(value) {\r\n        if (false) {}\r\n        else if (this.complement === \"none\") {\r\n        }\r\n        else if (this.complement === \"ones\") {\r\n            if (value < 0) {\r\n                value += 0xFFFFFF;\r\n            }\r\n        }\r\n        else if (this.complement === \"twos\") {\r\n            if (value < 0) {\r\n                value += 0xFFFFFF + 1;\r\n            }\r\n        }\r\n        asserts_1.IntegerAssert.between(0, value, 0xFFFFFF);\r\n        if (false) {}\r\n        else if (this.endian === \"big\") {\r\n            this.buffer.set(0, (value >>> 16) & 0xFF);\r\n            this.buffer.set(1, (value >>> 8) & 0xFF);\r\n            this.buffer.set(2, (value >>> 0) & 0xFF);\r\n        }\r\n        else if (this.endian === \"little\") {\r\n            this.buffer.set(0, (value >>> 0) & 0xFF);\r\n            this.buffer.set(1, (value >>> 8) & 0xFF);\r\n            this.buffer.set(2, (value >>> 16) & 0xFF);\r\n        }\r\n    }\r\n}\r\nexports.Integer3 = Integer3;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/chunks/integer3.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/chunks/integer4.js":
-/*!************************************************!*\
-  !*** ./build/shared/binary/chunks/integer4.js ***!
-  \************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.Integer4 = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../../asserts */ \"./build/shared/asserts/index.js\");\r\nconst buffer_1 = __webpack_require__(/*! ../buffer */ \"./build/shared/binary/buffer.js\");\r\nconst chunk_1 = __webpack_require__(/*! ../chunk */ \"./build/shared/binary/chunk.js\");\r\nclass Integer4 extends chunk_1.Chunk {\r\n    constructor(options) {\r\n        var _a, _b, _c;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : buffer_1.Buffer.alloc(4);\r\n        let complement = (_b = options === null || options === void 0 ? void 0 : options.complement) !== null && _b !== void 0 ? _b : \"none\";\r\n        let endian = (_c = options === null || options === void 0 ? void 0 : options.endian) !== null && _c !== void 0 ? _c : \"little\";\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 4);\r\n        super(buffer);\r\n        this.complement = complement;\r\n        this.endian = endian;\r\n    }\r\n    get value() {\r\n        let a = this.buffer.get(0);\r\n        let b = this.buffer.get(1);\r\n        let c = this.buffer.get(2);\r\n        let d = this.buffer.get(3);\r\n        let value = 0;\r\n        if (false) {}\r\n        else if (this.endian === \"big\") {\r\n            value = ((a << 24) | (b << 16) | (c << 8) | (d << 0)) >>> 0;\r\n        }\r\n        else if (this.endian === \"little\") {\r\n            value = ((d << 24) | (c << 16) | (b << 8) | (a << 0)) >>> 0;\r\n        }\r\n        if (false) {}\r\n        else if (this.complement === \"none\") {\r\n        }\r\n        else if (this.complement === \"ones\") {\r\n            if (value > 0x7FFFFFFF) {\r\n                value -= 0xFFFFFFFF;\r\n            }\r\n        }\r\n        else if (this.complement === \"twos\") {\r\n            if (value > 0x7FFFFFFF) {\r\n                value -= 0xFFFFFFFF + 1;\r\n            }\r\n        }\r\n        return value;\r\n    }\r\n    set value(value) {\r\n        if (false) {}\r\n        else if (this.complement === \"none\") {\r\n        }\r\n        else if (this.complement === \"ones\") {\r\n            if (value < 0) {\r\n                value += 0xFFFFFFFF;\r\n            }\r\n        }\r\n        else if (this.complement === \"twos\") {\r\n            if (value < 0) {\r\n                value += 0xFFFFFFFF + 1;\r\n            }\r\n        }\r\n        asserts_1.IntegerAssert.between(0, value, 0xFFFFFFFF);\r\n        if (false) {}\r\n        else if (this.endian === \"big\") {\r\n            this.buffer.set(0, (value >>> 24) & 0xFF);\r\n            this.buffer.set(1, (value >>> 16) & 0xFF);\r\n            this.buffer.set(2, (value >>> 8) & 0xFF);\r\n            this.buffer.set(3, (value >>> 0) & 0xFF);\r\n        }\r\n        else if (this.endian === \"little\") {\r\n            this.buffer.set(0, (value >>> 0) & 0xFF);\r\n            this.buffer.set(1, (value >>> 8) & 0xFF);\r\n            this.buffer.set(2, (value >>> 16) & 0xFF);\r\n            this.buffer.set(3, (value >>> 24) & 0xFF);\r\n        }\r\n    }\r\n}\r\nexports.Integer4 = Integer4;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/chunks/integer4.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/chunks/packed_integer1.js":
-/*!*******************************************************!*\
-  !*** ./build/shared/binary/chunks/packed_integer1.js ***!
-  \*******************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.PackedInteger1 = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../../asserts */ \"./build/shared/asserts/index.js\");\r\nclass PackedInteger1 {\r\n    constructor(integer, options) {\r\n        var _a, _b;\r\n        let offset = (_a = options === null || options === void 0 ? void 0 : options.offset) !== null && _a !== void 0 ? _a : 0;\r\n        let length = (_b = options === null || options === void 0 ? void 0 : options.length) !== null && _b !== void 0 ? _b : 8 - offset;\r\n        asserts_1.IntegerAssert.between(0, offset, 8);\r\n        asserts_1.IntegerAssert.between(0, length, 8 - offset);\r\n        this.integer = integer;\r\n        this.offset = offset;\r\n        this.length = length;\r\n    }\r\n    get value() {\r\n        let a = 32 - this.offset - this.length;\r\n        let b = 32 - this.length;\r\n        return (this.integer.value << a) >>> b;\r\n    }\r\n    set value(value) {\r\n        let a = this.offset;\r\n        let b = 32 - this.length;\r\n        let c = 32 - this.offset - this.length;\r\n        let m = ((0xFF >> a) << b) >>> c;\r\n        asserts_1.IntegerAssert.between(0, value, m >>> a);\r\n        this.integer.value = ((this.integer.value & ~m) | ((value << a) & m)) >>> 0;\r\n    }\r\n}\r\nexports.PackedInteger1 = PackedInteger1;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/chunks/packed_integer1.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/chunks/packed_integer2.js":
-/*!*******************************************************!*\
-  !*** ./build/shared/binary/chunks/packed_integer2.js ***!
-  \*******************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.PackedInteger2 = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../../asserts */ \"./build/shared/asserts/index.js\");\r\nclass PackedInteger2 {\r\n    constructor(integer, options) {\r\n        var _a, _b;\r\n        let offset = (_a = options === null || options === void 0 ? void 0 : options.offset) !== null && _a !== void 0 ? _a : 0;\r\n        let length = (_b = options === null || options === void 0 ? void 0 : options.length) !== null && _b !== void 0 ? _b : 16 - offset;\r\n        asserts_1.IntegerAssert.between(0, offset, 16);\r\n        asserts_1.IntegerAssert.between(0, length, 16 - offset);\r\n        this.integer = integer;\r\n        this.offset = offset;\r\n        this.length = length;\r\n    }\r\n    get value() {\r\n        let a = 32 - this.offset - this.length;\r\n        let b = 32 - this.length;\r\n        return (this.integer.value << a) >>> b;\r\n    }\r\n    set value(value) {\r\n        let a = this.offset;\r\n        let b = 32 - this.length;\r\n        let c = 32 - this.offset - this.length;\r\n        let m = ((0xFFFF >> a) << b) >>> c;\r\n        asserts_1.IntegerAssert.between(0, value, m >>> a);\r\n        this.integer.value = ((this.integer.value & ~m) | ((value << a) & m)) >>> 0;\r\n    }\r\n}\r\nexports.PackedInteger2 = PackedInteger2;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/chunks/packed_integer2.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/chunks/packed_integer3.js":
-/*!*******************************************************!*\
-  !*** ./build/shared/binary/chunks/packed_integer3.js ***!
-  \*******************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.PackedInteger3 = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../../asserts */ \"./build/shared/asserts/index.js\");\r\nclass PackedInteger3 {\r\n    constructor(integer, options) {\r\n        var _a, _b;\r\n        let offset = (_a = options === null || options === void 0 ? void 0 : options.offset) !== null && _a !== void 0 ? _a : 0;\r\n        let length = (_b = options === null || options === void 0 ? void 0 : options.length) !== null && _b !== void 0 ? _b : 24 - offset;\r\n        asserts_1.IntegerAssert.between(0, offset, 24);\r\n        asserts_1.IntegerAssert.between(0, length, 24 - offset);\r\n        this.integer = integer;\r\n        this.offset = offset;\r\n        this.length = length;\r\n    }\r\n    get value() {\r\n        let a = 32 - this.offset - this.length;\r\n        let b = 32 - this.length;\r\n        return (this.integer.value << a) >>> b;\r\n    }\r\n    set value(value) {\r\n        let a = this.offset;\r\n        let b = 32 - this.length;\r\n        let c = 32 - this.offset - this.length;\r\n        let m = ((0xFFFFFF >> a) << b) >>> c;\r\n        asserts_1.IntegerAssert.between(0, value, m >>> a);\r\n        this.integer.value = ((this.integer.value & ~m) | ((value << a) & m)) >>> 0;\r\n    }\r\n}\r\nexports.PackedInteger3 = PackedInteger3;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/chunks/packed_integer3.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/chunks/packed_integer4.js":
-/*!*******************************************************!*\
-  !*** ./build/shared/binary/chunks/packed_integer4.js ***!
-  \*******************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.PackedInteger4 = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../../asserts */ \"./build/shared/asserts/index.js\");\r\nclass PackedInteger4 {\r\n    constructor(integer, options) {\r\n        var _a, _b;\r\n        let offset = (_a = options === null || options === void 0 ? void 0 : options.offset) !== null && _a !== void 0 ? _a : 0;\r\n        let length = (_b = options === null || options === void 0 ? void 0 : options.length) !== null && _b !== void 0 ? _b : 32 - offset;\r\n        asserts_1.IntegerAssert.between(0, offset, 32);\r\n        asserts_1.IntegerAssert.between(0, length, 32 - offset);\r\n        this.integer = integer;\r\n        this.offset = offset;\r\n        this.length = length;\r\n    }\r\n    get value() {\r\n        let a = 32 - this.offset - this.length;\r\n        let b = 32 - this.length;\r\n        return (this.integer.value << a) >>> b;\r\n    }\r\n    set value(value) {\r\n        let a = this.offset;\r\n        let b = 32 - this.length;\r\n        let c = 32 - this.offset - this.length;\r\n        let m = ((0xFFFFFFFF >> a) << b) >>> c;\r\n        asserts_1.IntegerAssert.between(0, value, m >>> a);\r\n        this.integer.value = ((this.integer.value & ~m) | ((value << a) & m)) >>> 0;\r\n    }\r\n}\r\nexports.PackedInteger4 = PackedInteger4;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/chunks/packed_integer4.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/complement.js":
-/*!*******************************************!*\
-  !*** ./build/shared/binary/complement.js ***!
-  \*******************************************/
-/***/ ((__unused_webpack_module, exports) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/complement.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/cursor.js":
-/*!***************************************!*\
-  !*** ./build/shared/binary/cursor.js ***!
-  \***************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.Cursor = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../asserts */ \"./build/shared/asserts/index.js\");\r\nclass Cursor {\r\n    constructor(options) {\r\n        var _a;\r\n        let offset = (_a = options === null || options === void 0 ? void 0 : options.offset) !== null && _a !== void 0 ? _a : 0;\r\n        asserts_1.IntegerAssert.atLeast(0, offset);\r\n        this.offset = offset;\r\n    }\r\n}\r\nexports.Cursor = Cursor;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/cursor.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/endian.js":
-/*!***************************************!*\
-  !*** ./build/shared/binary/endian.js ***!
-  \***************************************/
-/***/ ((__unused_webpack_module, exports) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/endian.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/index.js":
-/*!**************************************!*\
-  !*** ./build/shared/binary/index.js ***!
-  \**************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-eval("\r\nvar __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {\r\n    if (k2 === undefined) k2 = k;\r\n    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });\r\n}) : (function(o, m, k, k2) {\r\n    if (k2 === undefined) k2 = k;\r\n    o[k2] = m[k];\r\n}));\r\nvar __exportStar = (this && this.__exportStar) || function(m, exports) {\r\n    for (var p in m) if (p !== \"default\" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);\r\n};\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.chunks = void 0;\r\nexports.chunks = __webpack_require__(/*! ./chunks */ \"./build/shared/binary/chunks/index.js\");\r\n__exportStar(__webpack_require__(/*! ./buffer */ \"./build/shared/binary/buffer.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./chunk */ \"./build/shared/binary/chunk.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./complement */ \"./build/shared/binary/complement.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./cursor */ \"./build/shared/binary/cursor.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./endian */ \"./build/shared/binary/endian.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./loadable */ \"./build/shared/binary/loadable.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./reader */ \"./build/shared/binary/reader.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./saveable */ \"./build/shared/binary/saveable.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./writer */ \"./build/shared/binary/writer.js\"), exports);\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/index.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/loadable.js":
-/*!*****************************************!*\
-  !*** ./build/shared/binary/loadable.js ***!
-  \*****************************************/
-/***/ ((__unused_webpack_module, exports) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/loadable.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/reader.js":
-/*!***************************************!*\
-  !*** ./build/shared/binary/reader.js ***!
-  \***************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.WindowedReader = exports.CachedReader = exports.BufferReader = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../asserts */ \"./build/shared/asserts/index.js\");\r\nconst is_1 = __webpack_require__(/*! ../is */ \"./build/shared/is.js\");\r\nconst buffer_1 = __webpack_require__(/*! ./buffer */ \"./build/shared/binary/buffer.js\");\r\nconst cursor_1 = __webpack_require__(/*! ./cursor */ \"./build/shared/binary/cursor.js\");\r\n;\r\nclass BufferReader {\r\n    constructor(options) {\r\n        var _a;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : buffer_1.Buffer.alloc(0);\r\n        this.buffer = buffer;\r\n    }\r\n    async read(cursor, target) {\r\n        let window = this.buffer.window({\r\n            offset: cursor.offset,\r\n            length: target.size()\r\n        });\r\n        window.copy(target);\r\n        cursor.offset += target.size();\r\n        return target;\r\n    }\r\n    size() {\r\n        return this.buffer.size();\r\n    }\r\n}\r\nexports.BufferReader = BufferReader;\r\n;\r\nclass CachedReader {\r\n    constructor(reader) {\r\n        this.reader = reader;\r\n        this.cached = undefined;\r\n    }\r\n    async read(cursor, target) {\r\n        if (is_1.is.absent(this.cached)) {\r\n            let buffer = buffer_1.Buffer.alloc(this.reader.size());\r\n            let cursor = new cursor_1.Cursor();\r\n            await buffer.load(cursor, this.reader);\r\n            this.cached = new BufferReader({\r\n                buffer: buffer\r\n            });\r\n        }\r\n        return this.cached.read(cursor, target);\r\n    }\r\n    size() {\r\n        return this.reader.size();\r\n    }\r\n}\r\nexports.CachedReader = CachedReader;\r\n;\r\nclass WindowedReader {\r\n    constructor(reader, options) {\r\n        var _a, _b;\r\n        let offset = (_a = options === null || options === void 0 ? void 0 : options.offset) !== null && _a !== void 0 ? _a : 0;\r\n        let length = (_b = options === null || options === void 0 ? void 0 : options.length) !== null && _b !== void 0 ? _b : reader.size() - offset;\r\n        asserts_1.IntegerAssert.between(0, offset, reader.size());\r\n        asserts_1.IntegerAssert.between(0, length, reader.size() - offset);\r\n        this.reader = reader;\r\n        this.offset = offset;\r\n        this.length = length;\r\n    }\r\n    async read(cursor, buffer) {\r\n        let offset = cursor.offset;\r\n        let length = buffer.size();\r\n        asserts_1.IntegerAssert.between(0, offset, this.length);\r\n        asserts_1.IntegerAssert.between(0, length, this.length);\r\n        await this.reader.read({ offset: this.offset + offset }, buffer);\r\n        cursor.offset += length;\r\n        return buffer;\r\n    }\r\n    size() {\r\n        return this.length;\r\n    }\r\n}\r\nexports.WindowedReader = WindowedReader;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/reader.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/saveable.js":
-/*!*****************************************!*\
-  !*** ./build/shared/binary/saveable.js ***!
-  \*****************************************/
-/***/ ((__unused_webpack_module, exports) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/saveable.js?");
-
-/***/ }),
-
-/***/ "./build/shared/binary/writer.js":
-/*!***************************************!*\
-  !*** ./build/shared/binary/writer.js ***!
-  \***************************************/
-/***/ ((__unused_webpack_module, exports) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/binary/writer.js?");
-
-/***/ }),
-
-/***/ "./build/shared/formats/index.js":
-/*!***************************************!*\
-  !*** ./build/shared/formats/index.js ***!
-  \***************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.wave = exports.soundfont = exports.riff = void 0;\r\nexports.riff = __webpack_require__(/*! ./riff */ \"./build/shared/formats/riff/index.js\");\r\nexports.soundfont = __webpack_require__(/*! ./soundfont */ \"./build/shared/formats/soundfont/index.js\");\r\nexports.wave = __webpack_require__(/*! ./wave */ \"./build/shared/formats/wave/index.js\");\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/formats/index.js?");
-
-/***/ }),
-
-/***/ "./build/shared/formats/riff/file.js":
-/*!*******************************************!*\
-  !*** ./build/shared/formats/riff/file.js ***!
-  \*******************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.File = void 0;\r\nconst header_1 = __webpack_require__(/*! ./header */ \"./build/shared/formats/riff/header.js\");\r\nconst binary_1 = __webpack_require__(/*! ../../binary */ \"./build/shared/binary/index.js\");\r\nclass File {\r\n    constructor() { }\r\n    static async parseChunk(cursor, reader) {\r\n        let header = new header_1.Header();\r\n        await header.load(cursor, reader);\r\n        let body = new binary_1.WindowedReader(reader, { offset: cursor.offset, length: header.size.value });\r\n        cursor.offset += header.size.value;\r\n        cursor.offset += cursor.offset % 2;\r\n        return {\r\n            header,\r\n            body\r\n        };\r\n    }\r\n}\r\nexports.File = File;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/formats/riff/file.js?");
-
-/***/ }),
-
-/***/ "./build/shared/formats/riff/header.js":
-/*!*********************************************!*\
-  !*** ./build/shared/formats/riff/header.js ***!
-  \*********************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.Header = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../../asserts */ \"./build/shared/asserts/index.js\");\r\nconst binary_1 = __webpack_require__(/*! ../../binary */ \"./build/shared/binary/index.js\");\r\nconst chunks_1 = __webpack_require__(/*! ../../binary/chunks */ \"./build/shared/binary/chunks/index.js\");\r\nclass Header extends binary_1.Chunk {\r\n    constructor(options) {\r\n        var _a;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : binary_1.Buffer.alloc(8);\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 8);\r\n        super(buffer);\r\n        this.type = new chunks_1.ByteString({\r\n            buffer: buffer.window({ offset: 0, length: 4 })\r\n        });\r\n        this.size = new chunks_1.Integer4({\r\n            buffer: buffer.window({ offset: 4, length: 4 })\r\n        });\r\n    }\r\n}\r\nexports.Header = Header;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/formats/riff/header.js?");
-
-/***/ }),
-
-/***/ "./build/shared/formats/riff/index.js":
-/*!********************************************!*\
-  !*** ./build/shared/formats/riff/index.js ***!
-  \********************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-eval("\r\nvar __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {\r\n    if (k2 === undefined) k2 = k;\r\n    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });\r\n}) : (function(o, m, k, k2) {\r\n    if (k2 === undefined) k2 = k;\r\n    o[k2] = m[k];\r\n}));\r\nvar __exportStar = (this && this.__exportStar) || function(m, exports) {\r\n    for (var p in m) if (p !== \"default\" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);\r\n};\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\n__exportStar(__webpack_require__(/*! ./file */ \"./build/shared/formats/riff/file.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./header */ \"./build/shared/formats/riff/header.js\"), exports);\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/formats/riff/index.js?");
-
-/***/ }),
-
-/***/ "./build/shared/formats/soundfont/index.js":
-/*!*************************************************!*\
-  !*** ./build/shared/formats/soundfont/index.js ***!
-  \*************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.File = exports.SampleHeader = exports.InstrumentGenerator = exports.InstrumentModulator = exports.InstrumentBag = exports.Instrument = exports.PresetGenerator = exports.PresetModulator = exports.PresetBag = exports.PresetHeader = exports.Transform = exports.Generator = exports.Modulator = exports.GeneratorParameters = exports.GeneratorType = exports.SampleLink = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../../asserts */ \"./build/shared/asserts/index.js\");\r\nconst binary_1 = __webpack_require__(/*! ../../binary */ \"./build/shared/binary/index.js\");\r\nconst chunks_1 = __webpack_require__(/*! ../../binary/chunks */ \"./build/shared/binary/chunks/index.js\");\r\nconst riff = __webpack_require__(/*! ../riff */ \"./build/shared/formats/riff/index.js\");\r\nvar SampleLink;\r\n(function (SampleLink) {\r\n    SampleLink[SampleLink[\"MONO\"] = 1] = \"MONO\";\r\n    SampleLink[SampleLink[\"RIGHT\"] = 2] = \"RIGHT\";\r\n    SampleLink[SampleLink[\"LEFT\"] = 4] = \"LEFT\";\r\n    SampleLink[SampleLink[\"LINKED\"] = 8] = \"LINKED\";\r\n    SampleLink[SampleLink[\"ROM_MONO\"] = 32769] = \"ROM_MONO\";\r\n    SampleLink[SampleLink[\"ROM_RIGHT\"] = 32770] = \"ROM_RIGHT\";\r\n    SampleLink[SampleLink[\"ROM_LEFT\"] = 32772] = \"ROM_LEFT\";\r\n    SampleLink[SampleLink[\"ROM_LINKED\"] = 32776] = \"ROM_LINKED\";\r\n})(SampleLink = exports.SampleLink || (exports.SampleLink = {}));\r\n;\r\nvar GeneratorType;\r\n(function (GeneratorType) {\r\n    GeneratorType[GeneratorType[\"START_ADDRESS_OFFSET\"] = 0] = \"START_ADDRESS_OFFSET\";\r\n    GeneratorType[GeneratorType[\"END_ADDRESS_OFFSET\"] = 1] = \"END_ADDRESS_OFFSET\";\r\n    GeneratorType[GeneratorType[\"START_LOOP_ADDRESS_OFFSET\"] = 2] = \"START_LOOP_ADDRESS_OFFSET\";\r\n    GeneratorType[GeneratorType[\"END_LOOP_ADDRESS_OFFSET\"] = 3] = \"END_LOOP_ADDRESS_OFFSET\";\r\n    GeneratorType[GeneratorType[\"START_ADDRESS_COARSE_OFFSET\"] = 4] = \"START_ADDRESS_COARSE_OFFSET\";\r\n    GeneratorType[GeneratorType[\"MOD_LFO_TO_PITCH\"] = 5] = \"MOD_LFO_TO_PITCH\";\r\n    GeneratorType[GeneratorType[\"VIB_LFO_TO_PITCH\"] = 6] = \"VIB_LFO_TO_PITCH\";\r\n    GeneratorType[GeneratorType[\"MOD_ENV_TO_PITCH\"] = 7] = \"MOD_ENV_TO_PITCH\";\r\n    GeneratorType[GeneratorType[\"INITIAL_FILTER_FC\"] = 8] = \"INITIAL_FILTER_FC\";\r\n    GeneratorType[GeneratorType[\"INITIAL_FILTER_Q\"] = 9] = \"INITIAL_FILTER_Q\";\r\n    GeneratorType[GeneratorType[\"MOD_FLO_TO_FILTER_FC\"] = 10] = \"MOD_FLO_TO_FILTER_FC\";\r\n    GeneratorType[GeneratorType[\"MOD_ENV_TO_FILTER_FC\"] = 11] = \"MOD_ENV_TO_FILTER_FC\";\r\n    GeneratorType[GeneratorType[\"END_ADDRESS_COARSE_OFFSET\"] = 12] = \"END_ADDRESS_COARSE_OFFSET\";\r\n    GeneratorType[GeneratorType[\"MOD_LFO_TO_VOLUME\"] = 13] = \"MOD_LFO_TO_VOLUME\";\r\n    GeneratorType[GeneratorType[\"UNUSED_1\"] = 14] = \"UNUSED_1\";\r\n    GeneratorType[GeneratorType[\"CHORUS_EFFECT_SEND\"] = 15] = \"CHORUS_EFFECT_SEND\";\r\n    GeneratorType[GeneratorType[\"REVERB_EFFECT_SEND\"] = 16] = \"REVERB_EFFECT_SEND\";\r\n    GeneratorType[GeneratorType[\"PAN\"] = 17] = \"PAN\";\r\n    GeneratorType[GeneratorType[\"UNUSED_2\"] = 18] = \"UNUSED_2\";\r\n    GeneratorType[GeneratorType[\"UNUSED_3\"] = 19] = \"UNUSED_3\";\r\n    GeneratorType[GeneratorType[\"UNUSED_4\"] = 20] = \"UNUSED_4\";\r\n    GeneratorType[GeneratorType[\"MOD_LFO_DELAY\"] = 21] = \"MOD_LFO_DELAY\";\r\n    GeneratorType[GeneratorType[\"MOD_LFO_FREQ\"] = 22] = \"MOD_LFO_FREQ\";\r\n    GeneratorType[GeneratorType[\"VIB_LFO_DELAY\"] = 23] = \"VIB_LFO_DELAY\";\r\n    GeneratorType[GeneratorType[\"VIB_LFO_FREQ\"] = 24] = \"VIB_LFO_FREQ\";\r\n    GeneratorType[GeneratorType[\"MOD_ENV_DELAY\"] = 25] = \"MOD_ENV_DELAY\";\r\n    GeneratorType[GeneratorType[\"MOD_ENV_ATTACK\"] = 26] = \"MOD_ENV_ATTACK\";\r\n    GeneratorType[GeneratorType[\"MOD_ENV_HOLD\"] = 27] = \"MOD_ENV_HOLD\";\r\n    GeneratorType[GeneratorType[\"MOD_ENV_DECAY\"] = 28] = \"MOD_ENV_DECAY\";\r\n    GeneratorType[GeneratorType[\"MOD_ENV_SUSTAIN\"] = 29] = \"MOD_ENV_SUSTAIN\";\r\n    GeneratorType[GeneratorType[\"MOD_ENV_RELEASE\"] = 30] = \"MOD_ENV_RELEASE\";\r\n    GeneratorType[GeneratorType[\"MOD_ENV_KEY_TO_HOLD\"] = 31] = \"MOD_ENV_KEY_TO_HOLD\";\r\n    GeneratorType[GeneratorType[\"MOD_ENV_KEY_TO_DECAY\"] = 32] = \"MOD_ENV_KEY_TO_DECAY\";\r\n    GeneratorType[GeneratorType[\"VOL_ENV_DELAY\"] = 33] = \"VOL_ENV_DELAY\";\r\n    GeneratorType[GeneratorType[\"VOL_ENV_ATTACK\"] = 34] = \"VOL_ENV_ATTACK\";\r\n    GeneratorType[GeneratorType[\"VOL_ENV_HOLD\"] = 35] = \"VOL_ENV_HOLD\";\r\n    GeneratorType[GeneratorType[\"VOL_ENV_DECAY\"] = 36] = \"VOL_ENV_DECAY\";\r\n    GeneratorType[GeneratorType[\"VOL_ENV_SUSTAIN\"] = 37] = \"VOL_ENV_SUSTAIN\";\r\n    GeneratorType[GeneratorType[\"VOL_ENV_RELEASE\"] = 38] = \"VOL_ENV_RELEASE\";\r\n    GeneratorType[GeneratorType[\"VOL_ENV_KEY_TO_HOLD\"] = 39] = \"VOL_ENV_KEY_TO_HOLD\";\r\n    GeneratorType[GeneratorType[\"VOL_ENV_KEY_TO_DECAY\"] = 40] = \"VOL_ENV_KEY_TO_DECAY\";\r\n    GeneratorType[GeneratorType[\"INSTRUMENT\"] = 41] = \"INSTRUMENT\";\r\n    GeneratorType[GeneratorType[\"RESERVED_1\"] = 42] = \"RESERVED_1\";\r\n    GeneratorType[GeneratorType[\"KEY_RANGE\"] = 43] = \"KEY_RANGE\";\r\n    GeneratorType[GeneratorType[\"VEL_RANGE\"] = 44] = \"VEL_RANGE\";\r\n    GeneratorType[GeneratorType[\"START_LOOP_ADDRESS_COARSE_OFFSET\"] = 45] = \"START_LOOP_ADDRESS_COARSE_OFFSET\";\r\n    GeneratorType[GeneratorType[\"KEYNUM\"] = 46] = \"KEYNUM\";\r\n    GeneratorType[GeneratorType[\"VELOCITY\"] = 47] = \"VELOCITY\";\r\n    GeneratorType[GeneratorType[\"INITIAL_ATTENUATION\"] = 48] = \"INITIAL_ATTENUATION\";\r\n    GeneratorType[GeneratorType[\"RESERVED_2\"] = 49] = \"RESERVED_2\";\r\n    GeneratorType[GeneratorType[\"END_LOOP_ADDRESS_COARSE_OFFSET\"] = 50] = \"END_LOOP_ADDRESS_COARSE_OFFSET\";\r\n    GeneratorType[GeneratorType[\"COARSE_TUNE\"] = 51] = \"COARSE_TUNE\";\r\n    GeneratorType[GeneratorType[\"FINE_TUNE\"] = 52] = \"FINE_TUNE\";\r\n    GeneratorType[GeneratorType[\"SAMPLE_ID\"] = 53] = \"SAMPLE_ID\";\r\n    GeneratorType[GeneratorType[\"SAMPLE_MODES\"] = 54] = \"SAMPLE_MODES\";\r\n    GeneratorType[GeneratorType[\"RESERVED_3\"] = 55] = \"RESERVED_3\";\r\n    GeneratorType[GeneratorType[\"SCALE_TUNING\"] = 56] = \"SCALE_TUNING\";\r\n    GeneratorType[GeneratorType[\"EXCLUSIVE_CLASS\"] = 57] = \"EXCLUSIVE_CLASS\";\r\n    GeneratorType[GeneratorType[\"OVERRIDING_ROOT_KEY\"] = 58] = \"OVERRIDING_ROOT_KEY\";\r\n    GeneratorType[GeneratorType[\"UNUSED_5\"] = 59] = \"UNUSED_5\";\r\n    GeneratorType[GeneratorType[\"END_OPERATOR\"] = 60] = \"END_OPERATOR\";\r\n})(GeneratorType = exports.GeneratorType || (exports.GeneratorType = {}));\r\n;\r\nclass GeneratorParameters extends binary_1.Chunk {\r\n    constructor(options) {\r\n        var _a;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : binary_1.Buffer.alloc(2);\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 2);\r\n        super(buffer);\r\n        this.first = new chunks_1.Integer1({\r\n            buffer: buffer.window({ offset: 0, length: 1 })\r\n        });\r\n        this.second = new chunks_1.Integer1({\r\n            buffer: buffer.window({ offset: 1, length: 1 })\r\n        });\r\n        this.signed = new chunks_1.Integer2({\r\n            buffer: buffer.window({ offset: 0, length: 2 }),\r\n            complement: \"twos\"\r\n        });\r\n        this.unsigned = new chunks_1.Integer2({\r\n            buffer: buffer.window({ offset: 0, length: 2 })\r\n        });\r\n    }\r\n    toJSON() {\r\n        return {\r\n            first: this.first.value,\r\n            second: this.second.value,\r\n            amount_signed: this.signed.value,\r\n            amount: this.unsigned.value\r\n        };\r\n    }\r\n}\r\nexports.GeneratorParameters = GeneratorParameters;\r\n;\r\nclass Modulator extends chunks_1.Integer2 {\r\n    constructor(options) {\r\n        super(options);\r\n        this.index = new chunks_1.PackedInteger2(this, {\r\n            offset: 0,\r\n            length: 7\r\n        });\r\n        this.continuous = new chunks_1.PackedInteger2(this, {\r\n            offset: 7,\r\n            length: 1\r\n        });\r\n        this.direction = new chunks_1.PackedInteger2(this, {\r\n            offset: 8,\r\n            length: 1\r\n        });\r\n        this.polarity = new chunks_1.PackedInteger2(this, {\r\n            offset: 9,\r\n            length: 1\r\n        });\r\n        this.type = new chunks_1.PackedInteger2(this, {\r\n            offset: 10,\r\n            length: 6\r\n        });\r\n    }\r\n    toJSON() {\r\n        return {\r\n            index: this.index.value,\r\n            continuous: this.continuous.value,\r\n            direction: this.direction.value,\r\n            polarity: this.polarity.value,\r\n            type: this.type.value\r\n        };\r\n    }\r\n}\r\nexports.Modulator = Modulator;\r\n;\r\n// TODO: Extend from chunk?\r\nclass Generator extends chunks_1.Integer2 {\r\n    constructor(options) {\r\n        super(options);\r\n        this.type = new chunks_1.PackedInteger2(this, {\r\n            offset: 0,\r\n            length: 15\r\n        });\r\n        this.link = new chunks_1.PackedInteger2(this, {\r\n            offset: 15,\r\n            length: 1\r\n        });\r\n    }\r\n    toJSON() {\r\n        return {\r\n            type: this.type.value,\r\n            link: this.link.value\r\n        };\r\n    }\r\n}\r\nexports.Generator = Generator;\r\n;\r\nclass Transform extends chunks_1.Integer2 {\r\n    constructor(options) {\r\n        super(options);\r\n        this.index = new chunks_1.PackedInteger2(this, {\r\n            offset: 0,\r\n            length: 16\r\n        });\r\n    }\r\n    toJSON() {\r\n        return {\r\n            index: this.index.value\r\n        };\r\n    }\r\n}\r\nexports.Transform = Transform;\r\n;\r\nclass PresetHeader extends binary_1.Chunk {\r\n    constructor(options) {\r\n        var _a;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : binary_1.Buffer.alloc(38);\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 38);\r\n        super(buffer);\r\n        this.name = new chunks_1.ByteString({\r\n            buffer: buffer.window({\r\n                offset: 0,\r\n                length: 20\r\n            })\r\n        });\r\n        this.preset = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 20,\r\n                length: 2\r\n            })\r\n        });\r\n        this.bank = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 22,\r\n                length: 2\r\n            })\r\n        });\r\n        this.pbag_index = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 24,\r\n                length: 2\r\n            })\r\n        });\r\n        this.library = new chunks_1.Integer4({\r\n            buffer: buffer.window({\r\n                offset: 26,\r\n                length: 4\r\n            })\r\n        });\r\n        this.genre = new chunks_1.Integer4({\r\n            buffer: buffer.window({\r\n                offset: 30,\r\n                length: 4\r\n            })\r\n        });\r\n        this.morphology = new chunks_1.Integer4({\r\n            buffer: buffer.window({\r\n                offset: 34,\r\n                length: 4\r\n            })\r\n        });\r\n    }\r\n    toJSON() {\r\n        return {\r\n            name: this.name.value,\r\n            preset: this.preset.value,\r\n            bank: this.bank.value,\r\n            pbag_index: this.pbag_index.value,\r\n            library: this.library.value,\r\n            genre: this.genre.value,\r\n            morphology: this.morphology.value\r\n        };\r\n    }\r\n}\r\nexports.PresetHeader = PresetHeader;\r\n;\r\nclass PresetBag extends binary_1.Chunk {\r\n    constructor(options) {\r\n        var _a;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : binary_1.Buffer.alloc(4);\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 4);\r\n        super(buffer);\r\n        this.pgen_index = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 0,\r\n                length: 2\r\n            })\r\n        });\r\n        this.pmod_index = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 2,\r\n                length: 2\r\n            })\r\n        });\r\n    }\r\n    toJSON() {\r\n        return {\r\n            pgen_index: this.pgen_index.value,\r\n            pmod_index: this.pmod_index.value\r\n        };\r\n    }\r\n}\r\nexports.PresetBag = PresetBag;\r\n;\r\nclass PresetModulator extends binary_1.Chunk {\r\n    constructor(options) {\r\n        var _a;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : binary_1.Buffer.alloc(10);\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 10);\r\n        super(buffer);\r\n        this.modulator_source_operator = new Modulator({\r\n            buffer: buffer.window({\r\n                offset: 0,\r\n                length: 2\r\n            })\r\n        });\r\n        this.generator_destination_operator = new Generator({\r\n            buffer: buffer.window({\r\n                offset: 2,\r\n                length: 2\r\n            })\r\n        });\r\n        this.modulator_amount = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 4,\r\n                length: 2\r\n            }),\r\n            complement: \"twos\"\r\n        });\r\n        this.modulator_amount_source_operator = new Modulator({\r\n            buffer: buffer.window({\r\n                offset: 6,\r\n                length: 2\r\n            })\r\n        });\r\n        this.modulator_transform_operator = new Transform({\r\n            buffer: buffer.window({\r\n                offset: 8,\r\n                length: 2\r\n            })\r\n        });\r\n    }\r\n    toJSON() {\r\n        return {\r\n            modulator_source_operator: this.modulator_source_operator.toJSON(),\r\n            generator_destination_operator: this.generator_destination_operator.toJSON(),\r\n            modulator_amount: this.modulator_amount.value,\r\n            modulator_amount_source_operator: this.modulator_amount_source_operator.toJSON(),\r\n            modulator_transform_operator: this.modulator_transform_operator.toJSON()\r\n        };\r\n    }\r\n}\r\nexports.PresetModulator = PresetModulator;\r\n;\r\nclass PresetGenerator extends binary_1.Chunk {\r\n    constructor(options) {\r\n        var _a;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : binary_1.Buffer.alloc(4);\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 4);\r\n        super(buffer);\r\n        this.generator = new Generator({\r\n            buffer: buffer.window({\r\n                offset: 0,\r\n                length: 2\r\n            })\r\n        });\r\n        this.parameters = new GeneratorParameters({\r\n            buffer: buffer.window({\r\n                offset: 2,\r\n                length: 2\r\n            })\r\n        });\r\n    }\r\n    toJSON() {\r\n        return {\r\n            generator: this.generator.toJSON(),\r\n            amount: this.parameters.toJSON()\r\n        };\r\n    }\r\n}\r\nexports.PresetGenerator = PresetGenerator;\r\n;\r\nclass Instrument extends binary_1.Chunk {\r\n    constructor(options) {\r\n        var _a;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : binary_1.Buffer.alloc(22);\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 22);\r\n        super(buffer);\r\n        this.name = new chunks_1.ByteString({\r\n            buffer: buffer.window({\r\n                offset: 0,\r\n                length: 20\r\n            })\r\n        });\r\n        this.ibag_index = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 20,\r\n                length: 2\r\n            })\r\n        });\r\n    }\r\n    toJSON() {\r\n        return {\r\n            name: this.name.value,\r\n            ibag_index: this.ibag_index.value\r\n        };\r\n    }\r\n}\r\nexports.Instrument = Instrument;\r\n;\r\nclass InstrumentBag extends binary_1.Chunk {\r\n    constructor(options) {\r\n        var _a;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : binary_1.Buffer.alloc(4);\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 4);\r\n        super(buffer);\r\n        this.igen_index = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 0,\r\n                length: 2\r\n            })\r\n        });\r\n        this.imod_index = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 2,\r\n                length: 2\r\n            })\r\n        });\r\n    }\r\n    toJSON() {\r\n        return {\r\n            igen_index: this.igen_index.value,\r\n            imod_index: this.imod_index.value\r\n        };\r\n    }\r\n}\r\nexports.InstrumentBag = InstrumentBag;\r\n;\r\nclass InstrumentModulator extends binary_1.Chunk {\r\n    constructor(options) {\r\n        var _a;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : binary_1.Buffer.alloc(10);\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 10);\r\n        super(buffer);\r\n        this.modulator_source_operator = new Modulator({\r\n            buffer: buffer.window({\r\n                offset: 0,\r\n                length: 2\r\n            })\r\n        });\r\n        this.generator_destination_operator = new Generator({\r\n            buffer: buffer.window({\r\n                offset: 2,\r\n                length: 2\r\n            })\r\n        });\r\n        this.modulator_amount = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 4,\r\n                length: 2\r\n            }),\r\n            complement: \"twos\"\r\n        });\r\n        this.modulator_amount_source_operator = new Modulator({\r\n            buffer: buffer.window({\r\n                offset: 6,\r\n                length: 2\r\n            })\r\n        });\r\n        this.modulator_transform_operator = new Transform({\r\n            buffer: buffer.window({\r\n                offset: 8,\r\n                length: 2\r\n            })\r\n        });\r\n    }\r\n    toJSON() {\r\n        return {\r\n            modulator_source_operator: this.modulator_source_operator.toJSON(),\r\n            generator_destination_operator: this.generator_destination_operator.toJSON(),\r\n            modulator_amount: this.modulator_amount.value,\r\n            modulator_amount_source_operator: this.modulator_amount_source_operator.toJSON(),\r\n            modulator_transform_operator: this.modulator_transform_operator.toJSON()\r\n        };\r\n    }\r\n}\r\nexports.InstrumentModulator = InstrumentModulator;\r\n;\r\nclass InstrumentGenerator extends binary_1.Chunk {\r\n    constructor(options) {\r\n        var _a;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : binary_1.Buffer.alloc(4);\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 4);\r\n        super(buffer);\r\n        this.generator = new Generator({\r\n            buffer: buffer.window({\r\n                offset: 0,\r\n                length: 2\r\n            })\r\n        });\r\n        this.parameters = new GeneratorParameters({\r\n            buffer: buffer.window({\r\n                offset: 2,\r\n                length: 2\r\n            })\r\n        });\r\n    }\r\n    toJSON() {\r\n        return {\r\n            generator: this.generator.value,\r\n            amount: this.parameters.toJSON()\r\n        };\r\n    }\r\n}\r\nexports.InstrumentGenerator = InstrumentGenerator;\r\n;\r\nclass SampleHeader extends binary_1.Chunk {\r\n    constructor(options) {\r\n        var _a;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : binary_1.Buffer.alloc(46);\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 46);\r\n        super(buffer);\r\n        this.name = new chunks_1.ByteString({\r\n            buffer: buffer.window({\r\n                offset: 0,\r\n                length: 20\r\n            })\r\n        });\r\n        this.start = new chunks_1.Integer4({\r\n            buffer: buffer.window({\r\n                offset: 20,\r\n                length: 4\r\n            })\r\n        });\r\n        this.end = new chunks_1.Integer4({\r\n            buffer: buffer.window({\r\n                offset: 24,\r\n                length: 4\r\n            })\r\n        });\r\n        this.loop_start = new chunks_1.Integer4({\r\n            buffer: buffer.window({\r\n                offset: 28,\r\n                length: 4\r\n            })\r\n        });\r\n        this.loop_end = new chunks_1.Integer4({\r\n            buffer: buffer.window({\r\n                offset: 32,\r\n                length: 4\r\n            })\r\n        });\r\n        this.sample_rate = new chunks_1.Integer4({\r\n            buffer: buffer.window({\r\n                offset: 36,\r\n                length: 4\r\n            })\r\n        });\r\n        this.original_key = new chunks_1.Integer1({\r\n            buffer: buffer.window({\r\n                offset: 40,\r\n                length: 1\r\n            })\r\n        });\r\n        this.correction = new chunks_1.Integer1({\r\n            buffer: buffer.window({\r\n                offset: 41,\r\n                length: 1\r\n            }),\r\n            complement: \"twos\"\r\n        });\r\n        this.link = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 42,\r\n                length: 2\r\n            })\r\n        });\r\n        this.type = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 44,\r\n                length: 2\r\n            })\r\n        });\r\n    }\r\n    toJSON() {\r\n        return {\r\n            name: this.name.value,\r\n            start: this.start.value,\r\n            end: this.end.value,\r\n            loop_start: this.loop_start.value,\r\n            loop_end: this.loop_end.value,\r\n            sample_rate: this.sample_rate.value,\r\n            original_key: this.original_key.value,\r\n            correction: this.correction.value,\r\n            link: this.link.value,\r\n            type: this.type.value\r\n        };\r\n    }\r\n}\r\nexports.SampleHeader = SampleHeader;\r\n;\r\nclass File {\r\n    constructor() {\r\n        this.smpl = new binary_1.BufferReader();\r\n        this.sm24 = new binary_1.BufferReader();\r\n        this.phdr = new Array();\r\n        this.pbag = new Array();\r\n        this.pmod = new Array();\r\n        this.pgen = new Array();\r\n        this.inst = new Array();\r\n        this.ibag = new Array();\r\n        this.imod = new Array();\r\n        this.igen = new Array();\r\n        this.shdr = new Array();\r\n    }\r\n    async load(cursor, reader) {\r\n        // TODO: Reset state or make static.\r\n        let chunk = await riff.File.parseChunk(cursor, reader);\r\n        console.log(\"\" + chunk.header.type.value + \": \" + chunk.header.size.value);\r\n        asserts_1.StringAssert.identical(chunk.header.type.value, \"RIFF\");\r\n        {\r\n            let reader = chunk.body;\r\n            let cursor = new binary_1.Cursor();\r\n            let type = await new chunks_1.ByteString({ buffer: binary_1.Buffer.alloc(4) }).load(cursor, reader);\r\n            asserts_1.StringAssert.identical(type.value, \"sfbk\");\r\n            while (cursor.offset < reader.size()) {\r\n                let chunk = await riff.File.parseChunk(cursor, reader);\r\n                console.log(\"\\t\" + chunk.header.type.value + \": \" + chunk.header.size.value);\r\n                asserts_1.StringAssert.identical(chunk.header.type.value, \"LIST\");\r\n                {\r\n                    let reader = chunk.body;\r\n                    let cursor = new binary_1.Cursor();\r\n                    let type = await new chunks_1.ByteString({ buffer: binary_1.Buffer.alloc(4) }).load(cursor, reader);\r\n                    if (false) {}\r\n                    else if (type.value === \"INFO\") {\r\n                        while (cursor.offset < reader.size()) {\r\n                            let chunk = await riff.File.parseChunk(cursor, reader);\r\n                            console.log(\"\\t\\t\" + chunk.header.type.value + \": \" + chunk.header.size.value);\r\n                            if (false) {}\r\n                            else if (chunk.header.type.value === \"ifil\") {\r\n                            }\r\n                            else if (chunk.header.type.value === \"INAM\") {\r\n                            }\r\n                            else if (chunk.header.type.value === \"ISFT\") {\r\n                            }\r\n                            else if (chunk.header.type.value === \"ICOP\") {\r\n                            }\r\n                            else if (chunk.header.type.value === \"IENG\") {\r\n                            }\r\n                            else if (chunk.header.type.value === \"ICMT\") {\r\n                            }\r\n                        }\r\n                    }\r\n                    else if (type.value === \"sdta\") {\r\n                        while (cursor.offset < reader.size()) {\r\n                            let chunk = await riff.File.parseChunk(cursor, reader);\r\n                            console.log(\"\\t\\t\" + chunk.header.type.value + \": \" + chunk.header.size.value);\r\n                            if (false) {}\r\n                            else if (chunk.header.type.value === \"smpl\") {\r\n                                this.smpl = chunk.body;\r\n                            }\r\n                            else if (chunk.header.type.value === \"sm24\") {\r\n                                this.sm24 = chunk.body;\r\n                            }\r\n                        }\r\n                    }\r\n                    else if (type.value === \"pdta\") {\r\n                        while (cursor.offset < reader.size()) {\r\n                            let chunk = await riff.File.parseChunk(cursor, reader);\r\n                            console.log(\"\\t\\t\" + chunk.header.type.value + \": \" + chunk.header.size.value);\r\n                            if (false) {}\r\n                            else if (chunk.header.type.value === \"phdr\") {\r\n                                let reader = chunk.body;\r\n                                let cursor = new binary_1.Cursor();\r\n                                while (cursor.offset < reader.size()) {\r\n                                    let header = await new PresetHeader().load(cursor, reader);\r\n                                    this.phdr.push(header);\r\n                                }\r\n                            }\r\n                            else if (chunk.header.type.value === \"pbag\") {\r\n                                let reader = chunk.body;\r\n                                let cursor = new binary_1.Cursor();\r\n                                while (cursor.offset < reader.size()) {\r\n                                    let header = await new PresetBag().load(cursor, reader);\r\n                                    this.pbag.push(header);\r\n                                }\r\n                            }\r\n                            else if (chunk.header.type.value === \"pmod\") {\r\n                                let reader = chunk.body;\r\n                                let cursor = new binary_1.Cursor();\r\n                                while (cursor.offset < reader.size()) {\r\n                                    let header = await new PresetModulator().load(cursor, reader);\r\n                                    this.pmod.push(header);\r\n                                }\r\n                            }\r\n                            else if (chunk.header.type.value === \"pgen\") {\r\n                                let reader = chunk.body;\r\n                                let cursor = new binary_1.Cursor();\r\n                                while (cursor.offset < reader.size()) {\r\n                                    let header = await new PresetGenerator().load(cursor, reader);\r\n                                    this.pgen.push(header);\r\n                                }\r\n                            }\r\n                            else if (chunk.header.type.value === \"inst\") {\r\n                                let reader = chunk.body;\r\n                                let cursor = new binary_1.Cursor();\r\n                                while (cursor.offset < reader.size()) {\r\n                                    let header = await new Instrument().load(cursor, reader);\r\n                                    this.inst.push(header);\r\n                                }\r\n                            }\r\n                            else if (chunk.header.type.value === \"ibag\") {\r\n                                let reader = chunk.body;\r\n                                let cursor = new binary_1.Cursor();\r\n                                while (cursor.offset < reader.size()) {\r\n                                    let header = await new InstrumentBag().load(cursor, reader);\r\n                                    this.ibag.push(header);\r\n                                }\r\n                            }\r\n                            else if (chunk.header.type.value === \"imod\") {\r\n                                let reader = chunk.body;\r\n                                let cursor = new binary_1.Cursor();\r\n                                while (cursor.offset < reader.size()) {\r\n                                    let header = await new InstrumentModulator().load(cursor, reader);\r\n                                    this.imod.push(header);\r\n                                }\r\n                            }\r\n                            else if (chunk.header.type.value === \"igen\") {\r\n                                let reader = chunk.body;\r\n                                let cursor = new binary_1.Cursor();\r\n                                while (cursor.offset < reader.size()) {\r\n                                    let header = await new InstrumentGenerator().load(cursor, reader);\r\n                                    this.igen.push(header);\r\n                                }\r\n                            }\r\n                            else if (chunk.header.type.value === \"shdr\") {\r\n                                let reader = chunk.body;\r\n                                let cursor = new binary_1.Cursor();\r\n                                while (cursor.offset < reader.size()) {\r\n                                    let header = await new SampleHeader().load(cursor, reader);\r\n                                    this.shdr.push(header);\r\n                                }\r\n                            }\r\n                        }\r\n                    }\r\n                }\r\n            }\r\n        }\r\n        return this;\r\n    }\r\n}\r\nexports.File = File;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/formats/soundfont/index.js?");
-
-/***/ }),
-
-/***/ "./build/shared/formats/wave/header.js":
-/*!*********************************************!*\
-  !*** ./build/shared/formats/wave/header.js ***!
-  \*********************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.Header = void 0;\r\nconst asserts_1 = __webpack_require__(/*! ../../asserts */ \"./build/shared/asserts/index.js\");\r\nconst binary_1 = __webpack_require__(/*! ../../binary */ \"./build/shared/binary/index.js\");\r\nconst chunks_1 = __webpack_require__(/*! ../../binary/chunks */ \"./build/shared/binary/chunks/index.js\");\r\nclass Header extends binary_1.Chunk {\r\n    constructor(options) {\r\n        var _a;\r\n        let buffer = (_a = options === null || options === void 0 ? void 0 : options.buffer) !== null && _a !== void 0 ? _a : binary_1.Buffer.alloc(16);\r\n        asserts_1.IntegerAssert.exactly(buffer.size(), 16);\r\n        super(buffer);\r\n        this.audio_format = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 0,\r\n                length: 2\r\n            })\r\n        });\r\n        this.channel_count = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 2,\r\n                length: 2\r\n            })\r\n        });\r\n        this.sample_rate = new chunks_1.Integer4({\r\n            buffer: buffer.window({\r\n                offset: 4,\r\n                length: 4\r\n            })\r\n        });\r\n        this.byte_rate = new chunks_1.Integer4({\r\n            buffer: buffer.window({\r\n                offset: 8,\r\n                length: 4\r\n            })\r\n        });\r\n        this.block_align = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 12,\r\n                length: 2\r\n            })\r\n        });\r\n        this.bits_per_sample = new chunks_1.Integer2({\r\n            buffer: buffer.window({\r\n                offset: 14,\r\n                length: 2\r\n            })\r\n        });\r\n    }\r\n}\r\nexports.Header = Header;\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/formats/wave/header.js?");
-
-/***/ }),
-
-/***/ "./build/shared/formats/wave/index.js":
-/*!********************************************!*\
-  !*** ./build/shared/formats/wave/index.js ***!
-  \********************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-eval("\r\nvar __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {\r\n    if (k2 === undefined) k2 = k;\r\n    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });\r\n}) : (function(o, m, k, k2) {\r\n    if (k2 === undefined) k2 = k;\r\n    o[k2] = m[k];\r\n}));\r\nvar __exportStar = (this && this.__exportStar) || function(m, exports) {\r\n    for (var p in m) if (p !== \"default\" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);\r\n};\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\n__exportStar(__webpack_require__(/*! ./header */ \"./build/shared/formats/wave/header.js\"), exports);\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/formats/wave/index.js?");
-
-/***/ }),
-
-/***/ "./build/shared/index.js":
-/*!*******************************!*\
-  !*** ./build/shared/index.js ***!
-  \*******************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-eval("\r\nvar __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {\r\n    if (k2 === undefined) k2 = k;\r\n    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });\r\n}) : (function(o, m, k, k2) {\r\n    if (k2 === undefined) k2 = k;\r\n    o[k2] = m[k];\r\n}));\r\nvar __exportStar = (this && this.__exportStar) || function(m, exports) {\r\n    for (var p in m) if (p !== \"default\" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);\r\n};\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.formats = exports.binary = exports.asserts = void 0;\r\nexports.asserts = __webpack_require__(/*! ./asserts */ \"./build/shared/asserts/index.js\");\r\nexports.binary = __webpack_require__(/*! ./binary */ \"./build/shared/binary/index.js\");\r\nexports.formats = __webpack_require__(/*! ./formats */ \"./build/shared/formats/index.js\");\r\n__exportStar(__webpack_require__(/*! ./tables */ \"./build/shared/tables.js\"), exports);\r\n__exportStar(__webpack_require__(/*! ./is */ \"./build/shared/is.js\"), exports);\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/index.js?");
-
-/***/ }),
-
-/***/ "./build/shared/is.js":
-/*!****************************!*\
-  !*** ./build/shared/is.js ***!
-  \****************************/
-/***/ ((__unused_webpack_module, exports) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.is = void 0;\r\nvar is;\r\n(function (is) {\r\n    function absent(subject) {\r\n        return subject == null;\r\n    }\r\n    is.absent = absent;\r\n    ;\r\n    function present(subject) {\r\n        return subject != null;\r\n    }\r\n    is.present = present;\r\n    ;\r\n})(is = exports.is || (exports.is = {}));\r\n;\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/is.js?");
-
-/***/ }),
-
-/***/ "./build/shared/tables.js":
-/*!********************************!*\
-  !*** ./build/shared/tables.js ***!
-  \********************************/
-/***/ ((__unused_webpack_module, exports) => {
-
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.armorPiercingDamage = exports.damage = exports.armor = exports.range = exports.woodCost = exports.goldCost = exports.timeCost = exports.health = void 0;\r\n// 00288956-00289060\r\nexports.health = new Uint16Array(new Uint8Array([\r\n    0x3C, 0x00, 0x3C, 0x00, 0x28, 0x00, 0x28, 0x00,\r\n    0x78, 0x00, 0x78, 0x00, 0x5A, 0x00, 0x5A, 0x00,\r\n    0x3C, 0x00, 0x3C, 0x00, 0x28, 0x00, 0x28, 0x00,\r\n    0x28, 0x00, 0x28, 0x00, 0x96, 0x00, 0x32, 0x00,\r\n    0x28, 0x00, 0x1E, 0x00, 0x1E, 0x00, 0x3C, 0x00,\r\n    0xFA, 0x00, 0x1E, 0x00, 0x96, 0x00, 0xC8, 0x00,\r\n    0x1E, 0x00, 0x28, 0x00, 0x28, 0x00, 0x1E, 0x00,\r\n    0x2C, 0x01, 0xFA, 0x00, 0xFA, 0x00, 0xFA, 0x00,\r\n    0x90, 0x01, 0x90, 0x01, 0x20, 0x03, 0x20, 0x03,\r\n    0xBC, 0x02, 0xBC, 0x02, 0x84, 0x03, 0x84, 0x03,\r\n    0xC4, 0x09, 0xC4, 0x09, 0x58, 0x02, 0x58, 0x02,\r\n    0xF4, 0x01, 0xF4, 0x01, 0x20, 0x03, 0x20, 0x03,\r\n    0x88, 0x13, 0x88, 0x13, 0x9C, 0x63, 0xFF, 0x00\r\n]).buffer);\r\n// 00289112-00289164\r\nexports.timeCost = new Uint8Array([\r\n    0x3C, 0x3C, 0x4B, 0x4B, 0x64, 0x64, 0x50, 0x50,\r\n    0x46, 0x46, 0x5A, 0x5A, 0x50, 0x50, 0x00, 0x00,\r\n    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,\r\n    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,\r\n    0x64, 0x64, 0x96, 0x96, 0xC8, 0xC8, 0xC8, 0xC8,\r\n    0x64, 0x64, 0x96, 0x96, 0x96, 0x96, 0x96, 0x96,\r\n    0xC8, 0xC8, 0x96, 0x00\r\n]);\r\n// 00289168-00289220\r\nexports.goldCost = new Uint8Array([\r\n    0x28, 0x28, 0x28, 0x28, 0x5A, 0x5A, 0x55, 0x55,\r\n    0x2D, 0x2D, 0x5A, 0x5A, 0x46, 0x46, 0xFA, 0xFA,\r\n    0xFA, 0xFA, 0xFA, 0x5A, 0x00, 0x14, 0x14, 0x96,\r\n    0x14, 0x32, 0x0A, 0x28, 0xC8, 0x00, 0x00, 0xC8,\r\n    0x32, 0x32, 0x3C, 0x3C, 0x50, 0x50, 0x8C, 0x8C,\r\n    0x28, 0x28, 0x3C, 0x3C, 0x64, 0x64, 0x5A, 0x5A,\r\n    0xFA, 0xFA, 0x00, 0x00\r\n]);\r\n// 00289224-00289276\r\nexports.woodCost = new Uint8Array([\r\n    0x00, 0x00, 0x00, 0x00, 0x14, 0x14, 0x00, 0x00,\r\n    0x05, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,\r\n    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,\r\n    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,\r\n    0x1E, 0x1E, 0x32, 0x32, 0x32, 0x32, 0x1E, 0x1E,\r\n    0x28, 0x28, 0x32, 0x32, 0x28, 0x28, 0x28, 0x28,\r\n    0xC8, 0xC8, 0x0A, 0x00\r\n]);\r\n// 00289712-00289744\r\nexports.range = new Uint8Array([\r\n    0x01, 0x01, 0x01, 0x01, 0x08, 0x08, 0x01, 0x01,\r\n    0x05, 0x04, 0x03, 0x02, 0x01, 0x02, 0x05, 0x01,\r\n    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,\r\n    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x03\r\n]);\r\n// 00289744-00289776\r\nexports.armor = new Uint8Array([\r\n    0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x05, 0x05,\r\n    0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,\r\n    0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x0A, 0x00,\r\n    0x00, 0x04, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00\r\n]);\r\n// 00289952-00289984\r\nexports.damage = new Uint8Array([\r\n    0x09, 0x09, 0x00, 0x00, 0xFF, 0xFF, 0x0D, 0x0D,\r\n    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F,\r\n    0x00, 0x00, 0x00, 0x0C, 0x00, 0x03, 0x00, 0x28,\r\n    0x00, 0x09, 0x04, 0x09, 0x41, 0x00, 0x00, 0x00\r\n]);\r\n// 00289984-00290016\r\nexports.armorPiercingDamage = new Uint8Array([\r\n    0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01,\r\n    0x04, 0x05, 0x06, 0x06, 0x06, 0x06, 0x0A, 0x01,\r\n    0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x01, 0x00,\r\n    0x03, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x28\r\n]);\r\n\n\n//# sourceURL=webpack://@joelek/webcraft/./build/shared/tables.js?");
-
-/***/ })
-
-/******/ 	});
-/************************************************************************/
-/******/ 	// The module cache
-/******/ 	var __webpack_module_cache__ = {};
-/******/ 	
-/******/ 	// The require function
-/******/ 	function __webpack_require__(moduleId) {
-/******/ 		// Check if module is in cache
-/******/ 		if(__webpack_module_cache__[moduleId]) {
-/******/ 			return __webpack_module_cache__[moduleId].exports;
-/******/ 		}
-/******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			// no module.id needed
-/******/ 			// no module.loaded needed
-/******/ 			exports: {}
-/******/ 		};
-/******/ 	
-/******/ 		// Execute the module function
-/******/ 		__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);
-/******/ 	
-/******/ 		// Return the exports of the module
-/******/ 		return module.exports;
-/******/ 	}
-/******/ 	
-/************************************************************************/
-/******/ 	// startup
-/******/ 	// Load entry module
-/******/ 	__webpack_require__("./build/client/index.js");
-/******/ 	// This entry module used 'exports' so it can't be inlined
-/******/ })()
-;
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+define("shared/asserts/integer", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.IntegerAssert = void 0;
+    class IntegerAssert {
+        constructor() { }
+        static atLeast(min, value) {
+            this.integer(min);
+            this.integer(value);
+            if (value < min) {
+                throw `Expected ${value} to be at least ${min}!`;
+            }
+        }
+        static atMost(max, value) {
+            this.integer(value);
+            this.integer(max);
+            if (value > max) {
+                throw `Expected ${value} to be at most ${max}!`;
+            }
+        }
+        static between(min, value, max) {
+            this.atLeast(min, value);
+            this.atMost(max, value);
+        }
+        static exactly(value, expected) {
+            this.integer(expected);
+            this.integer(value);
+            if (value !== expected) {
+                throw `Expected ${value} to be exactly ${expected}!`;
+            }
+        }
+        static integer(value) {
+            if (!Number.isInteger(value)) {
+                throw `Expected ${value} to be an integer!`;
+            }
+        }
+    }
+    exports.IntegerAssert = IntegerAssert;
+    ;
+});
+define("shared/asserts/string", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.StringAssert = void 0;
+    class StringAssert {
+        constructor() { }
+        static identical(value, expected) {
+            if (value !== expected) {
+                throw `Expected "${value}" to be identical to ${expected}!`;
+            }
+        }
+    }
+    exports.StringAssert = StringAssert;
+    ;
+});
+define("shared/asserts/index", ["require", "exports", "shared/asserts/integer", "shared/asserts/string"], function (require, exports, integer_1, string_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    __exportStar(integer_1, exports);
+    __exportStar(string_1, exports);
+});
+define("shared/binary/buffer", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Buffer = void 0;
+    class Buffer {
+        constructor(buffer, options) {
+            let offset = options?.offset ?? 0;
+            let length = options?.length ?? buffer.byteLength - offset;
+            asserts_1.IntegerAssert.between(0, offset, buffer.byteLength);
+            asserts_1.IntegerAssert.between(0, length, buffer.byteLength - offset);
+            this.array = new Uint8Array(buffer, offset, length);
+        }
+        copy(target) {
+            asserts_1.IntegerAssert.exactly(target.size(), this.size());
+            target.array.set(this.array);
+            return target;
+        }
+        get(index) {
+            asserts_1.IntegerAssert.between(0, index, this.array.length - 1);
+            return this.array[index];
+        }
+        place(array) {
+            asserts_1.IntegerAssert.atMost(this.array.length, array.length);
+            this.array.set(array);
+        }
+        set(index, value) {
+            asserts_1.IntegerAssert.between(0, index, this.array.length - 1);
+            asserts_1.IntegerAssert.between(0, value, 255);
+            return this.array[index] = value;
+        }
+        size() {
+            return this.array.length;
+        }
+        window(options) {
+            let offset = options?.offset ?? 0;
+            let length = options?.length ?? this.array.length - offset;
+            return new Buffer(this.array.buffer, {
+                offset: this.array.byteOffset + offset,
+                length: length
+            });
+        }
+        static alloc(length) {
+            asserts_1.IntegerAssert.atLeast(0, length);
+            let buffer = new ArrayBuffer(length);
+            return new Buffer(buffer);
+        }
+    }
+    exports.Buffer = Buffer;
+    ;
+});
+define("shared/binary/chunk", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Chunk = void 0;
+    class Chunk {
+        constructor(buffer) {
+            this.buffer = buffer;
+        }
+        async load(cursor, reader) {
+            await reader.read(cursor, this.buffer);
+            return this;
+        }
+        async save(cursor, writer) {
+            await writer.write(cursor, this.buffer);
+            return this;
+        }
+        sizeOf() {
+            return this.buffer.size();
+        }
+    }
+    exports.Chunk = Chunk;
+    ;
+});
+define("shared/binary/chunks/bytestring", ["require", "exports", "shared/binary/buffer", "shared/binary/chunk"], function (require, exports, buffer_1, chunk_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.ByteString = void 0;
+    class ByteString extends chunk_1.Chunk {
+        getContinuationByte(index) {
+            let byte = this.buffer.get(index);
+            if ((byte & 0b11000000) !== 0b10000000) {
+                throw `Expected ${byte} to be a continuation byte!`;
+            }
+            return byte & 0b00111111;
+        }
+        encode(value, write) {
+            let i = 0;
+            while (i < value.length) {
+                let cp = value.codePointAt(i++) ?? 0;
+                if (cp >= 0xD800 && cp <= 0xDFFF) {
+                    throw `Expected ${cp} to be a non-surrogate code point!`;
+                }
+                if (cp < 0x0080) {
+                    write(((cp >> 0) & 0b01111111) | 0b00000000);
+                }
+                else if (cp < 0x0800) {
+                    write(((cp >> 6) & 0b00011111) | 0b11000000);
+                    write(((cp >> 0) & 0b00111111) | 0b10000000);
+                }
+                else if (cp < 0x10000) {
+                    write(((cp >> 12) & 0b00001111) | 0b11100000);
+                    write(((cp >> 6) & 0b00111111) | 0b10000000);
+                    write(((cp >> 0) & 0b00111111) | 0b10000000);
+                }
+                else {
+                    i += 1;
+                    write(((cp >> 18) & 0b00000111) | 0b11110000);
+                    write(((cp >> 12) & 0b00111111) | 0b10000000);
+                    write(((cp >> 6) & 0b00111111) | 0b10000000);
+                    write(((cp >> 0) & 0b00111111) | 0b10000000);
+                }
+            }
+        }
+        get value() {
+            let value = "";
+            let i = 0;
+            while (i < this.buffer.size()) {
+                let byte = this.buffer.get(i++);
+                let cp = 0;
+                if ((byte & 0b10000000) === 0b00000000) {
+                    let a = byte & 0b01111111;
+                    cp = (a << 0);
+                }
+                else if ((byte & 0b11100000) === 0b11000000) {
+                    let a = byte & 0b00011111;
+                    let b = this.getContinuationByte(i++);
+                    cp = (a << 6) | (b << 0);
+                }
+                else if ((byte & 0b11110000) === 0b11100000) {
+                    let a = byte & 0b00001111;
+                    let b = this.getContinuationByte(i++);
+                    let c = this.getContinuationByte(i++);
+                    cp = (a << 12) | (b << 6) | (c << 0);
+                }
+                else if ((byte & 0b11111000) === 0b11110000) {
+                    let a = byte & 0b00000111;
+                    let b = this.getContinuationByte(i++);
+                    let c = this.getContinuationByte(i++);
+                    let d = this.getContinuationByte(i++);
+                    cp = (a << 18) | (b << 12) | (c << 6) | (d << 0);
+                }
+                else {
+                    throw `Expected ${byte} to be a starting byte!`;
+                }
+                if (cp === 0) {
+                    break;
+                }
+                value += String.fromCodePoint(cp);
+            }
+            return value;
+        }
+        set value(value) {
+            let length = 0;
+            this.encode(value, (byte) => {
+                length += 1;
+            });
+            if (length > this.buffer.size()) {
+                throw `Expected "${value}" to be encoded using at most ${this.buffer.size()} bytes!`;
+            }
+            let i = 0;
+            this.encode(value, (byte) => {
+                this.buffer.set(i++, byte);
+            });
+            while (i < this.buffer.size()) {
+                this.buffer.set(i++, 0);
+            }
+        }
+        constructor(options) {
+            let buffer = options?.buffer ?? buffer_1.Buffer.alloc(0);
+            super(buffer);
+        }
+    }
+    exports.ByteString = ByteString;
+    ;
+});
+define("shared/binary/chunks/integer1", ["require", "exports", "shared/asserts/index", "shared/binary/buffer", "shared/binary/chunk"], function (require, exports, asserts_2, buffer_2, chunk_2) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Integer1 = void 0;
+    class Integer1 extends chunk_2.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? buffer_2.Buffer.alloc(1);
+            let complement = options?.complement ?? "none";
+            asserts_2.IntegerAssert.exactly(buffer.size(), 1);
+            super(buffer);
+            this.complement = complement;
+        }
+        get value() {
+            let value = this.buffer.get(0);
+            if (false) {
+            }
+            else if (this.complement === "none") {
+            }
+            else if (this.complement === "ones") {
+                if (value > 0x7F) {
+                    value -= 0xFF;
+                }
+            }
+            else if (this.complement === "twos") {
+                if (value > 0x7F) {
+                    value -= 0xFF + 1;
+                }
+            }
+            return value;
+        }
+        set value(value) {
+            if (false) {
+            }
+            else if (this.complement === "none") {
+            }
+            else if (this.complement === "ones") {
+                if (value < 0) {
+                    value += 0xFF;
+                }
+            }
+            else if (this.complement === "twos") {
+                if (value < 0) {
+                    value += 0xFF + 1;
+                }
+            }
+            asserts_2.IntegerAssert.between(0, value, 0xFF);
+            this.buffer.set(0, value);
+        }
+    }
+    exports.Integer1 = Integer1;
+    ;
+});
+define("shared/binary/chunks/integer2", ["require", "exports", "shared/asserts/index", "shared/binary/buffer", "shared/binary/chunk"], function (require, exports, asserts_3, buffer_3, chunk_3) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Integer2 = void 0;
+    class Integer2 extends chunk_3.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? buffer_3.Buffer.alloc(2);
+            let complement = options?.complement ?? "none";
+            let endian = options?.endian ?? "little";
+            asserts_3.IntegerAssert.exactly(buffer.size(), 2);
+            super(buffer);
+            this.complement = complement;
+            this.endian = endian;
+        }
+        get value() {
+            let a = this.buffer.get(0);
+            let b = this.buffer.get(1);
+            let value = 0;
+            if (false) {
+            }
+            else if (this.endian === "big") {
+                value = ((a << 8) | (b << 0)) >>> 0;
+            }
+            else if (this.endian === "little") {
+                value = ((b << 8) | (a << 0)) >>> 0;
+            }
+            if (false) {
+            }
+            else if (this.complement === "none") {
+            }
+            else if (this.complement === "ones") {
+                if (value > 0x7FFF) {
+                    value -= 0xFFFF;
+                }
+            }
+            else if (this.complement === "twos") {
+                if (value > 0x7FFF) {
+                    value -= 0xFFFF + 1;
+                }
+            }
+            return value;
+        }
+        set value(value) {
+            if (false) {
+            }
+            else if (this.complement === "none") {
+            }
+            else if (this.complement === "ones") {
+                if (value < 0) {
+                    value += 0xFFFF;
+                }
+            }
+            else if (this.complement === "twos") {
+                if (value < 0) {
+                    value += 0xFFFF + 1;
+                }
+            }
+            asserts_3.IntegerAssert.between(0, value, 0xFFFF);
+            if (false) {
+            }
+            else if (this.endian === "big") {
+                this.buffer.set(0, (value >>> 8) & 0xFF);
+                this.buffer.set(1, (value >>> 0) & 0xFF);
+            }
+            else if (this.endian === "little") {
+                this.buffer.set(0, (value >>> 0) & 0xFF);
+                this.buffer.set(1, (value >>> 8) & 0xFF);
+            }
+        }
+    }
+    exports.Integer2 = Integer2;
+    ;
+});
+define("shared/binary/chunks/integer3", ["require", "exports", "shared/asserts/index", "shared/binary/buffer", "shared/binary/chunk"], function (require, exports, asserts_4, buffer_4, chunk_4) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Integer3 = void 0;
+    class Integer3 extends chunk_4.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? buffer_4.Buffer.alloc(3);
+            let complement = options?.complement ?? "none";
+            let endian = options?.endian ?? "little";
+            asserts_4.IntegerAssert.exactly(buffer.size(), 3);
+            super(buffer);
+            this.complement = complement;
+            this.endian = endian;
+        }
+        get value() {
+            let a = this.buffer.get(0);
+            let b = this.buffer.get(1);
+            let c = this.buffer.get(2);
+            let value = 0;
+            if (false) {
+            }
+            else if (this.endian === "big") {
+                value = ((a << 16) | (b << 8) | (c << 0)) >>> 0;
+            }
+            else if (this.endian === "little") {
+                value = ((c << 16) | (b << 8) | (a << 0)) >>> 0;
+            }
+            if (false) {
+            }
+            else if (this.complement === "none") {
+            }
+            else if (this.complement === "ones") {
+                if (value > 0x7FFFFF) {
+                    value -= 0xFFFFFF;
+                }
+            }
+            else if (this.complement === "twos") {
+                if (value > 0x7FFFFF) {
+                    value -= 0xFFFFFF + 1;
+                }
+            }
+            return value;
+        }
+        set value(value) {
+            if (false) {
+            }
+            else if (this.complement === "none") {
+            }
+            else if (this.complement === "ones") {
+                if (value < 0) {
+                    value += 0xFFFFFF;
+                }
+            }
+            else if (this.complement === "twos") {
+                if (value < 0) {
+                    value += 0xFFFFFF + 1;
+                }
+            }
+            asserts_4.IntegerAssert.between(0, value, 0xFFFFFF);
+            if (false) {
+            }
+            else if (this.endian === "big") {
+                this.buffer.set(0, (value >>> 16) & 0xFF);
+                this.buffer.set(1, (value >>> 8) & 0xFF);
+                this.buffer.set(2, (value >>> 0) & 0xFF);
+            }
+            else if (this.endian === "little") {
+                this.buffer.set(0, (value >>> 0) & 0xFF);
+                this.buffer.set(1, (value >>> 8) & 0xFF);
+                this.buffer.set(2, (value >>> 16) & 0xFF);
+            }
+        }
+    }
+    exports.Integer3 = Integer3;
+    ;
+});
+define("shared/binary/chunks/integer4", ["require", "exports", "shared/asserts/index", "shared/binary/buffer", "shared/binary/chunk"], function (require, exports, asserts_5, buffer_5, chunk_5) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Integer4 = void 0;
+    class Integer4 extends chunk_5.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? buffer_5.Buffer.alloc(4);
+            let complement = options?.complement ?? "none";
+            let endian = options?.endian ?? "little";
+            asserts_5.IntegerAssert.exactly(buffer.size(), 4);
+            super(buffer);
+            this.complement = complement;
+            this.endian = endian;
+        }
+        get value() {
+            let a = this.buffer.get(0);
+            let b = this.buffer.get(1);
+            let c = this.buffer.get(2);
+            let d = this.buffer.get(3);
+            let value = 0;
+            if (false) {
+            }
+            else if (this.endian === "big") {
+                value = ((a << 24) | (b << 16) | (c << 8) | (d << 0)) >>> 0;
+            }
+            else if (this.endian === "little") {
+                value = ((d << 24) | (c << 16) | (b << 8) | (a << 0)) >>> 0;
+            }
+            if (false) {
+            }
+            else if (this.complement === "none") {
+            }
+            else if (this.complement === "ones") {
+                if (value > 0x7FFFFFFF) {
+                    value -= 0xFFFFFFFF;
+                }
+            }
+            else if (this.complement === "twos") {
+                if (value > 0x7FFFFFFF) {
+                    value -= 0xFFFFFFFF + 1;
+                }
+            }
+            return value;
+        }
+        set value(value) {
+            if (false) {
+            }
+            else if (this.complement === "none") {
+            }
+            else if (this.complement === "ones") {
+                if (value < 0) {
+                    value += 0xFFFFFFFF;
+                }
+            }
+            else if (this.complement === "twos") {
+                if (value < 0) {
+                    value += 0xFFFFFFFF + 1;
+                }
+            }
+            asserts_5.IntegerAssert.between(0, value, 0xFFFFFFFF);
+            if (false) {
+            }
+            else if (this.endian === "big") {
+                this.buffer.set(0, (value >>> 24) & 0xFF);
+                this.buffer.set(1, (value >>> 16) & 0xFF);
+                this.buffer.set(2, (value >>> 8) & 0xFF);
+                this.buffer.set(3, (value >>> 0) & 0xFF);
+            }
+            else if (this.endian === "little") {
+                this.buffer.set(0, (value >>> 0) & 0xFF);
+                this.buffer.set(1, (value >>> 8) & 0xFF);
+                this.buffer.set(2, (value >>> 16) & 0xFF);
+                this.buffer.set(3, (value >>> 24) & 0xFF);
+            }
+        }
+    }
+    exports.Integer4 = Integer4;
+    ;
+});
+define("shared/binary/chunks/packed_integer1", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_6) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.PackedInteger1 = void 0;
+    class PackedInteger1 {
+        constructor(integer, options) {
+            let offset = options?.offset ?? 0;
+            let length = options?.length ?? 8 - offset;
+            asserts_6.IntegerAssert.between(0, offset, 8);
+            asserts_6.IntegerAssert.between(0, length, 8 - offset);
+            this.integer = integer;
+            this.offset = offset;
+            this.length = length;
+        }
+        get value() {
+            let a = 32 - this.offset - this.length;
+            let b = 32 - this.length;
+            return (this.integer.value << a) >>> b;
+        }
+        set value(value) {
+            let a = this.offset;
+            let b = 32 - this.length;
+            let c = 32 - this.offset - this.length;
+            let m = ((0xFF >> a) << b) >>> c;
+            asserts_6.IntegerAssert.between(0, value, m >>> a);
+            this.integer.value = ((this.integer.value & ~m) | ((value << a) & m)) >>> 0;
+        }
+    }
+    exports.PackedInteger1 = PackedInteger1;
+    ;
+});
+define("shared/binary/chunks/packed_integer2", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_7) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.PackedInteger2 = void 0;
+    class PackedInteger2 {
+        constructor(integer, options) {
+            let offset = options?.offset ?? 0;
+            let length = options?.length ?? 16 - offset;
+            asserts_7.IntegerAssert.between(0, offset, 16);
+            asserts_7.IntegerAssert.between(0, length, 16 - offset);
+            this.integer = integer;
+            this.offset = offset;
+            this.length = length;
+        }
+        get value() {
+            let a = 32 - this.offset - this.length;
+            let b = 32 - this.length;
+            return (this.integer.value << a) >>> b;
+        }
+        set value(value) {
+            let a = this.offset;
+            let b = 32 - this.length;
+            let c = 32 - this.offset - this.length;
+            let m = ((0xFFFF >> a) << b) >>> c;
+            asserts_7.IntegerAssert.between(0, value, m >>> a);
+            this.integer.value = ((this.integer.value & ~m) | ((value << a) & m)) >>> 0;
+        }
+    }
+    exports.PackedInteger2 = PackedInteger2;
+    ;
+});
+define("shared/binary/chunks/packed_integer3", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_8) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.PackedInteger3 = void 0;
+    class PackedInteger3 {
+        constructor(integer, options) {
+            let offset = options?.offset ?? 0;
+            let length = options?.length ?? 24 - offset;
+            asserts_8.IntegerAssert.between(0, offset, 24);
+            asserts_8.IntegerAssert.between(0, length, 24 - offset);
+            this.integer = integer;
+            this.offset = offset;
+            this.length = length;
+        }
+        get value() {
+            let a = 32 - this.offset - this.length;
+            let b = 32 - this.length;
+            return (this.integer.value << a) >>> b;
+        }
+        set value(value) {
+            let a = this.offset;
+            let b = 32 - this.length;
+            let c = 32 - this.offset - this.length;
+            let m = ((0xFFFFFF >> a) << b) >>> c;
+            asserts_8.IntegerAssert.between(0, value, m >>> a);
+            this.integer.value = ((this.integer.value & ~m) | ((value << a) & m)) >>> 0;
+        }
+    }
+    exports.PackedInteger3 = PackedInteger3;
+    ;
+});
+define("shared/binary/chunks/packed_integer4", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_9) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.PackedInteger4 = void 0;
+    class PackedInteger4 {
+        constructor(integer, options) {
+            let offset = options?.offset ?? 0;
+            let length = options?.length ?? 32 - offset;
+            asserts_9.IntegerAssert.between(0, offset, 32);
+            asserts_9.IntegerAssert.between(0, length, 32 - offset);
+            this.integer = integer;
+            this.offset = offset;
+            this.length = length;
+        }
+        get value() {
+            let a = 32 - this.offset - this.length;
+            let b = 32 - this.length;
+            return (this.integer.value << a) >>> b;
+        }
+        set value(value) {
+            let a = this.offset;
+            let b = 32 - this.length;
+            let c = 32 - this.offset - this.length;
+            let m = ((0xFFFFFFFF >> a) << b) >>> c;
+            asserts_9.IntegerAssert.between(0, value, m >>> a);
+            this.integer.value = ((this.integer.value & ~m) | ((value << a) & m)) >>> 0;
+        }
+    }
+    exports.PackedInteger4 = PackedInteger4;
+    ;
+});
+define("shared/binary/chunks/index", ["require", "exports", "shared/binary/chunks/bytestring", "shared/binary/chunks/integer1", "shared/binary/chunks/integer2", "shared/binary/chunks/integer3", "shared/binary/chunks/integer4", "shared/binary/chunks/packed_integer1", "shared/binary/chunks/packed_integer2", "shared/binary/chunks/packed_integer3", "shared/binary/chunks/packed_integer4"], function (require, exports, bytestring_1, integer1_1, integer2_1, integer3_1, integer4_1, packed_integer1_1, packed_integer2_1, packed_integer3_1, packed_integer4_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    __exportStar(bytestring_1, exports);
+    __exportStar(integer1_1, exports);
+    __exportStar(integer2_1, exports);
+    __exportStar(integer3_1, exports);
+    __exportStar(integer4_1, exports);
+    __exportStar(packed_integer1_1, exports);
+    __exportStar(packed_integer2_1, exports);
+    __exportStar(packed_integer3_1, exports);
+    __exportStar(packed_integer4_1, exports);
+});
+define("shared/binary/complement", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+});
+define("shared/binary/cursor", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_10) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Cursor = void 0;
+    class Cursor {
+        constructor(options) {
+            let offset = options?.offset ?? 0;
+            asserts_10.IntegerAssert.atLeast(0, offset);
+            this.offset = offset;
+        }
+    }
+    exports.Cursor = Cursor;
+    ;
+});
+define("shared/binary/endian", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+});
+define("shared/binary/loadable", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    ;
+});
+define("shared/is", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.is = void 0;
+    (function (is) {
+        function absent(subject) {
+            return subject == null;
+        }
+        is.absent = absent;
+        ;
+        function present(subject) {
+            return subject != null;
+        }
+        is.present = present;
+        ;
+    })(exports.is || (exports.is = {}));
+    ;
+});
+define("shared/binary/reader", ["require", "exports", "shared/asserts/index", "shared/is", "shared/binary/buffer", "shared/binary/cursor"], function (require, exports, asserts_11, is_1, buffer_6, cursor_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.WindowedReader = exports.CachedReader = exports.BufferReader = void 0;
+    ;
+    class BufferReader {
+        constructor(options) {
+            let buffer = options?.buffer ?? buffer_6.Buffer.alloc(0);
+            this.buffer = buffer;
+        }
+        async read(cursor, target) {
+            let window = this.buffer.window({
+                offset: cursor.offset,
+                length: target.size()
+            });
+            window.copy(target);
+            cursor.offset += target.size();
+            return target;
+        }
+        size() {
+            return this.buffer.size();
+        }
+    }
+    exports.BufferReader = BufferReader;
+    ;
+    class CachedReader {
+        constructor(reader) {
+            this.reader = reader;
+            this.cached = undefined;
+        }
+        async read(cursor, target) {
+            if (is_1.is.absent(this.cached)) {
+                let buffer = buffer_6.Buffer.alloc(this.reader.size());
+                this.reader.read(new cursor_1.Cursor(), buffer);
+                this.cached = new BufferReader({
+                    buffer: buffer
+                });
+            }
+            return this.cached.read(cursor, target);
+        }
+        size() {
+            return this.reader.size();
+        }
+    }
+    exports.CachedReader = CachedReader;
+    ;
+    class WindowedReader {
+        constructor(reader, options) {
+            let offset = options?.offset ?? 0;
+            let length = options?.length ?? reader.size() - offset;
+            asserts_11.IntegerAssert.between(0, offset, reader.size());
+            asserts_11.IntegerAssert.between(0, length, reader.size() - offset);
+            this.reader = reader;
+            this.offset = offset;
+            this.length = length;
+        }
+        async read(cursor, buffer) {
+            let offset = cursor.offset;
+            let length = buffer.size();
+            asserts_11.IntegerAssert.between(0, offset, this.length);
+            asserts_11.IntegerAssert.between(0, length, this.length);
+            await this.reader.read({ offset: this.offset + offset }, buffer);
+            cursor.offset += length;
+            return buffer;
+        }
+        size() {
+            return this.length;
+        }
+    }
+    exports.WindowedReader = WindowedReader;
+    ;
+});
+define("shared/binary/saveable", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    ;
+});
+define("shared/binary/writer", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    ;
+});
+define("shared/binary/index", ["require", "exports", "shared/binary/chunks/index", "shared/binary/buffer", "shared/binary/chunk", "shared/binary/complement", "shared/binary/cursor", "shared/binary/endian", "shared/binary/loadable", "shared/binary/reader", "shared/binary/saveable", "shared/binary/writer"], function (require, exports, chunks, buffer_7, chunk_6, complement_1, cursor_2, endian_1, loadable_1, reader_1, saveable_1, writer_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.chunks = void 0;
+    exports.chunks = chunks;
+    __exportStar(buffer_7, exports);
+    __exportStar(chunk_6, exports);
+    __exportStar(complement_1, exports);
+    __exportStar(cursor_2, exports);
+    __exportStar(endian_1, exports);
+    __exportStar(loadable_1, exports);
+    __exportStar(reader_1, exports);
+    __exportStar(saveable_1, exports);
+    __exportStar(writer_1, exports);
+});
+define("shared/formats/midi/index", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/binary/chunks/index", "shared/is"], function (require, exports, asserts_12, binary_1, chunks_1, is_2) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.File = exports.Track = exports.Control = exports.readVarlen = exports.Type = exports.Header = exports.ChunkHeader = void 0;
+    class ChunkHeader extends binary_1.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(8);
+            asserts_12.IntegerAssert.exactly(buffer.size(), 8);
+            super(buffer);
+            this.type = new chunks_1.ByteString({
+                buffer: buffer.window({ offset: 0, length: 4 })
+            });
+            this.size = new chunks_1.Integer4({
+                buffer: buffer.window({ offset: 4, length: 4 }),
+                endian: "big"
+            });
+        }
+    }
+    exports.ChunkHeader = ChunkHeader;
+    ;
+    class Header extends binary_1.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(6);
+            asserts_12.IntegerAssert.exactly(buffer.size(), 6);
+            super(buffer);
+            this.version = new chunks_1.Integer2({
+                buffer: buffer.window({ offset: 0, length: 2 }),
+                endian: "big"
+            });
+            this.track_count = new chunks_1.Integer2({
+                buffer: buffer.window({ offset: 2, length: 2 }),
+                endian: "big"
+            });
+            this.ticks_per_qn = new chunks_1.Integer2({
+                buffer: buffer.window({ offset: 4, length: 2 }),
+                endian: "big"
+            });
+            asserts_12.IntegerAssert.atMost(0x7FFF, this.ticks_per_qn.value);
+        }
+    }
+    exports.Header = Header;
+    ;
+    (function (Type) {
+        Type[Type["NOTE_OFF"] = 0] = "NOTE_OFF";
+        Type[Type["NOTE_ON"] = 1] = "NOTE_ON";
+        Type[Type["KEY_PRESSURE"] = 2] = "KEY_PRESSURE";
+        Type[Type["CONTROL_CHANGE"] = 3] = "CONTROL_CHANGE";
+        Type[Type["PROGRAM_CHANGE"] = 4] = "PROGRAM_CHANGE";
+        Type[Type["CHANNEL_PRESSURE"] = 5] = "CHANNEL_PRESSURE";
+        Type[Type["PITCH_CHANGE"] = 6] = "PITCH_CHANGE";
+        Type[Type["SYSEX"] = 7] = "SYSEX";
+    })(exports.Type || (exports.Type = {}));
+    ;
+    async function readVarlen(cursor, reader) {
+        let value = 0;
+        let buffer = binary_1.Buffer.alloc(1);
+        for (let i = 0; i < 4; i++) {
+            await reader.read(cursor, buffer);
+            let byte = buffer.get(0);
+            value = (value << 7) | (byte & 0x7F);
+            if (byte > 0x7F) {
+                continue;
+            }
+            break;
+        }
+        return value;
+    }
+    exports.readVarlen = readVarlen;
+    ;
+    class Control extends chunks_1.Integer1 {
+        constructor(options) {
+            super(options);
+            this.channel = new chunks_1.PackedInteger1(this, {
+                offset: 0,
+                length: 4
+            });
+            this.type = new chunks_1.PackedInteger1(this, {
+                offset: 4,
+                length: 3
+            });
+            this.marker = new chunks_1.PackedInteger1(this, {
+                offset: 7,
+                length: 1
+            });
+        }
+    }
+    exports.Control = Control;
+    ;
+    ;
+    ;
+    class Track {
+        constructor() { }
+        static async fromReader(cursor, reader) {
+            let events = new Array();
+            let last_control;
+            last_control = new Control();
+            while (cursor.offset < reader.size()) {
+                let delay = await readVarlen(cursor, reader);
+                let control = await new Control().load(cursor, reader);
+                if (control.marker.value === 0) {
+                    if (is_2.is.absent(last_control)) {
+                        throw `Expected last control byte to be set!`;
+                    }
+                    control = last_control;
+                    cursor.offset -= 1;
+                }
+                let type = control.type.value;
+                let channel = control.channel.value;
+                let length = await (async () => {
+                    if (type === exports.Type.NOTE_OFF) {
+                        return 2;
+                    }
+                    else if (type === exports.Type.NOTE_ON) {
+                        return 2;
+                    }
+                    else if (type === exports.Type.KEY_PRESSURE) {
+                        return 2;
+                    }
+                    else if (type === exports.Type.CONTROL_CHANGE) {
+                        return 2;
+                    }
+                    else if (type === exports.Type.PROGRAM_CHANGE) {
+                        return 1;
+                    }
+                    else if (type === exports.Type.CHANNEL_PRESSURE) {
+                        return 1;
+                    }
+                    else if (type === exports.Type.PITCH_CHANGE) {
+                        return 2;
+                    }
+                    else if (type === exports.Type.SYSEX) {
+                        let length = binary_1.Buffer.alloc(1);
+                        if (channel < 15) {
+                            await new binary_1.Chunk(length).load({
+                                offset: cursor.offset
+                            }, reader);
+                            return length.get(0) + 1;
+                        }
+                        else {
+                            await new binary_1.Chunk(length).load({
+                                offset: cursor.offset + 1
+                            }, reader);
+                            return length.get(0) + 2;
+                        }
+                    }
+                    throw `Expected code to be unreachable!`;
+                })();
+                let data = binary_1.Buffer.alloc(length);
+                await new binary_1.Chunk(data).load(cursor, reader);
+                let event = {
+                    delay,
+                    type,
+                    channel,
+                    data,
+                };
+                events.push(event);
+                if (type === exports.Type.SYSEX) {
+                    if (channel === 15 && data.get(0) === 0x2F) {
+                        break;
+                    }
+                    last_control = new Control();
+                }
+                else {
+                    last_control = control;
+                }
+            }
+            return {
+                events
+            };
+        }
+    }
+    exports.Track = Track;
+    ;
+    ;
+    class File {
+        constructor() { }
+        static async fromReader(cursor, reader) {
+            let chunk_header = await new ChunkHeader().load(cursor, reader);
+            asserts_12.StringAssert.identical(chunk_header.type.value, "MThd");
+            let header = await new Header().load(cursor, reader);
+            let tracks = new Array();
+            for (let i = 0; i < header.track_count.value; i++) {
+                let chunk_header = await new ChunkHeader().load(cursor, reader);
+                asserts_12.StringAssert.identical(chunk_header.type.value, "MTrk");
+                let data = new binary_1.WindowedReader(reader, {
+                    offset: cursor.offset,
+                    length: chunk_header.size.value
+                });
+                let track = await Track.fromReader(new binary_1.Cursor(), data);
+                tracks.push(track);
+                cursor.offset += chunk_header.size.value;
+            }
+            return {
+                header,
+                tracks
+            };
+        }
+    }
+    exports.File = File;
+    ;
+});
+define("shared/formats/riff/header", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/binary/chunks/index"], function (require, exports, asserts_13, binary_2, chunks_2) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Header = void 0;
+    class Header extends binary_2.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_2.Buffer.alloc(8);
+            asserts_13.IntegerAssert.exactly(buffer.size(), 8);
+            super(buffer);
+            this.type = new chunks_2.ByteString({
+                buffer: buffer.window({ offset: 0, length: 4 })
+            });
+            this.size = new chunks_2.Integer4({
+                buffer: buffer.window({ offset: 4, length: 4 })
+            });
+        }
+    }
+    exports.Header = Header;
+    ;
+});
+define("shared/formats/riff/file", ["require", "exports", "shared/formats/riff/header", "shared/binary/index"], function (require, exports, header_1, binary_3) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.File = void 0;
+    class File {
+        constructor() { }
+        static async parseChunk(cursor, reader) {
+            let header = new header_1.Header();
+            await header.load(cursor, reader);
+            let body = new binary_3.WindowedReader(reader, { offset: cursor.offset, length: header.size.value });
+            cursor.offset += header.size.value;
+            cursor.offset += cursor.offset % 2;
+            return {
+                header,
+                body
+            };
+        }
+    }
+    exports.File = File;
+    ;
+});
+define("shared/formats/riff/index", ["require", "exports", "shared/formats/riff/file", "shared/formats/riff/header"], function (require, exports, file_1, header_2) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    __exportStar(file_1, exports);
+    __exportStar(header_2, exports);
+});
+define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/binary/chunks/index", "shared/formats/riff/index"], function (require, exports, asserts_14, binary_4, chunks_3, riff) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.File = exports.SampleHeader = exports.InstrumentGenerator = exports.InstrumentModulator = exports.InstrumentBag = exports.Instrument = exports.PresetGenerator = exports.PresetModulator = exports.PresetBag = exports.PresetHeader = exports.Transform = exports.Generator = exports.Modulator = exports.GeneratorParameters = exports.GeneratorType = exports.SampleLink = void 0;
+    (function (SampleLink) {
+        SampleLink[SampleLink["MONO"] = 1] = "MONO";
+        SampleLink[SampleLink["RIGHT"] = 2] = "RIGHT";
+        SampleLink[SampleLink["LEFT"] = 4] = "LEFT";
+        SampleLink[SampleLink["LINKED"] = 8] = "LINKED";
+        SampleLink[SampleLink["ROM_MONO"] = 32769] = "ROM_MONO";
+        SampleLink[SampleLink["ROM_RIGHT"] = 32770] = "ROM_RIGHT";
+        SampleLink[SampleLink["ROM_LEFT"] = 32772] = "ROM_LEFT";
+        SampleLink[SampleLink["ROM_LINKED"] = 32776] = "ROM_LINKED";
+    })(exports.SampleLink || (exports.SampleLink = {}));
+    ;
+    (function (GeneratorType) {
+        GeneratorType[GeneratorType["START_ADDRESS_OFFSET"] = 0] = "START_ADDRESS_OFFSET";
+        GeneratorType[GeneratorType["END_ADDRESS_OFFSET"] = 1] = "END_ADDRESS_OFFSET";
+        GeneratorType[GeneratorType["START_LOOP_ADDRESS_OFFSET"] = 2] = "START_LOOP_ADDRESS_OFFSET";
+        GeneratorType[GeneratorType["END_LOOP_ADDRESS_OFFSET"] = 3] = "END_LOOP_ADDRESS_OFFSET";
+        GeneratorType[GeneratorType["START_ADDRESS_COARSE_OFFSET"] = 4] = "START_ADDRESS_COARSE_OFFSET";
+        GeneratorType[GeneratorType["MOD_LFO_TO_PITCH"] = 5] = "MOD_LFO_TO_PITCH";
+        GeneratorType[GeneratorType["VIB_LFO_TO_PITCH"] = 6] = "VIB_LFO_TO_PITCH";
+        GeneratorType[GeneratorType["MOD_ENV_TO_PITCH"] = 7] = "MOD_ENV_TO_PITCH";
+        GeneratorType[GeneratorType["INITIAL_FILTER_FC"] = 8] = "INITIAL_FILTER_FC";
+        GeneratorType[GeneratorType["INITIAL_FILTER_Q"] = 9] = "INITIAL_FILTER_Q";
+        GeneratorType[GeneratorType["MOD_FLO_TO_FILTER_FC"] = 10] = "MOD_FLO_TO_FILTER_FC";
+        GeneratorType[GeneratorType["MOD_ENV_TO_FILTER_FC"] = 11] = "MOD_ENV_TO_FILTER_FC";
+        GeneratorType[GeneratorType["END_ADDRESS_COARSE_OFFSET"] = 12] = "END_ADDRESS_COARSE_OFFSET";
+        GeneratorType[GeneratorType["MOD_LFO_TO_VOLUME"] = 13] = "MOD_LFO_TO_VOLUME";
+        GeneratorType[GeneratorType["UNUSED_1"] = 14] = "UNUSED_1";
+        GeneratorType[GeneratorType["CHORUS_EFFECT_SEND"] = 15] = "CHORUS_EFFECT_SEND";
+        GeneratorType[GeneratorType["REVERB_EFFECT_SEND"] = 16] = "REVERB_EFFECT_SEND";
+        GeneratorType[GeneratorType["PAN"] = 17] = "PAN";
+        GeneratorType[GeneratorType["UNUSED_2"] = 18] = "UNUSED_2";
+        GeneratorType[GeneratorType["UNUSED_3"] = 19] = "UNUSED_3";
+        GeneratorType[GeneratorType["UNUSED_4"] = 20] = "UNUSED_4";
+        GeneratorType[GeneratorType["MOD_LFO_DELAY"] = 21] = "MOD_LFO_DELAY";
+        GeneratorType[GeneratorType["MOD_LFO_FREQ"] = 22] = "MOD_LFO_FREQ";
+        GeneratorType[GeneratorType["VIB_LFO_DELAY"] = 23] = "VIB_LFO_DELAY";
+        GeneratorType[GeneratorType["VIB_LFO_FREQ"] = 24] = "VIB_LFO_FREQ";
+        GeneratorType[GeneratorType["MOD_ENV_DELAY"] = 25] = "MOD_ENV_DELAY";
+        GeneratorType[GeneratorType["MOD_ENV_ATTACK"] = 26] = "MOD_ENV_ATTACK";
+        GeneratorType[GeneratorType["MOD_ENV_HOLD"] = 27] = "MOD_ENV_HOLD";
+        GeneratorType[GeneratorType["MOD_ENV_DECAY"] = 28] = "MOD_ENV_DECAY";
+        GeneratorType[GeneratorType["MOD_ENV_SUSTAIN"] = 29] = "MOD_ENV_SUSTAIN";
+        GeneratorType[GeneratorType["MOD_ENV_RELEASE"] = 30] = "MOD_ENV_RELEASE";
+        GeneratorType[GeneratorType["MOD_ENV_KEY_TO_HOLD"] = 31] = "MOD_ENV_KEY_TO_HOLD";
+        GeneratorType[GeneratorType["MOD_ENV_KEY_TO_DECAY"] = 32] = "MOD_ENV_KEY_TO_DECAY";
+        GeneratorType[GeneratorType["VOL_ENV_DELAY"] = 33] = "VOL_ENV_DELAY";
+        GeneratorType[GeneratorType["VOL_ENV_ATTACK"] = 34] = "VOL_ENV_ATTACK";
+        GeneratorType[GeneratorType["VOL_ENV_HOLD"] = 35] = "VOL_ENV_HOLD";
+        GeneratorType[GeneratorType["VOL_ENV_DECAY"] = 36] = "VOL_ENV_DECAY";
+        GeneratorType[GeneratorType["VOL_ENV_SUSTAIN"] = 37] = "VOL_ENV_SUSTAIN";
+        GeneratorType[GeneratorType["VOL_ENV_RELEASE"] = 38] = "VOL_ENV_RELEASE";
+        GeneratorType[GeneratorType["VOL_ENV_KEY_TO_HOLD"] = 39] = "VOL_ENV_KEY_TO_HOLD";
+        GeneratorType[GeneratorType["VOL_ENV_KEY_TO_DECAY"] = 40] = "VOL_ENV_KEY_TO_DECAY";
+        GeneratorType[GeneratorType["INSTRUMENT"] = 41] = "INSTRUMENT";
+        GeneratorType[GeneratorType["RESERVED_1"] = 42] = "RESERVED_1";
+        GeneratorType[GeneratorType["KEY_RANGE"] = 43] = "KEY_RANGE";
+        GeneratorType[GeneratorType["VEL_RANGE"] = 44] = "VEL_RANGE";
+        GeneratorType[GeneratorType["START_LOOP_ADDRESS_COARSE_OFFSET"] = 45] = "START_LOOP_ADDRESS_COARSE_OFFSET";
+        GeneratorType[GeneratorType["KEYNUM"] = 46] = "KEYNUM";
+        GeneratorType[GeneratorType["VELOCITY"] = 47] = "VELOCITY";
+        GeneratorType[GeneratorType["INITIAL_ATTENUATION"] = 48] = "INITIAL_ATTENUATION";
+        GeneratorType[GeneratorType["RESERVED_2"] = 49] = "RESERVED_2";
+        GeneratorType[GeneratorType["END_LOOP_ADDRESS_COARSE_OFFSET"] = 50] = "END_LOOP_ADDRESS_COARSE_OFFSET";
+        GeneratorType[GeneratorType["COARSE_TUNE"] = 51] = "COARSE_TUNE";
+        GeneratorType[GeneratorType["FINE_TUNE"] = 52] = "FINE_TUNE";
+        GeneratorType[GeneratorType["SAMPLE_ID"] = 53] = "SAMPLE_ID";
+        GeneratorType[GeneratorType["SAMPLE_MODES"] = 54] = "SAMPLE_MODES";
+        GeneratorType[GeneratorType["RESERVED_3"] = 55] = "RESERVED_3";
+        GeneratorType[GeneratorType["SCALE_TUNING"] = 56] = "SCALE_TUNING";
+        GeneratorType[GeneratorType["EXCLUSIVE_CLASS"] = 57] = "EXCLUSIVE_CLASS";
+        GeneratorType[GeneratorType["OVERRIDING_ROOT_KEY"] = 58] = "OVERRIDING_ROOT_KEY";
+        GeneratorType[GeneratorType["UNUSED_5"] = 59] = "UNUSED_5";
+        GeneratorType[GeneratorType["END_OPERATOR"] = 60] = "END_OPERATOR";
+    })(exports.GeneratorType || (exports.GeneratorType = {}));
+    ;
+    class GeneratorParameters extends binary_4.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_4.Buffer.alloc(2);
+            asserts_14.IntegerAssert.exactly(buffer.size(), 2);
+            super(buffer);
+            this.first = new chunks_3.Integer1({
+                buffer: buffer.window({ offset: 0, length: 1 })
+            });
+            this.second = new chunks_3.Integer1({
+                buffer: buffer.window({ offset: 1, length: 1 })
+            });
+            this.signed = new chunks_3.Integer2({
+                buffer: buffer.window({ offset: 0, length: 2 }),
+                complement: "twos"
+            });
+            this.unsigned = new chunks_3.Integer2({
+                buffer: buffer.window({ offset: 0, length: 2 })
+            });
+        }
+        toJSON() {
+            return {
+                first: this.first.value,
+                second: this.second.value,
+                amount_signed: this.signed.value,
+                amount: this.unsigned.value
+            };
+        }
+    }
+    exports.GeneratorParameters = GeneratorParameters;
+    ;
+    class Modulator extends chunks_3.Integer2 {
+        constructor(options) {
+            super(options);
+            this.index = new chunks_3.PackedInteger2(this, {
+                offset: 0,
+                length: 7
+            });
+            this.continuous = new chunks_3.PackedInteger2(this, {
+                offset: 7,
+                length: 1
+            });
+            this.direction = new chunks_3.PackedInteger2(this, {
+                offset: 8,
+                length: 1
+            });
+            this.polarity = new chunks_3.PackedInteger2(this, {
+                offset: 9,
+                length: 1
+            });
+            this.type = new chunks_3.PackedInteger2(this, {
+                offset: 10,
+                length: 6
+            });
+        }
+        toJSON() {
+            return {
+                index: this.index.value,
+                continuous: this.continuous.value,
+                direction: this.direction.value,
+                polarity: this.polarity.value,
+                type: this.type.value
+            };
+        }
+    }
+    exports.Modulator = Modulator;
+    ;
+    // TODO: Extend from chunk?
+    class Generator extends chunks_3.Integer2 {
+        constructor(options) {
+            super(options);
+            this.type = new chunks_3.PackedInteger2(this, {
+                offset: 0,
+                length: 15
+            });
+            this.link = new chunks_3.PackedInteger2(this, {
+                offset: 15,
+                length: 1
+            });
+        }
+        toJSON() {
+            return {
+                type: this.type.value,
+                link: this.link.value
+            };
+        }
+    }
+    exports.Generator = Generator;
+    ;
+    class Transform extends chunks_3.Integer2 {
+        constructor(options) {
+            super(options);
+            this.index = new chunks_3.PackedInteger2(this, {
+                offset: 0,
+                length: 16
+            });
+        }
+        toJSON() {
+            return {
+                index: this.index.value
+            };
+        }
+    }
+    exports.Transform = Transform;
+    ;
+    class PresetHeader extends binary_4.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_4.Buffer.alloc(38);
+            asserts_14.IntegerAssert.exactly(buffer.size(), 38);
+            super(buffer);
+            this.name = new chunks_3.ByteString({
+                buffer: buffer.window({
+                    offset: 0,
+                    length: 20
+                })
+            });
+            this.preset = new chunks_3.Integer2({
+                buffer: buffer.window({
+                    offset: 20,
+                    length: 2
+                })
+            });
+            this.bank = new chunks_3.Integer2({
+                buffer: buffer.window({
+                    offset: 22,
+                    length: 2
+                })
+            });
+            this.pbag_index = new chunks_3.Integer2({
+                buffer: buffer.window({
+                    offset: 24,
+                    length: 2
+                })
+            });
+            this.library = new chunks_3.Integer4({
+                buffer: buffer.window({
+                    offset: 26,
+                    length: 4
+                })
+            });
+            this.genre = new chunks_3.Integer4({
+                buffer: buffer.window({
+                    offset: 30,
+                    length: 4
+                })
+            });
+            this.morphology = new chunks_3.Integer4({
+                buffer: buffer.window({
+                    offset: 34,
+                    length: 4
+                })
+            });
+        }
+        toJSON() {
+            return {
+                name: this.name.value,
+                preset: this.preset.value,
+                bank: this.bank.value,
+                pbag_index: this.pbag_index.value,
+                library: this.library.value,
+                genre: this.genre.value,
+                morphology: this.morphology.value
+            };
+        }
+    }
+    exports.PresetHeader = PresetHeader;
+    ;
+    class PresetBag extends binary_4.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_4.Buffer.alloc(4);
+            asserts_14.IntegerAssert.exactly(buffer.size(), 4);
+            super(buffer);
+            this.pgen_index = new chunks_3.Integer2({
+                buffer: buffer.window({
+                    offset: 0,
+                    length: 2
+                })
+            });
+            this.pmod_index = new chunks_3.Integer2({
+                buffer: buffer.window({
+                    offset: 2,
+                    length: 2
+                })
+            });
+        }
+        toJSON() {
+            return {
+                pgen_index: this.pgen_index.value,
+                pmod_index: this.pmod_index.value
+            };
+        }
+    }
+    exports.PresetBag = PresetBag;
+    ;
+    class PresetModulator extends binary_4.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_4.Buffer.alloc(10);
+            asserts_14.IntegerAssert.exactly(buffer.size(), 10);
+            super(buffer);
+            this.modulator_source_operator = new Modulator({
+                buffer: buffer.window({
+                    offset: 0,
+                    length: 2
+                })
+            });
+            this.generator_destination_operator = new Generator({
+                buffer: buffer.window({
+                    offset: 2,
+                    length: 2
+                })
+            });
+            this.modulator_amount = new chunks_3.Integer2({
+                buffer: buffer.window({
+                    offset: 4,
+                    length: 2
+                }),
+                complement: "twos"
+            });
+            this.modulator_amount_source_operator = new Modulator({
+                buffer: buffer.window({
+                    offset: 6,
+                    length: 2
+                })
+            });
+            this.modulator_transform_operator = new Transform({
+                buffer: buffer.window({
+                    offset: 8,
+                    length: 2
+                })
+            });
+        }
+        toJSON() {
+            return {
+                modulator_source_operator: this.modulator_source_operator.toJSON(),
+                generator_destination_operator: this.generator_destination_operator.toJSON(),
+                modulator_amount: this.modulator_amount.value,
+                modulator_amount_source_operator: this.modulator_amount_source_operator.toJSON(),
+                modulator_transform_operator: this.modulator_transform_operator.toJSON()
+            };
+        }
+    }
+    exports.PresetModulator = PresetModulator;
+    ;
+    class PresetGenerator extends binary_4.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_4.Buffer.alloc(4);
+            asserts_14.IntegerAssert.exactly(buffer.size(), 4);
+            super(buffer);
+            this.generator = new Generator({
+                buffer: buffer.window({
+                    offset: 0,
+                    length: 2
+                })
+            });
+            this.parameters = new GeneratorParameters({
+                buffer: buffer.window({
+                    offset: 2,
+                    length: 2
+                })
+            });
+        }
+        toJSON() {
+            return {
+                generator: this.generator.toJSON(),
+                amount: this.parameters.toJSON()
+            };
+        }
+    }
+    exports.PresetGenerator = PresetGenerator;
+    ;
+    class Instrument extends binary_4.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_4.Buffer.alloc(22);
+            asserts_14.IntegerAssert.exactly(buffer.size(), 22);
+            super(buffer);
+            this.name = new chunks_3.ByteString({
+                buffer: buffer.window({
+                    offset: 0,
+                    length: 20
+                })
+            });
+            this.ibag_index = new chunks_3.Integer2({
+                buffer: buffer.window({
+                    offset: 20,
+                    length: 2
+                })
+            });
+        }
+        toJSON() {
+            return {
+                name: this.name.value,
+                ibag_index: this.ibag_index.value
+            };
+        }
+    }
+    exports.Instrument = Instrument;
+    ;
+    class InstrumentBag extends binary_4.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_4.Buffer.alloc(4);
+            asserts_14.IntegerAssert.exactly(buffer.size(), 4);
+            super(buffer);
+            this.igen_index = new chunks_3.Integer2({
+                buffer: buffer.window({
+                    offset: 0,
+                    length: 2
+                })
+            });
+            this.imod_index = new chunks_3.Integer2({
+                buffer: buffer.window({
+                    offset: 2,
+                    length: 2
+                })
+            });
+        }
+        toJSON() {
+            return {
+                igen_index: this.igen_index.value,
+                imod_index: this.imod_index.value
+            };
+        }
+    }
+    exports.InstrumentBag = InstrumentBag;
+    ;
+    class InstrumentModulator extends binary_4.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_4.Buffer.alloc(10);
+            asserts_14.IntegerAssert.exactly(buffer.size(), 10);
+            super(buffer);
+            this.modulator_source_operator = new Modulator({
+                buffer: buffer.window({
+                    offset: 0,
+                    length: 2
+                })
+            });
+            this.generator_destination_operator = new Generator({
+                buffer: buffer.window({
+                    offset: 2,
+                    length: 2
+                })
+            });
+            this.modulator_amount = new chunks_3.Integer2({
+                buffer: buffer.window({
+                    offset: 4,
+                    length: 2
+                }),
+                complement: "twos"
+            });
+            this.modulator_amount_source_operator = new Modulator({
+                buffer: buffer.window({
+                    offset: 6,
+                    length: 2
+                })
+            });
+            this.modulator_transform_operator = new Transform({
+                buffer: buffer.window({
+                    offset: 8,
+                    length: 2
+                })
+            });
+        }
+        toJSON() {
+            return {
+                modulator_source_operator: this.modulator_source_operator.toJSON(),
+                generator_destination_operator: this.generator_destination_operator.toJSON(),
+                modulator_amount: this.modulator_amount.value,
+                modulator_amount_source_operator: this.modulator_amount_source_operator.toJSON(),
+                modulator_transform_operator: this.modulator_transform_operator.toJSON()
+            };
+        }
+    }
+    exports.InstrumentModulator = InstrumentModulator;
+    ;
+    class InstrumentGenerator extends binary_4.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_4.Buffer.alloc(4);
+            asserts_14.IntegerAssert.exactly(buffer.size(), 4);
+            super(buffer);
+            this.generator = new Generator({
+                buffer: buffer.window({
+                    offset: 0,
+                    length: 2
+                })
+            });
+            this.parameters = new GeneratorParameters({
+                buffer: buffer.window({
+                    offset: 2,
+                    length: 2
+                })
+            });
+        }
+        toJSON() {
+            return {
+                generator: this.generator.value,
+                amount: this.parameters.toJSON()
+            };
+        }
+    }
+    exports.InstrumentGenerator = InstrumentGenerator;
+    ;
+    class SampleHeader extends binary_4.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_4.Buffer.alloc(46);
+            asserts_14.IntegerAssert.exactly(buffer.size(), 46);
+            super(buffer);
+            this.name = new chunks_3.ByteString({
+                buffer: buffer.window({
+                    offset: 0,
+                    length: 20
+                })
+            });
+            this.start = new chunks_3.Integer4({
+                buffer: buffer.window({
+                    offset: 20,
+                    length: 4
+                })
+            });
+            this.end = new chunks_3.Integer4({
+                buffer: buffer.window({
+                    offset: 24,
+                    length: 4
+                })
+            });
+            this.loop_start = new chunks_3.Integer4({
+                buffer: buffer.window({
+                    offset: 28,
+                    length: 4
+                })
+            });
+            this.loop_end = new chunks_3.Integer4({
+                buffer: buffer.window({
+                    offset: 32,
+                    length: 4
+                })
+            });
+            this.sample_rate = new chunks_3.Integer4({
+                buffer: buffer.window({
+                    offset: 36,
+                    length: 4
+                })
+            });
+            this.original_key = new chunks_3.Integer1({
+                buffer: buffer.window({
+                    offset: 40,
+                    length: 1
+                })
+            });
+            this.correction = new chunks_3.Integer1({
+                buffer: buffer.window({
+                    offset: 41,
+                    length: 1
+                }),
+                complement: "twos"
+            });
+            this.link = new chunks_3.Integer2({
+                buffer: buffer.window({
+                    offset: 42,
+                    length: 2
+                })
+            });
+            this.type = new chunks_3.Integer2({
+                buffer: buffer.window({
+                    offset: 44,
+                    length: 2
+                })
+            });
+        }
+        toJSON() {
+            return {
+                name: this.name.value,
+                start: this.start.value,
+                end: this.end.value,
+                loop_start: this.loop_start.value,
+                loop_end: this.loop_end.value,
+                sample_rate: this.sample_rate.value,
+                original_key: this.original_key.value,
+                correction: this.correction.value,
+                link: this.link.value,
+                type: this.type.value
+            };
+        }
+    }
+    exports.SampleHeader = SampleHeader;
+    ;
+    class File {
+        constructor() {
+            this.smpl = new binary_4.BufferReader();
+            this.sm24 = new binary_4.BufferReader();
+            this.phdr = new Array();
+            this.pbag = new Array();
+            this.pmod = new Array();
+            this.pgen = new Array();
+            this.inst = new Array();
+            this.ibag = new Array();
+            this.imod = new Array();
+            this.igen = new Array();
+            this.shdr = new Array();
+        }
+        async load(cursor, reader) {
+            // TODO: Reset state or make static.
+            let chunk = await riff.File.parseChunk(cursor, reader);
+            console.log("" + chunk.header.type.value + ": " + chunk.header.size.value);
+            asserts_14.StringAssert.identical(chunk.header.type.value, "RIFF");
+            {
+                let reader = chunk.body;
+                let cursor = new binary_4.Cursor();
+                let type = await new chunks_3.ByteString({ buffer: binary_4.Buffer.alloc(4) }).load(cursor, reader);
+                asserts_14.StringAssert.identical(type.value, "sfbk");
+                while (cursor.offset < reader.size()) {
+                    let chunk = await riff.File.parseChunk(cursor, reader);
+                    console.log("\t" + chunk.header.type.value + ": " + chunk.header.size.value);
+                    asserts_14.StringAssert.identical(chunk.header.type.value, "LIST");
+                    {
+                        let reader = chunk.body;
+                        let cursor = new binary_4.Cursor();
+                        let type = await new chunks_3.ByteString({ buffer: binary_4.Buffer.alloc(4) }).load(cursor, reader);
+                        if (false) {
+                        }
+                        else if (type.value === "INFO") {
+                            while (cursor.offset < reader.size()) {
+                                let chunk = await riff.File.parseChunk(cursor, reader);
+                                console.log("\t\t" + chunk.header.type.value + ": " + chunk.header.size.value);
+                                if (false) {
+                                }
+                                else if (chunk.header.type.value === "ifil") {
+                                }
+                                else if (chunk.header.type.value === "INAM") {
+                                }
+                                else if (chunk.header.type.value === "ISFT") {
+                                }
+                                else if (chunk.header.type.value === "ICOP") {
+                                }
+                                else if (chunk.header.type.value === "IENG") {
+                                }
+                                else if (chunk.header.type.value === "ICMT") {
+                                }
+                            }
+                        }
+                        else if (type.value === "sdta") {
+                            while (cursor.offset < reader.size()) {
+                                let chunk = await riff.File.parseChunk(cursor, reader);
+                                console.log("\t\t" + chunk.header.type.value + ": " + chunk.header.size.value);
+                                if (false) {
+                                }
+                                else if (chunk.header.type.value === "smpl") {
+                                    this.smpl = chunk.body;
+                                }
+                                else if (chunk.header.type.value === "sm24") {
+                                    this.sm24 = chunk.body;
+                                }
+                            }
+                        }
+                        else if (type.value === "pdta") {
+                            while (cursor.offset < reader.size()) {
+                                let chunk = await riff.File.parseChunk(cursor, reader);
+                                console.log("\t\t" + chunk.header.type.value + ": " + chunk.header.size.value);
+                                if (false) {
+                                }
+                                else if (chunk.header.type.value === "phdr") {
+                                    let reader = chunk.body;
+                                    let cursor = new binary_4.Cursor();
+                                    while (cursor.offset < reader.size()) {
+                                        let header = await new PresetHeader().load(cursor, reader);
+                                        this.phdr.push(header);
+                                    }
+                                }
+                                else if (chunk.header.type.value === "pbag") {
+                                    let reader = chunk.body;
+                                    let cursor = new binary_4.Cursor();
+                                    while (cursor.offset < reader.size()) {
+                                        let header = await new PresetBag().load(cursor, reader);
+                                        this.pbag.push(header);
+                                    }
+                                }
+                                else if (chunk.header.type.value === "pmod") {
+                                    let reader = chunk.body;
+                                    let cursor = new binary_4.Cursor();
+                                    while (cursor.offset < reader.size()) {
+                                        let header = await new PresetModulator().load(cursor, reader);
+                                        this.pmod.push(header);
+                                    }
+                                }
+                                else if (chunk.header.type.value === "pgen") {
+                                    let reader = chunk.body;
+                                    let cursor = new binary_4.Cursor();
+                                    while (cursor.offset < reader.size()) {
+                                        let header = await new PresetGenerator().load(cursor, reader);
+                                        this.pgen.push(header);
+                                    }
+                                }
+                                else if (chunk.header.type.value === "inst") {
+                                    let reader = chunk.body;
+                                    let cursor = new binary_4.Cursor();
+                                    while (cursor.offset < reader.size()) {
+                                        let header = await new Instrument().load(cursor, reader);
+                                        this.inst.push(header);
+                                    }
+                                }
+                                else if (chunk.header.type.value === "ibag") {
+                                    let reader = chunk.body;
+                                    let cursor = new binary_4.Cursor();
+                                    while (cursor.offset < reader.size()) {
+                                        let header = await new InstrumentBag().load(cursor, reader);
+                                        this.ibag.push(header);
+                                    }
+                                }
+                                else if (chunk.header.type.value === "imod") {
+                                    let reader = chunk.body;
+                                    let cursor = new binary_4.Cursor();
+                                    while (cursor.offset < reader.size()) {
+                                        let header = await new InstrumentModulator().load(cursor, reader);
+                                        this.imod.push(header);
+                                    }
+                                }
+                                else if (chunk.header.type.value === "igen") {
+                                    let reader = chunk.body;
+                                    let cursor = new binary_4.Cursor();
+                                    while (cursor.offset < reader.size()) {
+                                        let header = await new InstrumentGenerator().load(cursor, reader);
+                                        this.igen.push(header);
+                                    }
+                                }
+                                else if (chunk.header.type.value === "shdr") {
+                                    let reader = chunk.body;
+                                    let cursor = new binary_4.Cursor();
+                                    while (cursor.offset < reader.size()) {
+                                        let header = await new SampleHeader().load(cursor, reader);
+                                        this.shdr.push(header);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return this;
+        }
+    }
+    exports.File = File;
+    ;
+});
+define("shared/formats/wave/header", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/binary/chunks/index"], function (require, exports, asserts_15, binary_5, chunks_4) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Header = void 0;
+    class Header extends binary_5.Chunk {
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_5.Buffer.alloc(16);
+            asserts_15.IntegerAssert.exactly(buffer.size(), 16);
+            super(buffer);
+            this.audio_format = new chunks_4.Integer2({
+                buffer: buffer.window({
+                    offset: 0,
+                    length: 2
+                })
+            });
+            this.channel_count = new chunks_4.Integer2({
+                buffer: buffer.window({
+                    offset: 2,
+                    length: 2
+                })
+            });
+            this.sample_rate = new chunks_4.Integer4({
+                buffer: buffer.window({
+                    offset: 4,
+                    length: 4
+                })
+            });
+            this.byte_rate = new chunks_4.Integer4({
+                buffer: buffer.window({
+                    offset: 8,
+                    length: 4
+                })
+            });
+            this.block_align = new chunks_4.Integer2({
+                buffer: buffer.window({
+                    offset: 12,
+                    length: 2
+                })
+            });
+            this.bits_per_sample = new chunks_4.Integer2({
+                buffer: buffer.window({
+                    offset: 14,
+                    length: 2
+                })
+            });
+        }
+    }
+    exports.Header = Header;
+    ;
+});
+define("shared/formats/wave/index", ["require", "exports", "shared/formats/wave/header"], function (require, exports, header_3) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    __exportStar(header_3, exports);
+});
+define("shared/formats/index", ["require", "exports", "shared/formats/midi/index", "shared/formats/riff/index", "shared/formats/soundfont/index", "shared/formats/wave/index"], function (require, exports, midi, riff, soundfont, wave) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.wave = exports.soundfont = exports.riff = exports.midi = void 0;
+    exports.midi = midi;
+    exports.riff = riff;
+    exports.soundfont = soundfont;
+    exports.wave = wave;
+});
+define("shared/tables", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.armorPiercingDamage = exports.damage = exports.unknown2 = exports.unknown1 = exports.armor = exports.range = exports.rectangles = exports.size = exports.woodCost = exports.goldCost = exports.timeCost = exports.unkown0 = exports.hitPoints = void 0;
+    // 00288956-00289060
+    exports.hitPoints = new Uint16Array(new Uint8Array([
+        0x3C, 0x00, 0x3C, 0x00, 0x28, 0x00, 0x28, 0x00,
+        0x78, 0x00, 0x78, 0x00, 0x5A, 0x00, 0x5A, 0x00,
+        0x3C, 0x00, 0x3C, 0x00, 0x28, 0x00, 0x28, 0x00,
+        0x28, 0x00, 0x28, 0x00, 0x96, 0x00, 0x32, 0x00,
+        0x28, 0x00, 0x1E, 0x00, 0x1E, 0x00, 0x3C, 0x00,
+        0xFA, 0x00, 0x1E, 0x00, 0x96, 0x00, 0xC8, 0x00,
+        0x1E, 0x00, 0x28, 0x00, 0x28, 0x00, 0x1E, 0x00,
+        0x2C, 0x01, 0xFA, 0x00, 0xFA, 0x00, 0xFA, 0x00,
+        0x90, 0x01, 0x90, 0x01, 0x20, 0x03, 0x20, 0x03,
+        0xBC, 0x02, 0xBC, 0x02, 0x84, 0x03, 0x84, 0x03,
+        0xC4, 0x09, 0xC4, 0x09, 0x58, 0x02, 0x58, 0x02,
+        0xF4, 0x01, 0xF4, 0x01, 0x20, 0x03, 0x20, 0x03,
+        0x88, 0x13, 0x88, 0x13, 0x9C, 0x63, 0xFF, 0x00
+    ]).buffer);
+    // 00289060-00289112
+    exports.unkown0 = new Uint8Array([
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00
+    ]);
+    // 00289112-00289164
+    exports.timeCost = new Uint8Array([
+        0x3C, 0x3C, 0x4B, 0x4B, 0x64, 0x64, 0x50, 0x50,
+        0x46, 0x46, 0x5A, 0x5A, 0x50, 0x50, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x64, 0x64, 0x96, 0x96, 0xC8, 0xC8, 0xC8, 0xC8,
+        0x64, 0x64, 0x96, 0x96, 0x96, 0x96, 0x96, 0x96,
+        0xC8, 0xC8, 0x96, 0x00
+    ]);
+    /* [0x1E, 0x14, 0x1E, 0x1E] */
+    // 00289168-00289220
+    exports.goldCost = new Uint8Array([
+        0x28, 0x28, 0x28, 0x28, 0x5A, 0x5A, 0x55, 0x55,
+        0x2D, 0x2D, 0x5A, 0x5A, 0x46, 0x46, 0xFA, 0xFA,
+        0xFA, 0xFA, 0xFA, 0x5A, 0x00, 0x14, 0x14, 0x96,
+        0x14, 0x32, 0x0A, 0x28, 0xC8, 0x00, 0x00, 0xC8,
+        0x32, 0x32, 0x3C, 0x3C, 0x50, 0x50, 0x8C, 0x8C,
+        0x28, 0x28, 0x3C, 0x3C, 0x64, 0x64, 0x5A, 0x5A,
+        0xFA, 0xFA, 0x00, 0x00
+    ]);
+    /* [0x05, 0x0A, 0x00, 0x00] */
+    // 00289224-00289276
+    exports.woodCost = new Uint8Array([
+        0x00, 0x00, 0x00, 0x00, 0x14, 0x14, 0x00, 0x00,
+        0x05, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x1E, 0x1E, 0x32, 0x32, 0x32, 0x32, 0x1E, 0x1E,
+        0x28, 0x28, 0x32, 0x32, 0x28, 0x28, 0x28, 0x28,
+        0xC8, 0xC8, 0x0A, 0x00
+    ]);
+    /* [0x00, 0x00, 0x00, 0x00] */
+    // 00289280-00289504
+    exports.size = new Uint16Array(new Uint8Array([
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x02, 0x00, 0x02, 0x00, 0x02, 0x00, 0x02, 0x00,
+        0x03, 0x00, 0x03, 0x00, 0x03, 0x00, 0x03, 0x00,
+        0x03, 0x00, 0x03, 0x00, 0x03, 0x00, 0x03, 0x00,
+        0x02, 0x00, 0x02, 0x00, 0x02, 0x00, 0x02, 0x00,
+        0x03, 0x00, 0x03, 0x00, 0x03, 0x00, 0x03, 0x00,
+        0x03, 0x00, 0x03, 0x00, 0x03, 0x00, 0x03, 0x00,
+        0x03, 0x00, 0x03, 0x00, 0x03, 0x00, 0x02, 0x00,
+        0x02, 0x00, 0x02, 0x00, 0x02, 0x00, 0x02, 0x00,
+        0x04, 0x00, 0x04, 0x00, 0x04, 0x00, 0x04, 0x00,
+        0x03, 0x00, 0x03, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x03, 0x00, 0x01, 0x00, 0x01, 0x00, 0x03, 0x00,
+    ]).buffer);
+    // 00289504-00289712
+    exports.rectangles = new Uint16Array(new Uint8Array([
+        0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00,
+        0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00,
+        0x15, 0x00, 0x15, 0x00, 0x15, 0x00, 0x15, 0x00,
+        0x13, 0x00, 0x13, 0x00, 0x13, 0x00, 0x13, 0x00,
+        0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00,
+        0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00,
+        0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00,
+        0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00,
+        0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00,
+        0x0F, 0x00, 0x0F, 0x00, 0x13, 0x00, 0x13, 0x00,
+        0x0F, 0x00, 0x0F, 0x00, 0x13, 0x00, 0x13, 0x00,
+        0x13, 0x00, 0x13, 0x00, 0x15, 0x00, 0x15, 0x00,
+        0x13, 0x00, 0x13, 0x00, 0x0F, 0x00, 0x0F, 0x00,
+        0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00, 0x0F, 0x00,
+        0x16, 0x00, 0x16, 0x00, 0x0F, 0x00, 0x0F, 0x00,
+        0x0F, 0x00, 0x0F, 0x00, 0x11, 0x00, 0x11, 0x00,
+        0x1F, 0x00, 0x1F, 0x00, 0x1F, 0x00, 0x1F, 0x00,
+        0x2F, 0x00, 0x2F, 0x00, 0x2F, 0x00, 0x2F, 0x00,
+        0x2F, 0x00, 0x2F, 0x00, 0x2F, 0x00, 0x2F, 0x00,
+        0x1F, 0x00, 0x1F, 0x00, 0x1F, 0x00, 0x1F, 0x00,
+        0x2F, 0x00, 0x2F, 0x00, 0x2F, 0x00, 0x2F, 0x00,
+        0x2F, 0x00, 0x2F, 0x00, 0x2F, 0x00, 0x2F, 0x00,
+        0x2F, 0x00, 0x2F, 0x00, 0x2F, 0x00, 0x1F, 0x00,
+        0x1F, 0x00, 0x1F, 0x00, 0x1F, 0x00, 0x1F, 0x00,
+        0x4B, 0x00, 0x4B, 0x00, 0x4B, 0x00, 0x4B, 0x00,
+        0x2F, 0x00, 0x2F, 0x00, 0x0F, 0x00, 0x0F, 0x00
+    ]).buffer);
+    // 00289712-00289744
+    exports.range = new Uint8Array([
+        0x01, 0x01, 0x01, 0x01, 0x08, 0x08, 0x01, 0x01,
+        0x05, 0x04, 0x03, 0x02, 0x01, 0x02, 0x05, 0x01,
+        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x03
+    ]);
+    // 00289744-00289796
+    exports.armor = new Uint8Array([
+        0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x05, 0x05,
+        0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
+        0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x0A, 0x00,
+        0x00, 0x04, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00
+    ]);
+    // 00289796-00289900
+    exports.unknown1 = new Uint16Array(new Uint8Array([
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    ]).buffer);
+    // 00289900-00289952
+    exports.unknown2 = new Uint8Array([
+        0x28, 0x28, 0x3C, 0x3C, 0x69, 0x69, 0x2D, 0x2D,
+        0x28, 0x28, 0x37, 0x37, 0x32, 0x32, 0x01, 0x01,
+        0x01, 0x01, 0x01, 0x29, 0x29, 0x23, 0x29, 0x29,
+        0x23, 0x29, 0x1E, 0x29, 0x46, 0x29, 0x29, 0x46,
+        0x14, 0x14, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12,
+        0x16, 0x16, 0x08, 0x08, 0x0C, 0x0C, 0x0A, 0x0A,
+        0x19, 0x19, 0x00, 0x00
+    ]);
+    // 00289952-00289984
+    exports.damage = new Uint8Array([
+        0x09, 0x09, 0x00, 0x00, 0xFF, 0xFF, 0x0D, 0x0D,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F,
+        0x00, 0x00, 0x00, 0x0C, 0x00, 0x03, 0x00, 0x28,
+        0x00, 0x09, 0x04, 0x09, 0x41, 0x00, 0x00, 0x00
+    ]);
+    // 00289984-00290016
+    exports.armorPiercingDamage = new Uint8Array([
+        0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01,
+        0x04, 0x05, 0x06, 0x06, 0x06, 0x06, 0x0A, 0x01,
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x01, 0x00,
+        0x03, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x28
+    ]);
+});
+define("shared/index", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/formats/index", "shared/tables", "shared/is"], function (require, exports, asserts, binary, formats, tables_1, is_3) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.formats = exports.binary = exports.asserts = void 0;
+    exports.asserts = asserts;
+    exports.binary = binary;
+    exports.formats = formats;
+    __exportStar(tables_1, exports);
+    __exportStar(is_3, exports);
+});
+define("shared/binary.web/index", ["require", "exports", "shared/asserts/index", "shared/binary/index"], function (require, exports, asserts_16, binary_6) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.WebFileReader = void 0;
+    __exportStar(binary_6, exports);
+    class WebFileReader {
+        constructor(file) {
+            this.file = file;
+        }
+        async read(cursor, target) {
+            let offset = cursor.offset;
+            let length = target.size();
+            asserts_16.IntegerAssert.between(0, offset, this.file.size);
+            asserts_16.IntegerAssert.between(0, length, this.file.size - offset);
+            let blob = this.file.slice(offset, offset + length);
+            let source = new Uint8Array(await blob.arrayBuffer());
+            target.place(source);
+            cursor.offset += length;
+            return target;
+        }
+        size() {
+            return this.file.size;
+        }
+    }
+    exports.WebFileReader = WebFileReader;
+    ;
+});
+define("client/synth", ["require", "exports", "shared/index", "shared/binary/index", "shared/formats/soundfont/index"], function (require, exports, shared_1, binary_7, soundfont) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.WavetableSynth = exports.Bank = exports.Program = void 0;
+    class Program {
+        constructor() {
+            this.name = "";
+            this.file = new soundfont.File();
+            this.igen_indices = new Array();
+            this.buffers = new Map();
+        }
+        getParms(key, velocity) {
+            outer: for (let igen_index of this.igen_indices) {
+                let params = {
+                    env: {
+                        vol: {
+                            delay_tc: -12000,
+                            attack_tc: -12000,
+                            hold_tc: -12000,
+                            deacy_tc: -12000,
+                            sustain_level: 1,
+                            release_tc: -12000,
+                            hold_time_factor: 1,
+                            decay_time_factor: 1
+                        },
+                        mod: {
+                            delay_tc: -12000,
+                            attack_tc: -12000,
+                            hold_tc: -12000,
+                            deacy_tc: -12000,
+                            sustain_level: 1,
+                            release_tc: -12000,
+                            hold_time_factor: 1,
+                            decay_time_factor: 1,
+                            to_pitch_c: 0
+                        }
+                    },
+                    lfo: {
+                        mod: {
+                            delay_tc: -12000,
+                            freq_hz: 8.176,
+                            to_pitch_c: 0,
+                            to_volume_cb: 0
+                        },
+                        vib: {
+                            delay_tc: -12000,
+                            freq_hz: 8.176
+                        }
+                    },
+                    filter: {
+                        cutoff_c: 13500,
+                        q_cb: 0
+                    },
+                    sample: {
+                        index: 0,
+                        loop: false,
+                        attenuation_cb: 0,
+                        root_key_override: undefined
+                    }
+                };
+                inner: for (let i = igen_index; i < this.file.igen.length; i++) {
+                    let generator = this.file.igen[i];
+                    if (shared_1.is.absent(generator)) {
+                        throw ``;
+                    }
+                    let type = generator.generator.type.value;
+                    if (false) {
+                    }
+                    else if (type === soundfont.GeneratorType.INITIAL_FILTER_FC) {
+                        params.filter.cutoff_c = generator.parameters.signed.value;
+                    }
+                    else if (type === soundfont.GeneratorType.INITIAL_FILTER_Q) {
+                        params.filter.q_cb = generator.parameters.signed.value;
+                    }
+                    else if (type === soundfont.GeneratorType.INITIAL_ATTENUATION) {
+                        params.sample.attenuation_cb = generator.parameters.signed.value;
+                    }
+                    else if (type === soundfont.GeneratorType.MOD_ENV_TO_PITCH) {
+                        params.env.mod.to_pitch_c = generator.parameters.signed.value;
+                    }
+                    else if (type === soundfont.GeneratorType.VOL_ENV_KEY_TO_HOLD) {
+                        let value = Math.max(-1200, Math.min(generator.parameters.signed.value, 1200));
+                        params.env.vol.hold_time_factor = 2 ** (value / 100 * (60 - key) / 12);
+                    }
+                    else if (type === soundfont.GeneratorType.VOL_ENV_KEY_TO_DECAY) {
+                        let value = Math.max(-1200, Math.min(generator.parameters.signed.value, 1200));
+                        params.env.vol.decay_time_factor = 2 ** (value / 100 * (60 - key) / 12);
+                    }
+                    else if (type === soundfont.GeneratorType.VOL_ENV_DELAY) {
+                        let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
+                        params.env.vol.delay_tc = value;
+                    }
+                    else if (type === soundfont.GeneratorType.VOL_ENV_ATTACK) {
+                        let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
+                        params.env.vol.attack_tc = value;
+                    }
+                    else if (type === soundfont.GeneratorType.VOL_ENV_HOLD) {
+                        let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
+                        params.env.vol.hold_tc = value;
+                    }
+                    else if (type === soundfont.GeneratorType.VOL_ENV_DECAY) {
+                        let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
+                        params.env.vol.deacy_tc = value;
+                    }
+                    else if (type === soundfont.GeneratorType.VOL_ENV_SUSTAIN) {
+                        let value_cb = Math.max(0, Math.min(generator.parameters.signed.value, 1440));
+                        params.env.vol.sustain_level = Math.pow(10, -value_cb / 200);
+                    }
+                    else if (type === soundfont.GeneratorType.VOL_ENV_RELEASE) {
+                        let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
+                        params.env.vol.release_tc = value;
+                    }
+                    else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_HOLD) {
+                        let value = Math.max(-1200, Math.min(generator.parameters.signed.value, 1200));
+                        params.env.mod.hold_time_factor = 2 ** (value / 100 * (60 - key) / 12);
+                    }
+                    else if (type === soundfont.GeneratorType.MOD_ENV_KEY_TO_DECAY) {
+                        let value = Math.max(-1200, Math.min(generator.parameters.signed.value, 1200));
+                        params.env.mod.decay_time_factor = 2 ** (value / 100 * (60 - key) / 12);
+                    }
+                    else if (type === soundfont.GeneratorType.MOD_ENV_DELAY) {
+                        let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
+                        params.env.mod.delay_tc = value;
+                    }
+                    else if (type === soundfont.GeneratorType.MOD_ENV_ATTACK) {
+                        let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
+                        params.env.mod.attack_tc = value;
+                    }
+                    else if (type === soundfont.GeneratorType.MOD_ENV_HOLD) {
+                        let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
+                        params.env.mod.hold_tc = value;
+                    }
+                    else if (type === soundfont.GeneratorType.MOD_ENV_DECAY) {
+                        let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
+                        params.env.mod.deacy_tc = value;
+                    }
+                    else if (type === soundfont.GeneratorType.MOD_ENV_SUSTAIN) {
+                        let value_pm = Math.max(0, Math.min(generator.parameters.signed.value, 1000));
+                        params.env.mod.sustain_level = 1.0 - value_pm / 1000;
+                    }
+                    else if (type === soundfont.GeneratorType.MOD_ENV_RELEASE) {
+                        let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 8000));
+                        params.env.mod.release_tc = value;
+                    }
+                    else if (type === soundfont.GeneratorType.KEY_RANGE) {
+                        let lower = generator.parameters.first.value;
+                        let upper = generator.parameters.second.value;
+                        if (i === igen_index) {
+                            if (key < lower || key > upper) {
+                                continue outer;
+                            }
+                        }
+                    }
+                    else if (type === soundfont.GeneratorType.VEL_RANGE) {
+                        let lower = generator.parameters.first.value;
+                        let upper = generator.parameters.second.value;
+                        if (i === igen_index || i === igen_index + 1) {
+                            if (velocity < lower || velocity > upper) {
+                                continue outer;
+                            }
+                        }
+                    }
+                    else if (type === soundfont.GeneratorType.MOD_LFO_DELAY) {
+                        let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 5000));
+                        params.lfo.mod.delay_tc = value;
+                    }
+                    else if (type === soundfont.GeneratorType.MOD_LFO_FREQ) {
+                        let value = generator.parameters.signed.value;
+                        params.lfo.mod.freq_hz = 8.176 * 2 ** (value / 1200);
+                    }
+                    else if (type === soundfont.GeneratorType.MOD_LFO_TO_PITCH) {
+                        let value = Math.max(-12000, Math.min(generator.parameters.signed.value, 12000));
+                        params.lfo.mod.to_pitch_c = value;
+                    }
+                    else if (type === soundfont.GeneratorType.MOD_LFO_TO_VOLUME) {
+                        let value = generator.parameters.signed.value;
+                        params.lfo.mod.to_volume_cb = value;
+                    }
+                    else if (type === soundfont.GeneratorType.SAMPLE_ID) {
+                        params.sample.index = generator.parameters.signed.value;
+                        return params;
+                    }
+                    else if (type === soundfont.GeneratorType.SAMPLE_MODES) {
+                        // TODO: Support loop during key depression (mode 3).
+                        let value = generator.parameters.signed.value;
+                        if (value >= 0 && value <= 3) {
+                            params.sample.loop = value === 1;
+                        }
+                    }
+                    else if (type === soundfont.GeneratorType.OVERRIDING_ROOT_KEY) {
+                        let value = generator.parameters.signed.value;
+                        if (value >= 0 && value <= 127) {
+                            params.sample.root_key_override = value;
+                        }
+                    }
+                    else if (type === soundfont.GeneratorType.START_ADDRESS_OFFSET) {
+                        let value = generator.parameters.signed.value;
+                    }
+                    else if (type === soundfont.GeneratorType.PAN) {
+                        let value = generator.parameters.signed.value;
+                    }
+                    else {
+                        //console.log(soundfont.GeneratorType[type], generator.parameters.signed.value);
+                    }
+                }
+            }
+            throw ``;
+        }
+        async makeChannel(context, midikey, velocity, mixer, channel) {
+            let params = this.getParms(midikey, velocity);
+            let sample_header = this.file.shdr[params.sample.index];
+            let buffer = this.buffers.get(params.sample.index);
+            if (shared_1.is.absent(buffer)) {
+                let sample_count = sample_header.end.value - sample_header.start.value;
+                let reader = this.file.smpl;
+                let cursor = new binary_7.Cursor({ offset: sample_header.start.value * 2 });
+                buffer = context.createBuffer(1, sample_count, sample_header.sample_rate.value);
+                let ab = new ArrayBuffer(sample_count * 2);
+                let b = new binary_7.Buffer(ab);
+                await new binary_7.Chunk(b).load(cursor, reader);
+                let c = buffer.getChannelData(0);
+                let v = new Int16Array(ab);
+                for (let s = 0; s < sample_count; s++) {
+                    let value = ((v[s] + 32768) / 65535) * 2.0 - 1.0;
+                    c[s] = value;
+                }
+                this.buffers.set(params.sample.index, buffer);
+                console.log(channel, JSON.stringify(params, null, 2));
+            }
+            let root_key_semitones = params.sample.root_key_override ?? sample_header.original_key.value;
+            let mod_lfo_osc = context.createOscillator();
+            mod_lfo_osc.type = "triangle";
+            mod_lfo_osc.frequency.value = params.lfo.mod.freq_hz;
+            let mod_lfo_delayed = context.createDelay(20);
+            mod_lfo_delayed.delayTime.value = 2 ** (params.lfo.mod.delay_tc / 1200);
+            mod_lfo_osc.connect(mod_lfo_delayed);
+            let mod_lfo_gained = context.createGain();
+            mod_lfo_delayed.connect(mod_lfo_gained);
+            mod_lfo_gained.gain.value = 1 - Math.pow(10, (params.lfo.mod.to_volume_cb) / 200); // should not add 1.02 but 0.02
+            let source = context.createBufferSource();
+            //source.detune.value = -500;
+            source.buffer = buffer;
+            source.loopStart = (sample_header.loop_start.value - sample_header.start.value) / sample_header.sample_rate.value;
+            source.loopEnd = (sample_header.loop_end.value - sample_header.start.value) / sample_header.sample_rate.value;
+            source.loop = params.sample.loop;
+            let initial_attenuation = context.createGain();
+            source.connect(initial_attenuation);
+            // OKish
+            initial_attenuation.gain.value = Math.pow(10, -(params.sample.attenuation_cb + 960 * (1 - velocity / 128) * (1 - velocity / 128)) / 200);
+            let lowpass_filter = context.createBiquadFilter();
+            initial_attenuation.connect(lowpass_filter);
+            lowpass_filter.type = "lowpass";
+            // OK
+            let initial_filter_cutoff_hz = 8.176 * 2 ** ((params.filter.cutoff_c - 2400 * (1 - velocity / 128)) / 1200);
+            lowpass_filter.frequency.value = initial_filter_cutoff_hz;
+            lowpass_filter.Q.value = params.filter.q_cb / 10;
+            let amplifier = context.createGain();
+            amplifier.gain.value = 0;
+            lowpass_filter.connect(amplifier);
+            if (params.lfo.mod.to_volume_cb > 0) {
+                mod_lfo_gained.connect(amplifier.gain);
+            }
+            let vol_env = context.createConstantSource();
+            vol_env.offset.value = 0;
+            vol_env.connect(amplifier.gain);
+            let mod_env = context.createConstantSource();
+            mod_env.offset.value = 0;
+            let modenv_to_pitch_source = context.createConstantSource();
+            {
+                let gain = context.createGain();
+                gain.gain.value = 0;
+                modenv_to_pitch_source.offset.value = params.env.mod.to_pitch_c;
+                modenv_to_pitch_source.connect(gain);
+                mod_env.connect(gain.gain);
+                gain.connect(source.detune);
+            }
+            let detune_source = context.createConstantSource();
+            //midikey = channel === 9 ? root_key_semitones : midikey
+            let detune_cents = (midikey - root_key_semitones) * 100 + sample_header.correction.value;
+            detune_source.offset.value = detune_cents;
+            detune_source.connect(source.detune);
+            let mod_lfo_to_pitch_const = context.createConstantSource();
+            {
+                let gain = context.createGain();
+                gain.gain.value = 0;
+                mod_lfo_to_pitch_const.offset.value = params.lfo.mod.to_pitch_c;
+                mod_lfo_to_pitch_const.connect(gain);
+                mod_lfo_delayed.connect(gain.gain);
+                gain.connect(source.detune);
+            }
+            function start() {
+                let t0 = context.currentTime;
+                {
+                    let t1 = t0 + 2 ** (params.env.mod.delay_tc / 1200);
+                    let t2 = t1 + 2 ** (params.env.mod.attack_tc / 1200);
+                    let t3 = t2 + (2 ** (params.env.mod.hold_tc / 1200) * params.env.mod.hold_time_factor);
+                    let t4 = t3 + (2 ** (params.env.mod.deacy_tc / 1200) * params.env.mod.decay_time_factor);
+                    mod_env.offset.cancelScheduledValues(t0);
+                    mod_env.offset.setTargetAtTime(1.0, t1, (t2 - t1) * 2 / 3);
+                    mod_env.offset.linearRampToValueAtTime(1.0, t3);
+                    mod_env.offset.linearRampToValueAtTime(params.env.mod.sustain_level, t4);
+                }
+                {
+                    let t1 = t0 + 2 ** (params.env.vol.delay_tc / 1200);
+                    let t2 = t1 + 2 ** (params.env.vol.attack_tc / 1200);
+                    let t3 = t2 + (2 ** (params.env.vol.hold_tc / 1200) * params.env.vol.hold_time_factor);
+                    let t4 = t3 + (2 ** (params.env.vol.deacy_tc / 1200) * params.env.vol.decay_time_factor);
+                    vol_env.offset.cancelScheduledValues(t0);
+                    vol_env.offset.setTargetAtTime(1.0, t1, (t2 - t1) * 2 / 3);
+                    vol_env.offset.linearRampToValueAtTime(1.0, t3);
+                    vol_env.offset.linearRampToValueAtTime(params.env.vol.sustain_level, t4);
+                }
+                amplifier.connect(mixer);
+                source.start();
+                mod_lfo_osc.start();
+                mod_env.start();
+                vol_env.start();
+                modenv_to_pitch_source.start();
+                detune_source.start();
+                mod_lfo_to_pitch_const.start();
+            }
+            function stop() {
+                amplifier.disconnect();
+                source.stop();
+                mod_lfo_osc.stop();
+                mod_env.stop();
+                vol_env.stop();
+                modenv_to_pitch_source.stop();
+                detune_source.stop();
+                mod_lfo_to_pitch_const.stop();
+            }
+            function release(midikey, velocity) {
+                let t0 = context.currentTime;
+                let tm = 2 ** (params.env.mod.release_tc / 1200);
+                let tv = 2 ** (params.env.vol.release_tc / 1200);
+                tm *= (1 - velocity / 128);
+                tv *= (1 - velocity / 128);
+                mod_env.offset.cancelScheduledValues(t0);
+                mod_env.offset.linearRampToValueAtTime(0.0, t0 + tm);
+                vol_env.offset.cancelScheduledValues(t0);
+                vol_env.offset.linearRampToValueAtTime(0.0, t0 + tv);
+                setTimeout(stop, (context.baseLatency + tv) * 1000);
+            }
+            return {
+                start,
+                stop,
+                release
+            };
+        }
+    }
+    exports.Program = Program;
+    ;
+    class Bank {
+        constructor() {
+            this.programs = new Array();
+        }
+    }
+    exports.Bank = Bank;
+    ;
+    class WavetableSynth {
+        constructor() {
+            this.banks = new Array();
+            for (let i = 0; i < 255; i++) {
+                this.banks.push(new Bank());
+            }
+        }
+        static async fromSoundfont(file) {
+            let synth = new WavetableSynth();
+            outer: for (let preset_header of file.phdr) {
+                let bank = synth.banks[preset_header.bank.value];
+                if (shared_1.is.absent(bank)) {
+                    continue;
+                }
+                let program = bank.programs[preset_header.preset.value];
+                let preset_bag = file.pbag[preset_header.pbag_index.value];
+                if (shared_1.is.absent(preset_bag)) {
+                    continue;
+                }
+                let preset_generator = file.pgen[preset_bag.pgen_index.value];
+                if (shared_1.is.absent(preset_generator)) {
+                    continue;
+                }
+                let preset_generator_index = preset_generator.generator.type.value;
+                if (preset_generator_index !== 41) {
+                    continue;
+                }
+                let instrument = file.inst[preset_generator.parameters.signed.value];
+                if (shared_1.is.absent(instrument)) {
+                    continue;
+                }
+                let next_instrument = file.inst[preset_generator.parameters.signed.value + 1];
+                if (shared_1.is.absent(next_instrument)) {
+                    continue;
+                }
+                program = new Program();
+                program.file = file;
+                program.name = preset_header.name.value;
+                for (let i = instrument.ibag_index.value; i < next_instrument.ibag_index.value; i++) {
+                    let instrument_bag = file.ibag[i];
+                    if (shared_1.is.absent(instrument_bag)) {
+                        continue;
+                    }
+                    program.igen_indices.push(instrument_bag.igen_index.value);
+                }
+                bank.programs[preset_header.preset.value] = program;
+            }
+            return synth;
+        }
+    }
+    exports.WavetableSynth = WavetableSynth;
+    ;
+});
+define("client/index", ["require", "exports", "shared/index", "shared/binary.web/index", "shared/formats/index", "client/synth"], function (require, exports, shared, binary, formats_1, synth_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    const ZOOM = 1;
+    var is;
+    (function (is) {
+        function absent(subject) {
+            return subject == null;
+        }
+        is.absent = absent;
+        ;
+        function present(subject) {
+            return subject != null;
+        }
+        is.present = present;
+        ;
+    })(is || (is = {}));
+    ;
+    var assert;
+    (function (assert_1) {
+        function assert(assertion) {
+            if (!assertion) {
+                throw `Assertion failed!`;
+            }
+        }
+        assert_1.assert = assert;
+        function between(min, value, max) {
+            if ((value < min) || (value > max)) {
+                throw `Expected ${value} to be an integer between ${min} and ${max}!`;
+            }
+        }
+        assert_1.between = between;
+        function identical(one, two) {
+            if (one !== two) {
+                throw `Expected ${one} to be identical to ${two}!`;
+            }
+        }
+        assert_1.identical = identical;
+    })(assert || (assert = {}));
+    class BufferLike {
+        constructor(buffer, endianness = "BigEndian") {
+            this.buffer = buffer;
+            this.endianness = endianness;
+        }
+        ui16(offset, endianness = this.endianness) {
+            return new ui16(endianness, this.buffer, offset);
+        }
+    }
+    class BufferDataProvider {
+        constructor(buffer) {
+            this.buffer = buffer;
+        }
+        async read(cursor, buffer, offset, length) {
+            offset = offset ?? 0;
+            length = length ?? (buffer.byteLength - offset);
+            let slice = this.buffer.slice(cursor, cursor + length);
+            let source = new Uint8Array(slice);
+            let target = new Uint8Array(buffer, offset, length);
+            target.set(source, 0);
+            return length;
+        }
+        size() {
+            return this.buffer.byteLength;
+        }
+    }
+    class FileDataProvider {
+        constructor(file) {
+            this.file = file;
+        }
+        async buffer() {
+            let buffer = new ArrayBuffer(this.size());
+            await this.read(0, buffer);
+            return new BufferDataProvider(buffer);
+        }
+        async read(cursor, buffer, offset, length) {
+            offset = offset ?? 0;
+            length = length ?? (buffer.byteLength - offset);
+            assert.between(0, offset, buffer.byteLength);
+            assert.between(0, length, buffer.byteLength - offset);
+            let blob = this.file.slice(cursor, cursor + length);
+            let source = new Uint8Array(await blob.arrayBuffer());
+            let target = new Uint8Array(buffer, offset, length);
+            target.set(source, 0);
+            return length;
+        }
+        size() {
+            return this.file.size;
+        }
+    }
+    class si08 {
+        constructor(endianness, buffer = new ArrayBuffer(1), offset = 0) {
+            assert.between(0, offset, buffer.byteLength - 1);
+            this.endianness = endianness;
+            this.view = new DataView(buffer, offset, 1);
+        }
+        get value() {
+            return this.view.getInt8(0);
+        }
+        set value(next) {
+            let last = this.value;
+            this.view.setInt8(0, next);
+            if (this.value !== next) {
+                this.value = last;
+                throw `Unexpectedly encoded ${next} as ${this.value}!`;
+            }
+        }
+        async load(cursor, dataProvider) {
+            let length = 0;
+            length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
+            return length;
+        }
+    }
+    class si16 {
+        constructor(endianness, buffer = new ArrayBuffer(2), offset = 0) {
+            assert.between(0, offset, buffer.byteLength - 2);
+            this.endianness = endianness;
+            this.view = new DataView(buffer, offset, 2);
+        }
+        get value() {
+            return this.view.getInt16(0, this.endianness === "LittleEndian");
+        }
+        set value(next) {
+            let last = this.value;
+            this.view.setUint16(0, next, this.endianness === "LittleEndian");
+            if (this.value !== next) {
+                this.value = last;
+                throw `Unexpectedly encoded ${next} as ${this.value}!`;
+            }
+        }
+        async load(cursor, dataProvider) {
+            let length = 0;
+            length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
+            return length;
+        }
+    }
+    class si24 {
+        constructor(endianness, buffer = new ArrayBuffer(3), offset = 0) {
+            this.integer = new ui24(endianness, buffer, offset);
+        }
+        get value() {
+            let value = this.integer.value;
+            if (value > 0x7FFFFF) {
+                value -= 0x1000000;
+            }
+            return value;
+        }
+        set value(next) {
+            if (next < 0) {
+                next += 0x1000000;
+            }
+            this.integer.value = next;
+        }
+        async load(cursor, dataProvider) {
+            return this.integer.load(cursor, dataProvider);
+        }
+    }
+    class si32 {
+        constructor(endianness, buffer = new ArrayBuffer(4), offset = 0) {
+            assert.between(0, offset, buffer.byteLength - 4);
+            this.endianness = endianness;
+            this.view = new DataView(buffer, offset, 4);
+        }
+        get value() {
+            return this.view.getInt32(0, this.endianness === "LittleEndian");
+        }
+        set value(next) {
+            let last = this.value;
+            this.view.setInt32(0, next, this.endianness === "LittleEndian");
+            if (this.value !== next) {
+                this.value = last;
+                throw `Unexpectedly encoded ${next} as ${this.value}!`;
+            }
+        }
+        async load(cursor, dataProvider) {
+            let length = 0;
+            length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
+            return length;
+        }
+    }
+    class ui08 {
+        constructor(endianness, buffer = new ArrayBuffer(1), offset = 0) {
+            assert.between(0, offset, buffer.byteLength - 1);
+            this.endianness = endianness;
+            this.view = new DataView(buffer, offset, 1);
+        }
+        get value() {
+            return this.view.getUint8(0);
+        }
+        set value(next) {
+            let last = this.value;
+            this.view.setUint8(0, next);
+            if (this.value !== next) {
+                this.value = last;
+                throw `Unexpectedly encoded ${next} as ${this.value}!`;
+            }
+        }
+        async load(cursor, dataProvider) {
+            let length = 0;
+            length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
+            return length;
+        }
+    }
+    class ui16 {
+        constructor(endianness, buffer = new ArrayBuffer(2), offset = 0) {
+            assert.between(0, offset, buffer.byteLength - 2);
+            this.endianness = endianness;
+            this.view = new DataView(buffer, offset, 2);
+        }
+        get value() {
+            return this.view.getUint16(0, this.endianness === "LittleEndian");
+        }
+        set value(next) {
+            let last = this.value;
+            this.view.setUint16(0, next, this.endianness === "LittleEndian");
+            if (this.value !== next) {
+                this.value = last;
+                throw `Unexpectedly encoded ${next} as ${this.value}!`;
+            }
+        }
+        async load(cursor, dataProvider) {
+            let length = 0;
+            length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
+            return length;
+        }
+    }
+    class ui24 {
+        constructor(endianness, buffer = new ArrayBuffer(3), offset = 0) {
+            assert.between(0, offset, buffer.byteLength - 3);
+            this.endianness = endianness;
+            this.view = new DataView(buffer, offset, 3);
+        }
+        get value() {
+            let a = this.view.getUint8(0);
+            let b = this.view.getUint8(1);
+            let c = this.view.getUint8(2);
+            if (this.endianness === "LittleEndian") {
+                return (c << 16) | (b << 8) | (a << 0);
+            }
+            else {
+                return (a << 16) | (b << 8) | (c << 0);
+            }
+        }
+        set value(next) {
+            let last = this.value;
+            let a = (next >>> 0) & 0xFF;
+            let b = (next >>> 8) & 0xFF;
+            let c = (next >>> 16) & 0xFF;
+            if (this.endianness === "LittleEndian") {
+                this.view.setUint8(0, a);
+                this.view.setUint8(1, b);
+                this.view.setUint8(2, c);
+            }
+            else {
+                this.view.setUint8(0, c);
+                this.view.setUint8(1, b);
+                this.view.setUint8(2, a);
+            }
+            if (this.value !== next) {
+                this.value = last;
+                throw `Unexpectedly encoded ${next} as ${this.value}!`;
+            }
+        }
+        async load(cursor, dataProvider) {
+            let length = 0;
+            length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
+            return length;
+        }
+    }
+    class ui32 {
+        constructor(endianness, buffer = new ArrayBuffer(4), offset = 0) {
+            assert.between(0, offset, buffer.byteLength - 4);
+            this.endianness = endianness;
+            this.view = new DataView(buffer, offset, 4);
+        }
+        get value() {
+            return this.view.getUint32(0, this.endianness === "LittleEndian");
+        }
+        set value(next) {
+            let last = this.value;
+            this.view.setUint32(0, next, this.endianness === "LittleEndian");
+            if (this.value !== next) {
+                this.value = last;
+                throw `Unexpectedly encoded ${next} as ${this.value}!`;
+            }
+        }
+        async load(cursor, dataProvider) {
+            let length = 0;
+            length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
+            return length;
+        }
+    }
+    class pi08 {
+        constructor(integer, offset, length) {
+            assert.between(0, offset, 8 - 1);
+            assert.between(1, length, 8 - offset);
+            this.integer = integer;
+            this.offset = offset;
+            this.length = length;
+        }
+        get value() {
+            let a = 32 - (this.offset + this.length);
+            let b = 32 - (this.length);
+            return (this.integer.value << a) >>> b;
+        }
+        set value(next) {
+            let last = this.integer.value;
+            let a = this.offset;
+            let b = 32 - (this.length);
+            let c = 32 - (this.offset + this.length);
+            let m = ((0xFFFFFFFF >> a) << b) >>> c;
+            this.integer.value = ((this.integer.value & ~m) | ((next << a) & m)) >>> 0;
+            if (this.value !== next) {
+                this.integer.value = last;
+                throw `Unexpectedly encoded ${next} as ${this.value}!`;
+            }
+        }
+    }
+    class pi16 {
+        constructor(integer, offset, length) {
+            assert.between(0, offset, 16 - 1);
+            assert.between(1, length, 16 - offset);
+            this.integer = integer;
+            this.offset = offset;
+            this.length = length;
+        }
+        get value() {
+            let a = 32 - (this.offset + this.length);
+            let b = 32 - (this.length);
+            return (this.integer.value << a) >>> b;
+        }
+        set value(next) {
+            let last = this.integer.value;
+            let a = this.offset;
+            let b = 32 - (this.length);
+            let c = 32 - (this.offset + this.length);
+            let m = ((0xFFFFFFFF >> a) << b) >>> c;
+            this.integer.value = ((this.integer.value & ~m) | ((next << a) & m)) >>> 0;
+            if (this.value !== next) {
+                this.integer.value = last;
+                throw `Unexpectedly encoded ${next} as ${this.value}!`;
+            }
+        }
+    }
+    class pi24 {
+        constructor(integer, offset, length) {
+            assert.between(0, offset, 24 - 1);
+            assert.between(1, length, 24 - offset);
+            this.integer = integer;
+            this.offset = offset;
+            this.length = length;
+        }
+        get value() {
+            let a = 32 - (this.offset + this.length);
+            let b = 32 - (this.length);
+            return (this.integer.value << a) >>> b;
+        }
+        set value(next) {
+            let last = this.integer.value;
+            let a = this.offset;
+            let b = 32 - (this.length);
+            let c = 32 - (this.offset + this.length);
+            let m = ((0xFFFFFFFF >> a) << b) >>> c;
+            this.integer.value = ((this.integer.value & ~m) | ((next << a) & m)) >>> 0;
+            if (this.value !== next) {
+                this.integer.value = last;
+                throw `Unexpectedly encoded ${next} as ${this.value}!`;
+            }
+        }
+    }
+    class pi32 {
+        constructor(integer, offset, length) {
+            assert.between(0, offset, 32 - 1);
+            assert.between(1, length, 32 - offset);
+            this.integer = integer;
+            this.offset = offset;
+            this.length = length;
+        }
+        get value() {
+            let a = 32 - (this.offset + this.length);
+            let b = 32 - (this.length);
+            return (this.integer.value << a) >>> b;
+        }
+        set value(next) {
+            let last = this.integer.value;
+            let a = this.offset;
+            let b = 32 - (this.length);
+            let c = 32 - (this.offset + this.length);
+            let m = ((0xFFFFFFFF >> a) << b) >>> c;
+            this.integer.value = ((this.integer.value & ~m) | ((next << a) & m)) >>> 0;
+            if (this.value !== next) {
+                this.integer.value = last;
+                throw `Unexpectedly encoded ${next} as ${this.value}!`;
+            }
+        }
+    }
+    class text {
+        constructor(buffer, offset, length) {
+            offset = offset ?? 0;
+            length = length ?? (buffer.byteLength - offset);
+            assert.between(0, offset, buffer.byteLength);
+            assert.between(0, length, buffer.byteLength - offset);
+            this.decoder = new TextDecoder();
+            this.encoder = new TextEncoder();
+            this.view = new Uint8Array(buffer, offset, length);
+        }
+        get value() {
+            return this.decoder.decode(this.view).replace(/([\u0000]*)$/, "");
+        }
+        set value(next) {
+            let last = this.value;
+            this.view.fill(0);
+            this.encoder.encodeInto(next, this.view);
+            if (this.value !== next) {
+                this.value = last;
+                throw `Unexpectedly encoded "${next}" as "${this.value}"!`;
+            }
+        }
+        async load(cursor, dataProvider) {
+            let length = 0;
+            length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
+            return length;
+        }
+    }
+    class ArchiveHeader {
+        constructor(endianness) {
+            this.buffer = new ArrayBuffer(8);
+            this.version = new ui32(endianness, this.buffer, 0);
+            this.recordCount = new ui32(endianness, this.buffer, 4);
+        }
+        async load(cursor, dataProvider) {
+            let length = 0;
+            length += await dataProvider.read(cursor + length, this.buffer);
+            return length;
+        }
+    }
+    class RecordHeader {
+        constructor(endianness) {
+            this.buffer = new ArrayBuffer(4);
+            let integer = new ui32(endianness, this.buffer, 0);
+            this.uncompressedSize = new pi32(integer, 0, 24);
+            this.isCompressed = new pi32(integer, 29, 1);
+        }
+        async load(cursor, dataProvider) {
+            let length = 0;
+            length += await dataProvider.read(cursor + length, this.buffer);
+            return length;
+        }
+    }
+    class Archive {
+        constructor(dataProvider, endianness) {
+            this.dataProvider = dataProvider;
+            this.endianness = endianness;
+        }
+        async decompress(cursor, buffer) {
+            let array = new Uint8Array(buffer);
+            let shift = 8;
+            let bytesWritten = 0;
+            let control = new Uint8Array(1);
+            let byte = new Uint8Array(1);
+            let history = new Uint8Array(1 << 12);
+            let historyPosition = 0;
+            function append(byte) {
+                history[historyPosition] = byte;
+                historyPosition += 1;
+                historyPosition %= (1 << 12);
+                array[bytesWritten] = byte;
+                bytesWritten += 1;
+            }
+            let data = new ui16(this.endianness);
+            let dataOffset = new pi16(data, 0, 12);
+            let dataLength = new pi16(data, 12, 4);
+            while (bytesWritten < buffer.byteLength) {
+                if (shift >= 8) {
+                    cursor += await this.dataProvider.read(cursor, control.buffer);
+                    shift = 0;
+                }
+                let bit = (control[0] >> shift) & 0x01;
+                shift += 1;
+                if (bit) {
+                    cursor += await this.dataProvider.read(cursor, byte.buffer);
+                    append(byte[0]);
+                }
+                else {
+                    cursor += await data.load(cursor, this.dataProvider);
+                    let offset = dataOffset.value;
+                    let length = dataLength.value + 3;
+                    for (let i = offset; i < offset + length; i++) {
+                        append(history[i % (1 << 12)]);
+                    }
+                }
+            }
+        }
+        async getRecord(index) {
+            let archiveHeader = new ArchiveHeader(this.endianness);
+            let cursor = 0;
+            cursor += await archiveHeader.load(cursor, this.dataProvider);
+            assert.between(0, index, archiveHeader.recordCount.value - 1);
+            cursor += index * 4;
+            let offset = new ui32(this.endianness);
+            cursor += await offset.load(cursor, this.dataProvider);
+            let recordHeader = new RecordHeader(this.endianness);
+            cursor = offset.value;
+            cursor += await recordHeader.load(cursor, this.dataProvider);
+            let buffer = new ArrayBuffer(recordHeader.uncompressedSize.value);
+            if (recordHeader.isCompressed.value) {
+                await this.decompress(cursor, buffer);
+            }
+            else {
+                await this.dataProvider.read(cursor, buffer);
+            }
+            return new BufferDataProvider(buffer);
+        }
+    }
+    class VocHeader {
+        constructor(endianness) {
+            this.buffer = new ArrayBuffer(26);
+            this.identifier = new text(this.buffer, 0, 20);
+            this.size = new ui16(endianness, this.buffer, 20);
+            this.version = new ui16(endianness, this.buffer, 22);
+            this.validity = new ui16(endianness, this.buffer, 24);
+        }
+        async load(cursor, dataProvider) {
+            let length = 0;
+            length += await dataProvider.read(cursor + length, this.buffer);
+            return length;
+        }
+    }
+    class VocSoundDataHeader {
+        constructor(endianness) {
+            this.buffer = new ArrayBuffer(2);
+            this.frequency = new ui08(endianness, this.buffer, 0);
+            this.codec = new ui08(endianness, this.buffer, 1);
+        }
+        async load(cursor, dataProvider) {
+            let length = 0;
+            length += await dataProvider.read(cursor + length, this.buffer);
+            return length;
+        }
+    }
+    var VocCodecType;
+    (function (VocCodecType) {
+        VocCodecType[VocCodecType["PCM_8BIT_UNSIGNED"] = 0] = "PCM_8BIT_UNSIGNED";
+        VocCodecType[VocCodecType["CREATIVE_ADPCM_4BIT_8BIT"] = 1] = "CREATIVE_ADPCM_4BIT_8BIT";
+        VocCodecType[VocCodecType["CREATIVE_ADPCM_3BIT_8BIT"] = 2] = "CREATIVE_ADPCM_3BIT_8BIT";
+        VocCodecType[VocCodecType["CREATIVE_ADPCM_2BIT_8BIT"] = 3] = "CREATIVE_ADPCM_2BIT_8BIT";
+        VocCodecType[VocCodecType["PCM_16BIT_SIGNED"] = 4] = "PCM_16BIT_SIGNED";
+        VocCodecType[VocCodecType["UNKNOWN"] = 5] = "UNKNOWN";
+        VocCodecType[VocCodecType["ALAW"] = 6] = "ALAW";
+        VocCodecType[VocCodecType["ULAW"] = 7] = "ULAW";
+    })(VocCodecType || (VocCodecType = {}));
+    ;
+    var VocBlockType;
+    (function (VocBlockType) {
+        VocBlockType[VocBlockType["TERMINATOR"] = 0] = "TERMINATOR";
+        VocBlockType[VocBlockType["SOUND_DATA"] = 1] = "SOUND_DATA";
+        VocBlockType[VocBlockType["CONTINUED_SOUND_DATA"] = 2] = "CONTINUED_SOUND_DATA";
+        VocBlockType[VocBlockType["SILENCE"] = 3] = "SILENCE";
+        VocBlockType[VocBlockType["MARKER"] = 4] = "MARKER";
+        VocBlockType[VocBlockType["TEXT"] = 5] = "TEXT";
+        VocBlockType[VocBlockType["REPEAT_START"] = 6] = "REPEAT_START";
+        VocBlockType[VocBlockType["REPEAT_END"] = 7] = "REPEAT_END";
+        VocBlockType[VocBlockType["EXTRA_INFO"] = 8] = "EXTRA_INFO";
+        VocBlockType[VocBlockType["NEW_SOUND_DATA"] = 9] = "NEW_SOUND_DATA";
+    })(VocBlockType || (VocBlockType = {}));
+    ;
+    class VocFile {
+        constructor(endianness = "LittleEndian") {
+            this.endianness = endianness;
+            this.header = new VocHeader(endianness);
+            this.blocks = new Array();
+        }
+        async load(dataProvider) {
+            this.blocks.splice(0, this.blocks.length);
+            let cursor = 0;
+            cursor += await this.header.load(cursor, dataProvider);
+            assert.identical(this.header.identifier.value, "Creative Voice File\x1A");
+            while (cursor < dataProvider.size()) {
+                let type = new ui08(this.endianness);
+                cursor += await type.load(cursor, dataProvider);
+                if (type.value === VocBlockType.TERMINATOR) {
+                    this.blocks.push({
+                        type: type.value,
+                        buffer: new ArrayBuffer(0)
+                    });
+                    break;
+                }
+                else if (type.value === VocBlockType.REPEAT_END) {
+                    this.blocks.push({
+                        type: type.value,
+                        buffer: new ArrayBuffer(0)
+                    });
+                }
+                else {
+                    let size = new ui24(this.endianness);
+                    cursor += await size.load(cursor, dataProvider);
+                    let buffer = new ArrayBuffer(size.value);
+                    cursor += await dataProvider.read(cursor, buffer);
+                    this.blocks.push({
+                        type: type.value,
+                        buffer: buffer
+                    });
+                }
+            }
+            return this;
+        }
+        async play() {
+            if (is.absent(audio_context)) {
+                audio_context = new AudioContext();
+            }
+            if (this.blocks.length === 0) {
+                return;
+            }
+            let block = this.blocks[0];
+            if (block.type !== VocBlockType.SOUND_DATA) {
+                throw `Unsupported voc block!`;
+            }
+            let dataProvider = new BufferDataProvider(block.buffer);
+            let cursor = 0;
+            let header = new VocSoundDataHeader(this.endianness);
+            cursor += await header.load(cursor, dataProvider);
+            if (![VocCodecType.PCM_8BIT_UNSIGNED, VocCodecType.PCM_16BIT_SIGNED].includes(header.codec.value)) {
+                throw `Unsupported voc codec!`;
+            }
+            let channels = 1;
+            let bytesPerChannel = header.codec.value === VocCodecType.PCM_8BIT_UNSIGNED ? 1 : 2;
+            let bytesPerFrame = bytesPerChannel * channels;
+            let samples = (dataProvider.size() - cursor) / bytesPerFrame;
+            let sampleRate = Math.floor(1000000 / (256 - header.frequency.value));
+            let buffer = audio_context.createBuffer(channels, samples, sampleRate);
+            if (bytesPerChannel === 1) {
+                let sample = new ui08(this.endianness);
+                for (let s = 0; s < samples; s++) {
+                    for (let c = 0; c < channels; c++) {
+                        cursor += await sample.load(cursor, dataProvider);
+                        let value = ((sample.value + 0) / 255) * 2.0 - 1.0;
+                        buffer.getChannelData(c)[s] = value;
+                    }
+                }
+            }
+            else if (bytesPerChannel === 2) {
+                let sample = new si16(this.endianness);
+                for (let s = 0; s < samples; s++) {
+                    for (let c = 0; c < channels; c++) {
+                        cursor += await sample.load(cursor, dataProvider);
+                        let value = ((sample.value + 32768) / 65535) * 2.0 - 1.0;
+                        buffer.getChannelData(c)[s] = value;
+                    }
+                }
+            }
+            else {
+                throw `Expected 8 or 16 bits per sample!`;
+            }
+            let source = audio_context.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audio_context.destination);
+            source.start();
+        }
+    }
+    class RiffChunkHeader {
+        constructor(endianness) {
+            this.buffer = new ArrayBuffer(8);
+            this.id = new text(this.buffer, 0, 4);
+            this.size = new ui32(endianness, this.buffer, 4);
+        }
+        async load(cursor, dataProvider) {
+            let length = 0;
+            length += await dataProvider.read(cursor + length, this.buffer);
+            return length;
+        }
+    }
+    class WavHeader {
+        constructor(endianness) {
+            this.buffer = new ArrayBuffer(16);
+            this.audioFormat = new ui16(endianness, this.buffer, 0);
+            this.numChannels = new ui16(endianness, this.buffer, 2);
+            this.sampleRate = new ui32(endianness, this.buffer, 4);
+            this.byteRate = new ui32(endianness, this.buffer, 8);
+            this.blockAlign = new ui16(endianness, this.buffer, 12);
+            this.bitsPerSample = new ui16(endianness, this.buffer, 14);
+        }
+        async load(cursor, dataProvider) {
+            let length = 0;
+            length += await dataProvider.read(cursor + length, this.buffer);
+            return length;
+        }
+    }
+    var XMIEventType;
+    (function (XMIEventType) {
+        XMIEventType[XMIEventType["NOTE_OFF"] = 8] = "NOTE_OFF";
+        XMIEventType[XMIEventType["NOTE_ON"] = 9] = "NOTE_ON";
+        XMIEventType[XMIEventType["KEY_PRESSURE"] = 10] = "KEY_PRESSURE";
+        XMIEventType[XMIEventType["CONTROLLER"] = 11] = "CONTROLLER";
+        XMIEventType[XMIEventType["INSTRUMENT_CHANGE"] = 12] = "INSTRUMENT_CHANGE";
+        XMIEventType[XMIEventType["CHANNEL_PRESSURE"] = 13] = "CHANNEL_PRESSURE";
+        XMIEventType[XMIEventType["PITCH_BEND"] = 14] = "PITCH_BEND";
+        XMIEventType[XMIEventType["SYSEX"] = 15] = "SYSEX";
+    })(XMIEventType || (XMIEventType = {}));
+    ;
+    class XmiFile {
+        constructor() {
+            this.events = new Array();
+        }
+        readVarlen(buffer, cursor) {
+            let value = 0;
+            for (let i = 0; i < 4; i++) {
+                let byte = buffer[cursor.offset++];
+                value = (value << 7) | (byte & 0x7F);
+                if (byte < 128) {
+                    break;
+                }
+            }
+            return value;
+        }
+        async loadEvents(array) {
+            this.events.splice(0, this.events.length);
+            let cursor = {
+                offset: 0
+            };
+            let timestamp = 0;
+            while (cursor.offset < array.length) {
+                let byte = array[cursor.offset++];
+                let delay = 0;
+                if (byte < 0x80) {
+                    cursor.offset -= 1;
+                    while (true) {
+                        byte = array[cursor.offset++];
+                        if (byte > 0x7F) {
+                            cursor.offset -= 1;
+                            break;
+                        }
+                        delay += byte;
+                        if (byte < 0x7F) {
+                            break;
+                        }
+                    }
+                    byte = array[cursor.offset++];
+                }
+                timestamp += delay;
+                let event = (byte >> 4) & 0x0F;
+                let channel = (byte >> 0) & 0x0F;
+                if (event < 0x08) {
+                    throw `Invalid event!`;
+                }
+                else if (event === 0x8) {
+                    let a = array[cursor.offset++];
+                    let b = array[cursor.offset++];
+                    this.events.push({
+                        index: this.events.length,
+                        type: XMIEventType.NOTE_OFF,
+                        channel: channel,
+                        time: timestamp,
+                        data: Uint8Array.of(a, b)
+                    });
+                }
+                else if (event === 0x9) {
+                    let a = array[cursor.offset++];
+                    let b = array[cursor.offset++];
+                    let ticks = this.readVarlen(array, cursor);
+                    this.events.push({
+                        index: this.events.length,
+                        type: XMIEventType.NOTE_ON,
+                        channel: channel,
+                        time: timestamp,
+                        data: Uint8Array.of(a, b)
+                    });
+                    this.events.push({
+                        index: this.events.length,
+                        type: XMIEventType.NOTE_OFF,
+                        channel: channel,
+                        time: timestamp + ticks,
+                        data: Uint8Array.of(a, b)
+                    });
+                }
+                else if (event === 0xA) {
+                    let a = array[cursor.offset++];
+                    let b = array[cursor.offset++];
+                    this.events.push({
+                        index: this.events.length,
+                        type: XMIEventType.KEY_PRESSURE,
+                        channel: channel,
+                        time: timestamp,
+                        data: Uint8Array.of(a, b)
+                    });
+                }
+                else if (event === 0xB) {
+                    let a = array[cursor.offset++];
+                    let b = array[cursor.offset++];
+                    this.events.push({
+                        index: this.events.length,
+                        type: XMIEventType.CONTROLLER,
+                        channel: channel,
+                        time: timestamp,
+                        data: Uint8Array.of(a, b)
+                    });
+                }
+                else if (event === 0xC) {
+                    let a = array[cursor.offset++];
+                    this.events.push({
+                        index: this.events.length,
+                        type: XMIEventType.INSTRUMENT_CHANGE,
+                        channel: channel,
+                        time: timestamp,
+                        data: Uint8Array.of(a)
+                    });
+                }
+                else if (event === 0xD) {
+                    let a = array[cursor.offset++];
+                    this.events.push({
+                        index: this.events.length,
+                        type: XMIEventType.CHANNEL_PRESSURE,
+                        channel: channel,
+                        time: timestamp,
+                        data: Uint8Array.of(a)
+                    });
+                }
+                else if (event === 0xE) {
+                    let a = array[cursor.offset++];
+                    let b = array[cursor.offset++];
+                    this.events.push({
+                        index: this.events.length,
+                        type: XMIEventType.PITCH_BEND,
+                        channel: channel,
+                        time: timestamp,
+                        data: Uint8Array.of(a, b)
+                    });
+                }
+                else if (event === 0xF) {
+                    if (channel < 0xF) {
+                        let size = this.readVarlen(array, cursor);
+                        let data = array.slice(cursor.offset, cursor.offset + size);
+                        cursor.offset += size;
+                        this.events.push({
+                            index: this.events.length,
+                            type: XMIEventType.SYSEX,
+                            channel: channel,
+                            time: timestamp,
+                            data: data
+                        });
+                    }
+                    else {
+                        let type = array[cursor.offset++];
+                        let size = this.readVarlen(array, cursor);
+                        let data = array.slice(cursor.offset, cursor.offset + size);
+                        cursor.offset += size;
+                        if (type !== 0x51 && type !== 0x58) {
+                            this.events.push({
+                                index: this.events.length,
+                                type: XMIEventType.SYSEX,
+                                channel: channel,
+                                time: timestamp,
+                                data: Uint8Array.of(type, ...data)
+                            });
+                        }
+                        if (type === 0x2F) {
+                            break;
+                        }
+                    }
+                }
+            }
+            this.events.sort((one, two) => {
+                if (one.time < two.time) {
+                    return -1;
+                }
+                if (one.time > two.time) {
+                    return 1;
+                }
+                if (one.index < two.index) {
+                    return -1;
+                }
+                if (one.index > two.index) {
+                    return 1;
+                }
+                return 0;
+            });
+            let time = 0;
+            for (let event of this.events) {
+                let delay = event.time - time;
+                time = event.time;
+                event.time = delay;
+            }
+            return this;
+        }
+        async load(dataProvider) {
+            let cursor = 0;
+            let form = new RiffChunkHeader("BigEndian");
+            cursor += await form.load(cursor, dataProvider);
+            assert.identical(form.id.value, "FORM");
+            {
+                let xdir = new text(new ArrayBuffer(4));
+                cursor += await xdir.load(cursor, dataProvider);
+                assert.identical(xdir.value, "XDIR");
+                let info = new RiffChunkHeader("BigEndian");
+                cursor += await info.load(cursor, dataProvider);
+                assert.identical(info.id.value, "INFO");
+                cursor += info.size.value;
+                cursor += info.size.value % 2;
+            }
+            cursor += form.size.value % 2;
+            let cat = new RiffChunkHeader("BigEndian");
+            cursor += await cat.load(cursor, dataProvider);
+            assert.identical(cat.id.value, "CAT ");
+            {
+                let xmid = new text(new ArrayBuffer(4));
+                cursor += await xmid.load(cursor, dataProvider);
+                assert.identical(xmid.value, "XMID");
+                let form = new RiffChunkHeader("BigEndian");
+                cursor += await form.load(cursor, dataProvider);
+                assert.identical(form.id.value, "FORM");
+                {
+                    let xmid = new text(new ArrayBuffer(4));
+                    cursor += await xmid.load(cursor, dataProvider);
+                    assert.identical(xmid.value, "XMID");
+                    let timb = new RiffChunkHeader("BigEndian");
+                    cursor += await timb.load(cursor, dataProvider);
+                    assert.identical(timb.id.value, "TIMB");
+                    cursor += timb.size.value;
+                    cursor += timb.size.value % 2;
+                    let evnt = new RiffChunkHeader("BigEndian");
+                    cursor += await evnt.load(cursor, dataProvider);
+                    assert.identical(evnt.id.value, "EVNT");
+                    let array = new Uint8Array(evnt.size.value);
+                    cursor += await dataProvider.read(cursor, array.buffer);
+                    cursor += evnt.size.value % 2;
+                    await this.loadEvents(array);
+                }
+                cursor += form.size.value % 2;
+            }
+            cursor += cat.size.value % 2;
+            return this;
+        }
+    }
+    class WavFile {
+        constructor(endianness = "LittleEndian") {
+            this.endianness = endianness;
+            this.header = new WavHeader(endianness);
+            this.buffer = new ArrayBuffer(0);
+        }
+        async load(dataProvider) {
+            let cursor = 0;
+            let chunk = new RiffChunkHeader(this.endianness);
+            cursor += await chunk.load(cursor, dataProvider);
+            assert.identical(chunk.id.value, "RIFF");
+            let buffer = new ArrayBuffer(chunk.size.value);
+            await dataProvider.read(cursor, buffer);
+            {
+                let dataProvider = new BufferDataProvider(buffer);
+                let cursor = 0;
+                let id = new text(new ArrayBuffer(4));
+                cursor += await id.load(cursor, dataProvider);
+                assert.identical(id.value, "WAVE");
+                let format = new RiffChunkHeader(this.endianness);
+                cursor += await format.load(cursor, dataProvider);
+                assert.identical(format.id.value, "fmt ");
+                cursor += await this.header.load(cursor, dataProvider);
+                cursor += format.size.value % 2;
+                let data = new RiffChunkHeader(this.endianness);
+                cursor += await data.load(cursor, dataProvider);
+                assert.identical(data.id.value, "data");
+                this.buffer = new ArrayBuffer(data.size.value);
+                length += await dataProvider.read(cursor, this.buffer);
+                cursor += format.size.value % 2;
+            }
+            return this;
+        }
+        async play() {
+            let channels = this.header.numChannels.value;
+            let samples = this.buffer.byteLength / this.header.blockAlign.value;
+            let sampleRate = this.header.sampleRate.value;
+            let context = new AudioContext();
+            let buffer = context.createBuffer(channels, samples, sampleRate);
+            let dataProvider = new BufferDataProvider(this.buffer);
+            let cursor = 0;
+            if (this.header.bitsPerSample.value === 8) {
+                let sample = new ui08(this.endianness);
+                for (let s = 0; s < samples; s++) {
+                    for (let c = 0; c < channels; c++) {
+                        cursor += await sample.load(cursor, dataProvider);
+                        let value = ((sample.value + 0) / 255) * 2.0 - 1.0;
+                        buffer.getChannelData(c)[s] = value;
+                    }
+                }
+            }
+            else if (this.header.bitsPerSample.value === 16) {
+                let sample = new si16(this.endianness);
+                for (let s = 0; s < samples; s++) {
+                    for (let c = 0; c < channels; c++) {
+                        cursor += await sample.load(cursor, dataProvider);
+                        let value = ((sample.value + 32768) / 65535) * 2.0 - 1.0;
+                        buffer.getChannelData(c)[s] = value;
+                    }
+                }
+            }
+            else {
+                throw `Expected 8 or 16 bits per sample!`;
+            }
+            let source = context.createBufferSource();
+            source.buffer = buffer;
+            source.connect(context.destination);
+            source.start();
+        }
+    }
+    var wc1;
+    (function (wc1) {
+        class MicrotileHeader {
+            constructor(endianness) {
+                this.buffer = new ArrayBuffer(2);
+                let integer = new ui16(endianness, this.buffer);
+                this.inverted = new pi16(integer, 0, 1);
+                this.mirrored = new pi16(integer, 1, 1);
+                this.index = new pi16(integer, 5, 11);
+            }
+            async load(cursor, dataProvider) {
+                let length = 0;
+                length += await dataProvider.read(cursor + length, this.buffer);
+                return length;
+            }
+        }
+        wc1.MicrotileHeader = MicrotileHeader;
+        ;
+        class TileHeader {
+            constructor(endianness) {
+                let a = new MicrotileHeader(endianness);
+                let b = new MicrotileHeader(endianness);
+                let c = new MicrotileHeader(endianness);
+                let d = new MicrotileHeader(endianness);
+                this.layout = [
+                    [a, b],
+                    [c, d]
+                ];
+            }
+            async load(cursor, dataProvider) {
+                let length = 0;
+                for (let y = 0; y < this.layout.length; y++) {
+                    for (let x = 0; x < this.layout[y].length; x++) {
+                        length += await this.layout[y][x].load(cursor + length, dataProvider);
+                    }
+                }
+                return length;
+            }
+        }
+        wc1.TileHeader = TileHeader;
+        ;
+        class UnitScriptHeader {
+            constructor(endianness) {
+                this.buffer = new ArrayBuffer(12);
+                this.spawnOffset = new ui16(endianness, this.buffer, 0);
+                this.deathOffset = new ui16(endianness, this.buffer, 2);
+                this.idleOffset = new ui16(endianness, this.buffer, 4);
+                this.movementOffset = new ui16(endianness, this.buffer, 6);
+                this.actionOffset = new ui16(endianness, this.buffer, 8);
+                this.trainOffset = new ui16(endianness, this.buffer, 10);
+            }
+            async load(cursor, dataProvider) {
+                let length = 0;
+                length += await dataProvider.read(cursor + length, this.buffer);
+                return length;
+            }
+        }
+        wc1.UnitScriptHeader = UnitScriptHeader;
+        ;
+        class ParticleScriptHeader {
+            constructor(endianness) {
+                this.buffer = new ArrayBuffer(6);
+                this.spawnOffset = new ui16(endianness, this.buffer, 0);
+                this.movementOffset = new ui16(endianness, this.buffer, 2);
+                this.hitOffset = new ui16(endianness, this.buffer, 4);
+            }
+            async load(cursor, dataProvider) {
+                let length = 0;
+                length += await dataProvider.read(cursor + length, this.buffer);
+                return length;
+            }
+        }
+        wc1.ParticleScriptHeader = ParticleScriptHeader;
+        ;
+        class ScriptHeader {
+            constructor(endianness) {
+                this.buffer = new ArrayBuffer(6);
+                this.headerOffset = new ui16(endianness, this.buffer, 0);
+                this.unitScriptCount = new ui16(endianness, this.buffer, 2);
+                this.particleScriptCount = new ui16(endianness, this.buffer, 4);
+            }
+            async load(cursor, dataProvider) {
+                let length = 0;
+                length += await dataProvider.read(cursor + length, this.buffer);
+                return length;
+            }
+        }
+        wc1.ScriptHeader = ScriptHeader;
+        ;
+        class Script {
+            constructor(endianness) {
+                this.endianness = endianness;
+                this.header = new ScriptHeader(endianness);
+                this.unitScriptHeaders = new Array();
+                this.particleScriptHeaders = new Array();
+                this.buffer = new ArrayBuffer(0);
+            }
+            async load(dataProvider) {
+                this.unitScriptHeaders.splice(0, this.unitScriptHeaders.length);
+                this.particleScriptHeaders.splice(0, this.particleScriptHeaders.length);
+                let cursor = 0;
+                let offsets = new Array();
+                let offset = new ui16(this.endianness);
+                while (true) {
+                    cursor += await offset.load(cursor, dataProvider);
+                    if (cursor - 2 === offset.value) {
+                        cursor -= 2;
+                        break;
+                    }
+                    offsets.push(offset.value);
+                }
+                cursor += await this.header.load(cursor, dataProvider);
+                for (let i = 0; i < this.header.unitScriptCount.value; i++) {
+                    let offset = offsets[i];
+                    let unitScriptHeader = new UnitScriptHeader(this.endianness);
+                    await unitScriptHeader.load(offset, dataProvider);
+                    this.unitScriptHeaders.push(unitScriptHeader);
+                }
+                for (let i = 0; i < this.header.particleScriptCount.value; i++) {
+                    let offset = offsets[this.header.unitScriptCount.value + i];
+                    let particleScriptHeader = new ParticleScriptHeader(this.endianness);
+                    await particleScriptHeader.load(offset, dataProvider);
+                    this.particleScriptHeaders.push(particleScriptHeader);
+                }
+                this.buffer = new ArrayBuffer(dataProvider.size());
+                await dataProvider.read(0, this.buffer);
+                return this;
+            }
+            getUnitScript(index) {
+                assert.between(0, index, this.unitScriptHeaders.length - 1);
+                let header = this.unitScriptHeaders[index];
+                let buffer = this.buffer;
+                return {
+                    header,
+                    buffer
+                };
+            }
+            getParticle(index) {
+                assert.between(0, index, this.particleScriptHeaders.length - 1);
+                let header = this.particleScriptHeaders[index];
+                let buffer = this.buffer;
+                return {
+                    header,
+                    buffer
+                };
+            }
+        }
+        wc1.Script = Script;
+        class SpriteFrameHeader {
+            constructor(endianness) {
+                this.buffer = new ArrayBuffer(8);
+                this.x = new ui08(endianness, this.buffer, 0);
+                this.y = new ui08(endianness, this.buffer, 1);
+                this.w = new ui08(endianness, this.buffer, 2);
+                this.h = new ui08(endianness, this.buffer, 3);
+                this.offset = new ui32(endianness, this.buffer, 4);
+            }
+            async load(cursor, dataProvider) {
+                let length = 0;
+                length += await dataProvider.read(cursor + length, this.buffer);
+                return length;
+            }
+        }
+        wc1.SpriteFrameHeader = SpriteFrameHeader;
+        ;
+        class SpriteFrame {
+            constructor(endianness) {
+                this.header = new SpriteFrameHeader(endianness);
+                this.buffer = new ArrayBuffer(0);
+            }
+            async load(cursor, dataProvider) {
+                let length = 0;
+                length += await this.header.load(cursor + length, dataProvider);
+                this.buffer = new ArrayBuffer(this.header.w.value * this.header.h.value);
+                await dataProvider.read(this.header.offset.value, this.buffer);
+                return length;
+            }
+            makeTexture(context, width, height) {
+                let x = this.header.x.value;
+                let y = this.header.y.value;
+                let w = this.header.w.value;
+                let h = this.header.h.value;
+                let texture = context.createTexture();
+                if (is.absent(texture)) {
+                    throw `Expected a texture!`;
+                }
+                context.activeTexture(context.TEXTURE0);
+                context.bindTexture(context.TEXTURE_2D, texture);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);
+                context.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, width, height, 0, context.LUMINANCE, context.UNSIGNED_BYTE, null);
+                context.texSubImage2D(context.TEXTURE_2D, 0, x, y, w, h, context.LUMINANCE, context.UNSIGNED_BYTE, new Uint8Array(this.buffer));
+                return texture;
+            }
+        }
+        wc1.SpriteFrame = SpriteFrame;
+        ;
+        class SpriteHeader {
+            constructor(endianness) {
+                this.buffer = new ArrayBuffer(4);
+                this.spriteCount = new ui16(endianness, this.buffer, 0);
+                this.w = new ui08(endianness, this.buffer, 2);
+                this.h = new ui08(endianness, this.buffer, 3);
+            }
+            async load(cursor, dataProvider) {
+                let length = 0;
+                length += await dataProvider.read(cursor + length, this.buffer);
+                return length;
+            }
+        }
+        wc1.SpriteHeader = SpriteHeader;
+        ;
+        class Sprite {
+            constructor(endianness) {
+                this.endianness = endianness;
+                this.header = new SpriteHeader(endianness);
+                this.frames = new Array();
+            }
+            async load(dataProvider) {
+                this.frames.splice(0, this.frames.length);
+                let cursor = 0;
+                cursor += await this.header.load(cursor, dataProvider);
+                for (let i = 0; i < this.header.spriteCount.value; i++) {
+                    let frame = new SpriteFrame(this.endianness);
+                    cursor += await frame.load(cursor, dataProvider);
+                    this.frames.push(frame);
+                }
+                return this;
+            }
+            makeTextures(context) {
+                let w = this.header.w.value;
+                let h = this.header.h.value;
+                let textures = new Array();
+                for (let frame of this.frames) {
+                    let texture = frame.makeTexture(context, w, h);
+                    textures.push(texture);
+                }
+                return textures;
+            }
+        }
+        wc1.Sprite = Sprite;
+        ;
+        class Map {
+            constructor(endianness) {
+                this.buffer = new ArrayBuffer(0);
+            }
+            async load(dataProvider) {
+                let cursor = 0;
+                this.buffer = new ArrayBuffer(64 * 64 * 2);
+                cursor += await dataProvider.read(cursor, this.buffer);
+                return this;
+            }
+        }
+        wc1.Map = Map;
+        ;
+        class CursorHeader {
+            constructor(endianness) {
+                this.buffer = new ArrayBuffer(8);
+                this.x = new ui16(endianness, this.buffer, 0);
+                this.y = new ui16(endianness, this.buffer, 2);
+                this.w = new ui16(endianness, this.buffer, 4);
+                this.h = new ui16(endianness, this.buffer, 6);
+            }
+            async load(cursor, dataProvider) {
+                let length = 0;
+                length += await dataProvider.read(cursor + length, this.buffer);
+                return length;
+            }
+        }
+        wc1.CursorHeader = CursorHeader;
+        ;
+        class Cursor {
+            constructor(endianness) {
+                this.header = new CursorHeader(endianness);
+                this.buffer = new ArrayBuffer(0);
+            }
+            async load(dataProvider) {
+                let cursor = 0;
+                cursor += await this.header.load(cursor, dataProvider);
+                this.buffer = new ArrayBuffer(this.header.w.value * this.header.h.value);
+                cursor += await dataProvider.read(cursor, this.buffer);
+                return this;
+            }
+            makeTexture(context) {
+                let w = this.header.w.value;
+                let h = this.header.h.value;
+                let texture = context.createTexture();
+                if (is.absent(texture)) {
+                    throw `Expected a texture!`;
+                }
+                context.activeTexture(context.TEXTURE0);
+                context.bindTexture(context.TEXTURE_2D, texture);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);
+                context.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, w, h, 0, context.LUMINANCE, context.UNSIGNED_BYTE, null);
+                context.texSubImage2D(context.TEXTURE_2D, 0, 0, 0, w, h, context.LUMINANCE, context.UNSIGNED_BYTE, new Uint8Array(this.buffer));
+                return texture;
+            }
+        }
+        wc1.Cursor = Cursor;
+        ;
+        class Palette {
+            constructor(endianness) {
+                this.buffer = new ArrayBuffer(0);
+            }
+            async load(dataProvider) {
+                assert.between(0, dataProvider.size() % 3, 0);
+                let cursor = 0;
+                this.buffer = new ArrayBuffer(dataProvider.size());
+                cursor += await dataProvider.read(cursor, this.buffer);
+                return this;
+            }
+            makeTexture(context) {
+                let w = this.buffer.byteLength / 3;
+                let h = 1;
+                let texture = context.createTexture();
+                if (is.absent(texture)) {
+                    throw `Expected a texture!`;
+                }
+                context.activeTexture(context.TEXTURE0);
+                context.bindTexture(context.TEXTURE_2D, texture);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);
+                context.texImage2D(context.TEXTURE_2D, 0, context.RGB, 256, 1, 0, context.RGB, context.UNSIGNED_BYTE, null);
+                context.texSubImage2D(context.TEXTURE_2D, 0, 0, 0, w, h, context.RGB, context.UNSIGNED_BYTE, new Uint8Array(this.buffer));
+                return texture;
+            }
+            updateTexture(texture, start) {
+                let w = this.buffer.byteLength / 3;
+                let h = 1;
+                context.activeTexture(context.TEXTURE0);
+                context.bindTexture(context.TEXTURE_2D, texture);
+                context.texSubImage2D(context.TEXTURE_2D, 0, start, 0, w, h, context.RGB, context.UNSIGNED_BYTE, new Uint8Array(this.buffer));
+                return this;
+            }
+        }
+        wc1.Palette = Palette;
+        ;
+        class BitmapHeader {
+            constructor(endianness) {
+                this.buffer = new ArrayBuffer(4);
+                this.w = new ui16(endianness, this.buffer, 0);
+                this.h = new ui16(endianness, this.buffer, 2);
+            }
+            async load(cursor, dataProvider) {
+                let length = 0;
+                length += await dataProvider.read(cursor + length, this.buffer);
+                return length;
+            }
+        }
+        wc1.BitmapHeader = BitmapHeader;
+        ;
+        class Bitmap {
+            constructor(endianness) {
+                this.header = new BitmapHeader(endianness);
+                this.buffer = new ArrayBuffer(0);
+            }
+            async load(dataProvider) {
+                let cursor = 0;
+                cursor += await this.header.load(cursor, dataProvider);
+                this.buffer = new ArrayBuffer(this.header.w.value * this.header.h.value);
+                cursor += await dataProvider.read(cursor, this.buffer);
+                return this;
+            }
+            makeTexture(context) {
+                let w = this.header.w.value;
+                let h = this.header.h.value;
+                let texture = context.createTexture();
+                if (is.absent(texture)) {
+                    throw `Expected a texture!`;
+                }
+                context.activeTexture(context.TEXTURE0);
+                context.bindTexture(context.TEXTURE_2D, texture);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);
+                context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);
+                context.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, w, h, 0, context.LUMINANCE, context.UNSIGNED_BYTE, null);
+                context.texSubImage2D(context.TEXTURE_2D, 0, 0, 0, w, h, context.LUMINANCE, context.UNSIGNED_BYTE, new Uint8Array(this.buffer));
+                return texture;
+            }
+        }
+        wc1.Bitmap = Bitmap;
+        ;
+    })(wc1 || (wc1 = {}));
+    // ============================================================================
+    let audio_context;
+    let synth;
+    let canvas = document.createElement("canvas");
+    let context = canvas.getContext("webgl2", { antialias: false });
+    if (is.absent(context)) {
+        throw `Expected a context!`;
+    }
+    context.clearColor(0.0, 0.0, 0.0, 1.0);
+    context.pixelStorei(context.UNPACK_ALIGNMENT, 1);
+    let program = context.createProgram();
+    if (is.absent(program)) {
+        throw `Expected a program!`;
+    }
+    let vertexShader = context.createShader(context.VERTEX_SHADER);
+    if (is.absent(vertexShader)) {
+        throw `Expected a shader!`;
+    }
+    context.shaderSource(vertexShader, `#version 300 es
+	uniform ivec2 viewport;
+	uniform bvec2 scaling;
+	uniform vec2 anchor;
+	uniform vec2 quad;
+	uniform sampler2D paletteSampler;
+	uniform sampler2D textureSampler;
+	in vec2 vertexPosition;
+	in vec2 vertexTexture;
+	out vec2 textureCoordinates;
+	void main() {
+		float zoom = ${ZOOM}.0;
+		textureCoordinates = vertexTexture;
+		if (scaling.x) {
+			textureCoordinates.x = 1.0 - textureCoordinates.x;
+		}
+		if (scaling.y) {
+			textureCoordinates.y = 1.0 - textureCoordinates.y;
+		}
+		ivec2 texSize = textureSize(textureSampler, 0);
+		vec2 vvpos = vec2(quad) + (vertexPosition - anchor) * vec2(texSize);
+		mat3x3 transform = mat3x3(vec3(2.0 / float(viewport.x), 0.0, 0.0), vec3(0.0, -2.0 / float(viewport.y), 0.0), vec3(-1.0, 1.0, 1.0));
+		gl_Position = vec4((transform * vec3(vvpos * zoom, 1.0)).xy, 0.0, 1.0);
+	}
+`);
+    context.compileShader(vertexShader);
+    if (!context.getShaderParameter(vertexShader, context.COMPILE_STATUS)) {
+        let info = context.getShaderInfoLog(vertexShader);
+        throw `${info}`;
+    }
+    let fragmentShader = context.createShader(context.FRAGMENT_SHADER);
+    if (is.absent(fragmentShader)) {
+        throw `Expected a shader!`;
+    }
+    context.shaderSource(fragmentShader, `#version 300 es
+	precision highp float;
+	uniform int textureIndex;
+	uniform int transparentIndex;
+	uniform sampler2D colorCycleSampler;
+	uniform sampler2D paletteSampler;
+	uniform sampler2D textureSampler;
+	in vec2 textureCoordinates;
+	out vec4 fragmentColor;
+	void main() {
+		float index = texture(textureSampler, textureCoordinates).x;
+		int indexInt = int(index * float(textureSize(textureSampler, 0).x));
+		if (indexInt == transparentIndex) {
+			discard;
+		}
+		float shiftedIndex = texture(colorCycleSampler, vec2(index, 0.0)).x;
+		vec3 color = texture(paletteSampler, vec2(shiftedIndex, 0.0)).rgb * 4.0;
+		fragmentColor = vec4(color, 1.0);
+	}
+`);
+    context.compileShader(fragmentShader);
+    if (!context.getShaderParameter(fragmentShader, context.COMPILE_STATUS)) {
+        let info = context.getShaderInfoLog(fragmentShader);
+        throw `${info}`;
+    }
+    context.attachShader(program, vertexShader);
+    context.attachShader(program, fragmentShader);
+    context.linkProgram(program);
+    if (!context.getProgramParameter(program, context.LINK_STATUS)) {
+        let info = context.getProgramInfoLog(program);
+        throw `${info}`;
+    }
+    context.useProgram(program);
+    let viewportLocation = context.getUniformLocation(program, "viewport");
+    let quadLocation = context.getUniformLocation(program, "quad");
+    let scalingLocation = context.getUniformLocation(program, "scaling");
+    let anchorLocation = context.getUniformLocation(program, "anchor");
+    let textureIndexLocation = context.getUniformLocation(program, "textureIndex");
+    context.uniform1i(textureIndexLocation, 0); // not used currently
+    let transparentIndexLocation = context.getUniformLocation(program, "transparentIndex");
+    context.uniform1i(transparentIndexLocation, 0);
+    let textureSamplerocation = context.getUniformLocation(program, "textureSampler");
+    context.uniform1i(textureSamplerocation, 0);
+    let paletteSamplerLocation = context.getUniformLocation(program, "paletteSampler");
+    context.uniform1i(paletteSamplerLocation, 1);
+    let colorCycleSamplerLocation = context.getUniformLocation(program, "colorCycleSampler");
+    context.uniform1i(colorCycleSamplerLocation, 2);
+    let vertexPosition = context.getAttribLocation(program, "vertexPosition");
+    context.enableVertexAttribArray(vertexPosition);
+    let vertexTexture = context.getAttribLocation(program, "vertexTexture");
+    context.enableVertexAttribArray(vertexTexture);
+    let buffer = context.createBuffer();
+    if (is.absent(buffer)) {
+        throw `Expected a buffer!`;
+    }
+    context.bindBuffer(context.ARRAY_BUFFER, buffer);
+    context.bufferData(context.ARRAY_BUFFER, new Float32Array([
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 1.0,
+        1.0, 1.0, 1.0, 1.0,
+        1.0, 0.0, 1.0, 0.0
+    ]), context.STATIC_DRAW);
+    context.vertexAttribPointer(vertexPosition, 2, context.FLOAT, false, 16, 0);
+    context.vertexAttribPointer(vertexTexture, 2, context.FLOAT, false, 16, 8);
+    canvas.setAttribute("style", "height: 100%; width: 100%;");
+    canvas.addEventListener("dragenter", async (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+    });
+    canvas.addEventListener("dragover", async (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+    });
+    let endianness = "LittleEndian";
+    let archive;
+    let xmi;
+    async function load(dataProvider) {
+        if (is.absent(audio_context)) {
+            audio_context = new AudioContext();
+        }
+        archive = new Archive(dataProvider, endianness);
+        tileset = await loadTileset(context, archive, endianness, 189, 190, 191);
+        //tileset = await loadTileset(context, archive, endianness, 192, 193, 194);
+        //tileset = await loadTileset(context, archive, endianness, 195, 196, 197);
+        map = await loadMap(archive, endianness, 47);
+        try {
+            await loadUnitScript(archive);
+        }
+        catch (error) {
+            try {
+                await loadParticleScript(archive);
+            }
+            catch (error) { }
+        }
+        xmi = await new XmiFile().load(await archive.getRecord(0));
+        xmi_time_base = 60;
+        playMusic();
+        //setEntityColor("red");
+    }
+    async function loadTileset(context, archive, endianness, tilesetIndex, tilesIndex, paletteIndex) {
+        let base_palette = await new wc1.Palette(endianness).load(await archive.getRecord(paletteIndex));
+        let paletteTexture = await base_palette.makeTexture(context);
+        let palette = await new wc1.Palette(endianness).load(await archive.getRecord(210));
+        palette.updateTexture(paletteTexture, 128);
+        context.activeTexture(context.TEXTURE1);
+        context.bindTexture(context.TEXTURE_2D, paletteTexture);
+        let tiles = await archive.getRecord(tilesIndex);
+        assert.assert((tiles.size() % (8 * 8)) === 0);
+        let headers = await archive.getRecord(tilesetIndex);
+        let cursor = 0;
+        assert.assert((tiles.size() % 8) === 0);
+        let textures = new Array();
+        let array = new Uint8Array(8 * 8);
+        while (cursor < headers.size()) {
+            let w = 2 * 8;
+            let h = 2 * 8;
+            let texture = context.createTexture();
+            if (is.absent(texture)) {
+                throw `Expected a texture!`;
+            }
+            context.activeTexture(context.TEXTURE0);
+            context.bindTexture(context.TEXTURE_2D, texture);
+            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);
+            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);
+            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);
+            context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);
+            context.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, w, h, 0, context.LUMINANCE, context.UNSIGNED_BYTE, null);
+            let tileHeader = new wc1.TileHeader(endianness);
+            cursor += await tileHeader.load(cursor, headers);
+            for (let y = 0; y < tileHeader.layout.length; y++) {
+                for (let x = 0; x < tileHeader.layout[y].length; x++) {
+                    let header = tileHeader.layout[y][x];
+                    await tiles.read(header.index.value * 8 * 8, array.buffer);
+                    if (header.inverted.value) {
+                        for (let y = 0; y < 8 / 2; y++) {
+                            for (let x = 0; x < 8; x++) {
+                                let indexOne = (y * 8) + x;
+                                let indexTwo = ((8 - y - 1) * 8) + x;
+                                let valueOne = array[indexOne];
+                                let valueTwo = array[indexTwo];
+                                array[indexOne] = valueTwo;
+                                array[indexTwo] = valueOne;
+                            }
+                        }
+                    }
+                    if (header.mirrored.value) {
+                        for (let y = 0; y < 8; y++) {
+                            for (let x = 0; x < 8 / 2; x++) {
+                                let indexOne = (y * 8) + x;
+                                let indexTwo = (y * 8) + 8 - x - 1;
+                                let valueOne = array[indexOne];
+                                let valueTwo = array[indexTwo];
+                                array[indexOne] = valueTwo;
+                                array[indexTwo] = valueOne;
+                            }
+                        }
+                    }
+                    context.texSubImage2D(context.TEXTURE_2D, 0, x * 8, y * 8, 8, 8, context.LUMINANCE, context.UNSIGNED_BYTE, array);
+                }
+            }
+            textures.push(texture);
+        }
+        return textures;
+    }
+    async function loadMap(archive, endianness, mapIndex) {
+        let indices = new Array();
+        let integer = new ui16(endianness);
+        let dataProider = await archive.getRecord(mapIndex);
+        assert.assert(dataProider.size() === 64 * 64 * 2);
+        let cursor = 0;
+        for (let y = 0; y < 64; y++) {
+            for (let x = 0; x < 64; x++) {
+                cursor += await integer.load(cursor, dataProider);
+                indices.push(integer.value);
+            }
+        }
+        return indices;
+    }
+    let selectedEntities = new Array();
+    let entities = [
+        { name: "Footman", script: 0, sprite: 279, sfx: [487, 488, 489] },
+        { name: "Grunt", script: 1, sprite: 280, sfx: [487, 488, 489] },
+        { name: "Peasant", script: 2, sprite: 281, sfx: [477, 478, 479] },
+        { name: "Peon", script: 3, sprite: 282, sfx: [477, 478, 479] },
+        { name: "Catapult", script: 4, sprite: 283, sfx: [476] },
+        { name: "Catapult", script: 5, sprite: 284, sfx: [476] },
+        { name: "Knight", script: 6, sprite: 285, sfx: [487, 488, 489] },
+        { name: "Raider", script: 7, sprite: 286, sfx: [487, 488, 489] },
+        { name: "Archer", script: 8, sprite: 287, sfx: [493] },
+        { name: "Spearman", script: 9, sprite: 288, sfx: [493] },
+        { name: "Conjurer", script: 10, sprite: 289, sfx: [] },
+        { name: "Warlock", script: 11, sprite: 290, sfx: [] },
+        { name: "Cleric", script: 12, sprite: 291, sfx: [] },
+        { name: "Necrolyte", script: 13, sprite: 292, sfx: [] },
+        { name: "Medivh", script: 14, sprite: 293, sfx: [] },
+        { name: "Sir Lothar", script: 15, sprite: 294, sfx: [] },
+        { name: "Grunt (copy)", script: 16, sprite: 280, sfx: [] },
+        { name: "Griselda", script: 17, sprite: 296, sfx: [] },
+        { name: "Garona", script: 18, sprite: 296, sfx: [] },
+        { name: "Ogre", script: 19, sprite: 297, sfx: [] },
+        { name: "Ogre (copy)", script: 20, sprite: 297, sfx: [] },
+        { name: "Spider", script: 21, sprite: 298, sfx: [] },
+        { name: "Slime", script: 22, sprite: 299, sfx: [] },
+        { name: "Fire Elemental", script: 23, sprite: 300, sfx: [] },
+        { name: "Scorpion", script: 24, sprite: 301, sfx: [] },
+        { name: "Brigand", script: 25, sprite: 302, sfx: [] },
+        { name: "Skeleton", script: 26, sprite: 303, sfx: [] },
+        { name: "Skeleton", script: 27, sprite: 304, sfx: [] },
+        { name: "Daemon", script: 28, sprite: 305, sfx: [] },
+        { name: "Ogre (copy 2)", script: 29, sprite: 297, sfx: [] },
+        { name: "Ogre (copy 3)", script: 30, sprite: 297, sfx: [] },
+        { name: "Water Elemental", script: 31, sprite: 306, sfx: [] },
+        { name: "Farm", script: 32, sprite: 307, sfx: [] },
+        { name: "Farm", script: 33, sprite: 308, sfx: [] },
+        { name: "Barracks", script: 34, sprite: 309, sfx: [] },
+        { name: "Barracks", script: 35, sprite: 310, sfx: [] },
+        { name: "Church", script: 36, sprite: 311, sfx: [] },
+        { name: "Temple", script: 37, sprite: 312, sfx: [] },
+        { name: "Tower", script: 38, sprite: 313, sfx: [] },
+        { name: "Tower", script: 39, sprite: 314, sfx: [] },
+        { name: "Town Hall", script: 40, sprite: 315, sfx: [] },
+        { name: "Town Hall", script: 41, sprite: 316, sfx: [] },
+        { name: "Mill", script: 42, sprite: 317, sfx: [] },
+        { name: "Mill", script: 43, sprite: 318, sfx: [] },
+        { name: "Stables", script: 44, sprite: 319, sfx: [] },
+        { name: "Kennel", script: 45, sprite: 320, sfx: [] },
+        { name: "Blacksmith", script: 46, sprite: 321, sfx: [] },
+        { name: "Blacksmith", script: 47, sprite: 322, sfx: [] },
+        { name: "Stormwind Keep", script: 48, sprite: 323, sfx: [] },
+        { name: "Black Rock Spire", script: 49, sprite: 324, sfx: [] },
+        { name: "Gold Mine", script: 50, sprite: 325, sfx: [] },
+        { name: "Blob", script: 0, type: "effect", sprite: 347, sfx: [] },
+        { name: "Fire Ball", script: 1, type: "effect", sprite: 348, sfx: [] },
+        { name: "Spear", script: 2, type: "effect", sprite: 349, sfx: [] },
+        { name: "Poison Cloud", script: 3, type: "effect", sprite: 350, sfx: [] },
+        { name: "Catapult Projectile", script: 4, type: "effect", sprite: 351, sfx: [] },
+        { name: "Burning Small", script: 5, type: "effect", sprite: 352, sfx: [] },
+        { name: "Burning Medium", script: 6, type: "effect", sprite: 353, sfx: [] },
+        { name: "Explosion", script: 7, type: "effect", sprite: 354, sfx: [] },
+        { name: "Sparkle", script: 8, type: "effect", sprite: 355, sfx: [] },
+        { name: "Building Collapse", script: 9, type: "effect", sprite: 356, sfx: [] },
+        { name: "Water Elemental", script: 10, type: "effect", sprite: 357, sfx: [] },
+        { name: "Fire Elemental", script: 11, type: "effect", sprite: 358, sfx: [] },
+    ];
+    let w = 256;
+    let h = 1;
+    let colorCycleTexture = context.createTexture();
+    let colorCycleBuffer = new Uint8Array(w * h);
+    for (let i = 0; i < 256; i++) {
+        colorCycleBuffer[i] = i;
+    }
+    if (is.absent(colorCycleTexture)) {
+        throw `Expected a texture!`;
+    }
+    context.activeTexture(context.TEXTURE2);
+    context.bindTexture(context.TEXTURE_2D, colorCycleTexture);
+    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);
+    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);
+    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);
+    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);
+    context.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, 256, 1, 0, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer);
+    let cycleWait = 0;
+    function updateCycle() {
+        if (cycleWait > 0) {
+            cycleWait -= 1;
+            return;
+        }
+        cycleWait = 15;
+        function update(offset, length, direction) {
+            if (direction === "forward") {
+                let first = colorCycleBuffer[offset];
+                for (let i = offset; i < offset + length - 1; i++) {
+                    colorCycleBuffer[i] = colorCycleBuffer[i + 1];
+                }
+                colorCycleBuffer[offset + length - 1] = first;
+            }
+            else {
+                let last = colorCycleBuffer[offset + length - 1];
+                for (let i = offset + length - 1; i > offset; i--) {
+                    colorCycleBuffer[i] = colorCycleBuffer[i - 1];
+                }
+                colorCycleBuffer[offset] = last;
+            }
+            context.activeTexture(context.TEXTURE2);
+            context.bindTexture(context.TEXTURE_2D, colorCycleTexture);
+            context.texSubImage2D(context.TEXTURE_2D, 0, offset, 0, length, 1, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer, offset);
+        }
+        update(114, 6, "reverse");
+        update(121, 6, "reverse");
+    }
+    function setEntityColor(color) {
+        if (color === "red") {
+            for (let i = 0; i < 8; i++) {
+                colorCycleBuffer[176 + i] = 176 + i;
+                colorCycleBuffer[200 + i] = 176 + i;
+            }
+        }
+        else if (color === "green") {
+            for (let i = 0; i < 8; i++) {
+                colorCycleBuffer[176 + i] = 168 + i;
+                colorCycleBuffer[200 + i] = 168 + i;
+            }
+        }
+        else if (color === "blue") {
+            for (let i = 0; i < 8; i++) {
+                colorCycleBuffer[176 + i] = 200 + i;
+                colorCycleBuffer[200 + i] = 200 + i;
+            }
+        }
+        else if (color === "white") {
+            for (let i = 0; i < 8; i++) {
+                colorCycleBuffer[176 + i] = 184 + i;
+                colorCycleBuffer[200 + i] = 184 + i;
+            }
+        }
+        context.activeTexture(context.TEXTURE2);
+        context.bindTexture(context.TEXTURE_2D, colorCycleTexture);
+        context.texSubImage2D(context.TEXTURE_2D, 0, 176, 0, 8, 1, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer, 176);
+        context.texSubImage2D(context.TEXTURE_2D, 0, 200, 0, 8, 1, context.LUMINANCE, context.UNSIGNED_BYTE, colorCycleBuffer, 200);
+    }
+    let textures = new Array();
+    let entity = 0;
+    let offset;
+    let delay = 0;
+    let direction = 0;
+    let frame = 0;
+    let view;
+    let sfx = [];
+    async function loadUnitScript(archive) {
+        let entitydata = entities[entity];
+        let sprite = await new wc1.Sprite(endianness).load(await archive.getRecord(entitydata.sprite));
+        textures = await sprite.makeTextures(context);
+        let script = await new wc1.Script(endianness).load(await archive.getRecord(212));
+        let us = script.getUnitScript(entitydata.script);
+        console.log(JSON.stringify({
+            ...entitydata,
+            armor: shared.armor[entity],
+            armorPiercingDamage: shared.armorPiercingDamage[entity],
+            damage: shared.damage[entity],
+            goldCost: shared.goldCost[entity] * 10,
+            health: shared.hitPoints[entity],
+            timeCost: shared.timeCost[entity] * 10,
+            range: shared.range[entity],
+            woodCost: shared.woodCost[entity] * 10,
+        }, null, "\t"));
+        view = new DataView(us.buffer);
+        frame = 0;
+        offset = us.header.movementOffset.value;
+        delay = 0;
+        sfx = await Promise.all(entitydata.sfx.map(async (index) => await new VocFile().load(await archive.getRecord(index))));
+        return us.header;
+    }
+    async function loadParticleScript(archive) {
+        let entitydata = entities[entity];
+        let sprite = await new wc1.Sprite(endianness).load(await archive.getRecord(entitydata.sprite));
+        textures = await sprite.makeTextures(context);
+        let script = await new wc1.Script(endianness).load(await archive.getRecord(212));
+        let us = script.getParticle(entitydata.script);
+        console.log({
+            ...entitydata
+        });
+        view = new DataView(us.buffer);
+        frame = 0;
+        offset = us.header.movementOffset.value;
+        delay = 0;
+        return us.header;
+    }
+    let tileset;
+    let map;
+    let xmi_offset = 0;
+    let xmi_time_base = 0;
+    let xmi_loop;
+    let channels = new Array();
+    let instruments = new Array();
+    let channel_mixers = new Array();
+    let channel_muters = new Array();
+    async function keyon(channel_index, midikey, velocity) {
+        if (is.absent(synth) || is.absent(audio_context)) {
+            return;
+        }
+        if (channel_muters[channel_index].gain.value === 0) {
+            return;
+        }
+        let instrument = instruments[channel_index];
+        let program = synth.banks[instrument[0]].programs[instrument[1]];
+        if (is.absent(program)) {
+            return;
+        }
+        let map = channels[channel_index];
+        let channel = map.get(midikey);
+        if (is.present(channel)) {
+            channel.stop();
+            map.delete(midikey);
+        }
+        try {
+            channel = await program.makeChannel(audio_context, midikey, velocity, channel_mixers[channel_index], channel_index);
+            map.set(midikey, channel);
+            channel.start();
+        }
+        catch (error) {
+            console.log(error);
+        }
+    }
+    function keyoff(channel_index, midikey, velocity) {
+        let map = channels[channel_index];
+        let channel = map.get(midikey);
+        if (is.present(channel)) {
+            channel.release(midikey, velocity);
+            map.delete(midikey);
+        }
+    }
+    function volume(channel_index, byte) {
+        // Volume is set for the loaded instrument, not the channel. Instruments loaded on multiple channels are affected.
+        let ins = instruments[channel_index];
+        for (let i = 0; i < 16; i++) {
+            if (instruments[i] === ins) {
+                channel_mixers[channel_index].gain.value = 10 ** (-960 * (1 - byte / 128) * (1 - byte / 128) / 200);
+            }
+        }
+    }
+    let tempo_seconds_per_beat = 0.5;
+    let signature_num = 4;
+    let signature_den = 4;
+    let signature_clicks = 24;
+    let signature_quarts = 8;
+    let xmi_timer;
+    function stopMusic() {
+        if (is.present(xmi_timer)) {
+            window.clearTimeout(xmi_timer);
+            xmi_timer = undefined;
+        }
+    }
+    function playMusic() {
+        stopMusic();
+        xmi_offset = 0;
+        xmi_loop = undefined;
+        tempo_seconds_per_beat = 0.5;
+        signature_num = 4;
+        signature_den = 4;
+        signature_clicks = 24;
+        signature_quarts = 8;
+        soundUpdate();
+    }
+    async function soundUpdate() {
+        if (is.present(xmi)) {
+            while (true) {
+                let event = xmi.events[xmi_offset++];
+                if (false) {
+                }
+                else if (event.type === XMIEventType.NOTE_OFF) {
+                    let a = event.data[0];
+                    let b = event.data[1];
+                    keyoff(event.channel, a, b);
+                }
+                else if (event.type === XMIEventType.NOTE_ON) {
+                    let a = event.data[0];
+                    let b = event.data[1];
+                    if (b === 0) {
+                        keyoff(event.channel, a, b);
+                    }
+                    else {
+                        await keyon(event.channel, a, b);
+                    }
+                }
+                else if (event.type === XMIEventType.INSTRUMENT_CHANGE) {
+                    let a = event.data[0];
+                    //console.log(`${event.channel}: instrument ${a}`);
+                    for (let i = 0; i < 16; i++) {
+                        if (instruments[i][1] === a) {
+                            channel_mixers[event.channel].gain.value = channel_mixers[i].gain.value;
+                            break;
+                        }
+                    }
+                    instruments[event.channel][1] = a;
+                }
+                else if (event.type === XMIEventType.CONTROLLER) {
+                    let a = event.data[0];
+                    let b = event.data[1];
+                    if (a === 64) {
+                        // SUSTAIN PEDAL ON OR OFF
+                    }
+                    else if (a === 10) {
+                        // PANNING
+                    }
+                    else if (a === 116) {
+                        xmi_loop = xmi_offset;
+                    }
+                    else if (a === 117) {
+                        xmi_offset = (xmi_loop ?? 0);
+                        continue;
+                    }
+                    else if ((a === 7) || (a === 11)) {
+                        //console.log(`${event.channel}: volume ${a} ${b}`);
+                        volume(event.channel, b);
+                    }
+                    else {
+                        //console.log(XMIEventType[event.type], a, b);
+                    }
+                }
+                else if (event.type === XMIEventType.PITCH_BEND) {
+                    let a = event.data[0];
+                    let b = event.data[1];
+                    let value = ((a & 0x7F) << 7) | ((b & 0x7F) << 0);
+                    let o = channels[event.channel];
+                    //console.log(XMIEventType[event.type], event);
+                }
+                else if (event.type === XMIEventType.SYSEX) {
+                    if (event.channel === 15) {
+                        let type = event.data[0];
+                        if (type === 0x51) {
+                            let a = event.data[1];
+                            let b = event.data[2];
+                            let c = event.data[3];
+                            let tempo = (a << 16) | (b << 8) | (c << 0);
+                            tempo_seconds_per_beat = tempo / 1000000;
+                        }
+                        else if (type === 0x58) {
+                            let numerator = event.data[1];
+                            let denominator = (1 << event.data[2]);
+                            let clocks_per_metronome_click = event.data[3];
+                            let quarter_32nd_notes = event.data[4];
+                            signature_num = numerator;
+                            signature_den = denominator;
+                            signature_clicks = clocks_per_metronome_click;
+                            signature_quarts = quarter_32nd_notes;
+                        }
+                    }
+                }
+                else {
+                    //console.log(XMIEventType[event.type], event);
+                }
+                if (xmi_offset < xmi.events.length) {
+                    let xmi_delay = xmi.events[xmi_offset].time;
+                    if (xmi_delay > 0) {
+                        // works nicely
+                        let delay_s = (xmi_delay / xmi_time_base) * tempo_seconds_per_beat;
+                        //let delay_s = (xmi_delay / xmi_time_base) * tempo_seconds_per_beat * signature_num / signature_den * 96 / signature_clicks * signature_quarts / 32;
+                        //console.log({xmi_delay, xmi_time_base, tempo_seconds_per_beat, signature_num, signature_den, signature_clicks, signature_quarts});
+                        //console.log(delay_s);
+                        xmi_timer = window.setTimeout(soundUpdate, delay_s * 1000);
+                        break;
+                    }
+                }
+                else {
+                    xmi = undefined;
+                    break;
+                }
+            }
+        }
+    }
+    const YELLOW = 221;
+    const RED = 222;
+    const GREEN = 223;
+    function getRectangleFromEntity(e) {
+        let index = entities.indexOf(e) ?? entity;
+        let x = 12 * 16;
+        let y = 12 * 16;
+        let w = shared.rectangles[index * 2 + 0];
+        let h = shared.rectangles[index * 2 + 1];
+        return {
+            x,
+            y,
+            w,
+            h
+        };
+    }
+    async function render(ms) {
+        context.clear(context.COLOR_BUFFER_BIT);
+        updateCycle();
+        if (is.present(map) && is.present(tileset)) {
+            for (let y = 0; y < 64; y++) {
+                for (let x = 0; x < 64; x++) {
+                    context.uniform1i(textureIndexLocation, 0);
+                    context.uniform1i(transparentIndexLocation, 256);
+                    context.uniform2f(anchorLocation, 0.0, 0.0);
+                    context.uniform2f(quadLocation, x * 16, y * 16);
+                    context.uniform2i(scalingLocation, 0, 0);
+                    context.activeTexture(context.TEXTURE0);
+                    context.bindTexture(context.TEXTURE_2D, tileset[map[y * 64 + x]]);
+                    context.bindBuffer(context.ARRAY_BUFFER, buffer);
+                    context.drawArrays(context.TRIANGLE_FAN, 0, 4);
+                }
+            }
+        }
+        if (is.present(offset) && is.present(view)) {
+            if (delay > 0) {
+                delay -= 1;
+            }
+            else {
+                let opcode = view.getUint8(offset++);
+                if (opcode === 0) {
+                }
+                else if (opcode === 1) {
+                    delay = view.getUint8(offset++);
+                }
+                else if (opcode === 2) {
+                    throw "";
+                }
+                else if (opcode === 3) {
+                    offset = view.getUint16(offset, true);
+                }
+                else if (opcode === 4) {
+                    frame = view.getUint8(offset++);
+                }
+                else if (opcode === 5) {
+                    let movement = view.getUint8(offset++);
+                }
+                else if (opcode === 6) {
+                    let movement = view.getUint8(offset++);
+                    frame = view.getUint8(offset++);
+                }
+                else if (opcode === 7) {
+                    delay = view.getUint8(offset++);
+                }
+                else if (opcode === 8) {
+                    setTimeout(() => {
+                        if (sfx.length > 0) {
+                            sfx[Math.floor(Math.random() * sfx.length)].play();
+                        }
+                    });
+                }
+                else if (opcode === 9) {
+                    console.log("damage!");
+                }
+                else if (opcode === 10) {
+                    delay = view.getUint8(offset++);
+                }
+                else {
+                    throw `Invalid opcode ${opcode}!`;
+                }
+            }
+            let index = direction < 5 ? frame + direction : frame + 8 - direction;
+            if (index >= textures.length) {
+                //console.log({index, unit: entity});
+            }
+            context.uniform1i(textureIndexLocation, 0);
+            context.uniform1i(transparentIndexLocation, 0);
+            context.uniform2f(anchorLocation, 0.0, 0.0);
+            context.uniform2f(quadLocation, 192, 192);
+            context.uniform2i(scalingLocation, direction < 5 ? 0 : 1, 0);
+            context.activeTexture(context.TEXTURE0);
+            context.bindTexture(context.TEXTURE_2D, textures[index]);
+            context.bindBuffer(context.ARRAY_BUFFER, buffer);
+            context.drawArrays(context.TRIANGLE_FAN, 0, 4);
+        }
+        for (let entity of selectedEntities) {
+            drawRectangle(getRectangleFromEntity(entity), GREEN);
+        }
+        if (is.present(dragStart) && is.present(dragEnd)) {
+            drawRectangle(makeRectangleFromPoints(dragStart, dragEnd), GREEN);
+        }
+        window.requestAnimationFrame(render);
+    }
+    window.requestAnimationFrame(render);
+    let keymap = {
+        z: 48,
+        x: 49,
+        c: 50,
+        v: 51,
+        b: 52,
+        n: 53,
+        m: 54,
+        a: 36,
+        s: 37,
+        d: 38,
+        f: 39,
+        g: 40,
+        h: 41,
+        j: 42,
+        k: 43,
+        l: 44,
+        q: 24,
+        w: 25,
+        e: 26,
+        r: 27,
+        t: 28,
+        y: 29,
+        u: 30,
+        i: 31,
+        o: 32,
+        p: 33
+    };
+    let keysdown = {};
+    window.addEventListener("keydown", async (event) => {
+        if (!(event.key in keymap)) {
+            return;
+        }
+        if (keysdown[event.key]) {
+            return;
+        }
+        keysdown[event.key] = true;
+        await keyon(0, keymap[event.key], 127);
+    });
+    window.addEventListener("keyup", async (event) => {
+        if (!(event.key in keymap)) {
+            return;
+        }
+        delete keysdown[event.key];
+        keyoff(0, keymap[event.key], 127);
+    });
+    window.addEventListener("keyup", async (event) => {
+        if (false) {
+        }
+        else if (event.key === "0") {
+            channel_muters[0].gain.value = channel_muters[0].gain.value > 0 ? 0 : 1;
+        }
+        else if (event.key === "1") {
+            channel_muters[1].gain.value = channel_muters[1].gain.value > 0 ? 0 : 1;
+        }
+        else if (event.key === "2") {
+            channel_muters[2].gain.value = channel_muters[2].gain.value > 0 ? 0 : 1;
+        }
+        else if (event.key === "3") {
+            channel_muters[3].gain.value = channel_muters[3].gain.value > 0 ? 0 : 1;
+        }
+        else if (event.key === "4") {
+            channel_muters[4].gain.value = channel_muters[4].gain.value > 0 ? 0 : 1;
+        }
+        else if (event.key === "5") {
+            channel_muters[5].gain.value = channel_muters[5].gain.value > 0 ? 0 : 1;
+        }
+        else if (event.key === "6") {
+            channel_muters[6].gain.value = channel_muters[6].gain.value > 0 ? 0 : 1;
+        }
+        else if (event.key === "7") {
+            channel_muters[7].gain.value = channel_muters[7].gain.value > 0 ? 0 : 1;
+        }
+        else if (event.key === "8") {
+            channel_muters[8].gain.value = channel_muters[8].gain.value > 0 ? 0 : 1;
+        }
+        else if (event.key === "9") {
+            channel_muters[9].gain.value = channel_muters[9].gain.value > 0 ? 0 : 1;
+        }
+        if (false) {
+        }
+        else if (event.key === "8") {
+            direction = 0;
+        }
+        else if (event.key === "9") {
+            direction = 1;
+        }
+        else if (event.key === "6") {
+            direction = 2;
+        }
+        else if (event.key === "3") {
+            direction = 3;
+        }
+        else if (event.key === "2") {
+            direction = 4;
+        }
+        else if (event.key === "1") {
+            direction = 5;
+        }
+        else if (event.key === "4") {
+            direction = 6;
+        }
+        else if (event.key === "7") {
+            direction = 7;
+        }
+        if (is.present(archive)) {
+            try {
+                if (false) {
+                }
+                else if (event.key === "a") {
+                    offset = (await loadUnitScript(archive)).actionOffset.value;
+                }
+                else if (event.key === "d") {
+                    offset = (await loadUnitScript(archive)).deathOffset.value;
+                }
+                else if (event.key === "i") {
+                    offset = (await loadUnitScript(archive)).idleOffset.value;
+                }
+                else if (event.key === "m") {
+                    offset = (await loadUnitScript(archive)).movementOffset.value;
+                }
+                else if (event.key === "s") {
+                    offset = (await loadUnitScript(archive)).spawnOffset.value;
+                }
+                else if (event.key === "t") {
+                    offset = (await loadUnitScript(archive)).trainOffset.value;
+                }
+                else if (event.key === "z") {
+                    offset = (await loadParticleScript(archive)).spawnOffset.value;
+                }
+                else if (event.key === "x") {
+                    offset = (await loadParticleScript(archive)).movementOffset.value;
+                }
+                else if (event.key === "c") {
+                    offset = (await loadParticleScript(archive)).hitOffset.value;
+                }
+                else if (event.key === "ArrowUp") {
+                    entity = (((entity - 1) % entities.length) + entities.length) % entities.length;
+                    let ed = entities[entity];
+                    if (ed.type === "effect") {
+                        await loadParticleScript(archive);
+                    }
+                    else {
+                        await loadUnitScript(archive);
+                    }
+                }
+                else if (event.key === "ArrowDown") {
+                    entity = (((entity + 1) % entities.length) + entities.length) % entities.length;
+                    let ed = entities[entity];
+                    if (ed.type === "effect") {
+                        await loadParticleScript(archive);
+                    }
+                    else {
+                        await loadUnitScript(archive);
+                    }
+                }
+            }
+            catch (error) { }
+        }
+    });
+    function makeSingleColoredTexture(w, h, colorIndex) {
+        let texture = context.createTexture();
+        if (is.absent(texture)) {
+            throw `Expected a texture!`;
+        }
+        context.activeTexture(context.TEXTURE0);
+        context.bindTexture(context.TEXTURE_2D, texture);
+        context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);
+        context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);
+        context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);
+        context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);
+        context.texImage2D(context.TEXTURE_2D, 0, context.LUMINANCE, w, h, 0, context.LUMINANCE, context.UNSIGNED_BYTE, null);
+        let array = new Uint8Array(w * h);
+        for (let i = 0; i < w * h; i++) {
+            array[i] = colorIndex;
+        }
+        context.texSubImage2D(context.TEXTURE_2D, 0, 0, 0, w, h, context.LUMINANCE, context.UNSIGNED_BYTE, array);
+        return texture;
+    }
+    function drawRectangle(rectangle, colorIndex) {
+        context.uniform1i(textureIndexLocation, colorIndex);
+        context.uniform1i(transparentIndexLocation, 256);
+        context.uniform2f(anchorLocation, 0.0, 0.0);
+        context.uniform2f(quadLocation, rectangle.x, rectangle.y);
+        context.uniform2i(scalingLocation, 0, 0);
+        context.activeTexture(context.TEXTURE0);
+        context.bindTexture(context.TEXTURE_2D, makeSingleColoredTexture(rectangle.w, rectangle.h, colorIndex));
+        context.bindBuffer(context.ARRAY_BUFFER, buffer);
+        context.drawArrays(context.LINE_LOOP, 0, 4);
+    }
+    function makeRectangleFromPoints(one, two) {
+        let w = two.x - one.x + 1;
+        if (w < 0) {
+            w = 0 - w;
+        }
+        let h = two.y - one.y + 1;
+        if (h < 0) {
+            h = 0 - h;
+        }
+        let x = Math.min(one.x, two.x);
+        let y = Math.min(one.y, two.y);
+        return {
+            x,
+            y,
+            w,
+            h
+        };
+    }
+    function getEntitiesWithinRange(rectangle) {
+        let e = new Array();
+        e.push(entities[entity]);
+        return e;
+    }
+    function setSelection(entities) {
+        selectedEntities = entities.slice(0, 9);
+    }
+    let dragStart;
+    let dragEnd;
+    function beginInteraction(x, y) {
+        dragStart = { x: Math.floor(x / ZOOM), y: Math.floor(y / ZOOM) };
+    }
+    function continueInteraction(x, y) {
+        dragEnd = { x: Math.floor(x / ZOOM), y: Math.floor(y / ZOOM) };
+    }
+    function completeInteraction(x, y) {
+        continueInteraction(x, y);
+        if (is.present(dragStart) && is.present(dragEnd)) {
+            let rect = makeRectangleFromPoints(dragStart, dragEnd);
+            let entities = getEntitiesWithinRange(rect);
+            setSelection(entities);
+        }
+        cancelInteraction(x, y);
+    }
+    function cancelInteraction(x, y) {
+        dragStart = undefined;
+        dragEnd = undefined;
+    }
+    window.addEventListener("pointerdown", async (event) => {
+        let x = event.pageX;
+        let y = event.pageY;
+        beginInteraction(x, y);
+    });
+    window.addEventListener("pointermove", async (event) => {
+        let x = event.pageX;
+        let y = event.pageY;
+        continueInteraction(x, y);
+    });
+    window.addEventListener("pointerup", async (event) => {
+        let x = event.pageX;
+        let y = event.pageY;
+        completeInteraction(x, y);
+    });
+    window.addEventListener("pointercancel", async (event) => {
+        let x = event.pageX;
+        let y = event.pageY;
+        cancelInteraction(x, y);
+    });
+    function unlock_context() {
+        if (is.absent(audio_context)) {
+            audio_context = new AudioContext();
+            for (let i = channels.length; i < 16; i++) {
+                channels[i] = new Map();
+            }
+            for (let i = instruments.length; i < 16; i++) {
+                instruments[i] = i === 9 ? [128, 0] : [0, 0];
+            }
+            for (let i = channel_muters.length; i < 16; i++) {
+                channel_muters[i] = audio_context.createGain();
+                channel_muters[i].connect(audio_context.destination);
+            }
+            for (let i = channel_mixers.length; i < 16; i++) {
+                channel_mixers[i] = audio_context.createGain();
+                channel_mixers[i].connect(channel_muters[i]);
+            }
+        }
+    }
+    function reset_synth() {
+        for (let [i, instrument] of instruments.entries()) {
+            instruments[i] = i === 9 ? [128, 0] : [0, 0];
+        }
+        for (let [i, channel_mixer] of channel_mixers.entries()) {
+            channel_mixer.gain.value = 1;
+        }
+        for (let channel of channels) {
+            for (let mc of channel.values()) {
+                mc.stop();
+            }
+        }
+    }
+    window.addEventListener("keydown", () => {
+        unlock_context();
+    });
+    fetch("gm.sf2").then(async (response) => {
+        let array_buffer = await response.arrayBuffer();
+        let cursor = new binary.Cursor();
+        let reader = new binary.BufferReader({
+            buffer: new binary.Buffer(array_buffer)
+        });
+        let sf = new shared.formats.soundfont.File();
+        await sf.load(cursor, reader);
+        synth = await synth_1.WavetableSynth.fromSoundfont(sf);
+        console.log("synth initialized");
+        for (let chan = 0; chan < 16; chan++) {
+            let select = document.createElement("select");
+            select.style.setProperty("font-size", "20px");
+            for (let [bank_index, bank] of synth.banks.entries()) {
+                for (let [program_index, program] of bank.programs.entries()) {
+                    if (is.present(program)) {
+                        let option = document.createElement("option");
+                        option.style.setProperty("font-size", "20px");
+                        option.textContent = program.name;
+                        option.value = "" + bank_index + ":" + program_index;
+                        select.appendChild(option);
+                    }
+                }
+            }
+            select.addEventListener("change", (event) => {
+                let parts = select.value.split(":");
+                let b = Number.parseInt(parts[0]);
+                let i = Number.parseInt(parts[1]);
+                instruments[chan] = [b, i];
+            });
+            document.body.appendChild(select);
+        }
+    });
+    canvas.addEventListener("drop", async (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        unlock_context();
+        reset_synth();
+        let dataTransfer = event.dataTransfer;
+        if (is.present(dataTransfer)) {
+            let files = dataTransfer.files;
+            for (let file of files) {
+                let dataProvider = await new FileDataProvider(file).buffer();
+                if (/[.]xmi$/i.test(file.name)) {
+                    xmi = await new XmiFile().load(dataProvider);
+                    xmi_time_base = 68; // 15ms interrupts
+                    playMusic();
+                }
+                else if (/[.]mid$/i.test(file.name)) {
+                    let array_buffer = await file.arrayBuffer();
+                    let cursor = new binary.Cursor();
+                    let reader = new binary.BufferReader({
+                        buffer: new binary.Buffer(array_buffer)
+                    });
+                    let midifile = await formats_1.midi.File.fromReader(cursor, reader);
+                    xmi = new XmiFile();
+                    for (let track of midifile.tracks) {
+                        let tc = 0;
+                        for (let event of track.events) {
+                            tc += event.delay;
+                            let data = (() => {
+                                let data = new Uint8Array(event.data.size());
+                                event.data.copy(new binary.Buffer(data.buffer));
+                                if (event.type === formats_1.midi.Type.SYSEX) {
+                                    if (event.channel < 15) {
+                                        return data.slice(1);
+                                    }
+                                    else {
+                                        return Uint8Array.of(data[0], ...data.slice(2));
+                                    }
+                                }
+                                else {
+                                    return data;
+                                }
+                            })();
+                            xmi.events.push({
+                                index: xmi.events.length,
+                                time: tc,
+                                type: event.type + 8,
+                                channel: event.channel,
+                                data: data
+                            });
+                        }
+                    }
+                    xmi.events.sort((one, two) => {
+                        if (one.time < two.time) {
+                            return -1;
+                        }
+                        if (one.time > two.time) {
+                            return 1;
+                        }
+                        if (one.index < two.index) {
+                            return -1;
+                        }
+                        if (one.index > two.index) {
+                            return 1;
+                        }
+                        return 0;
+                    });
+                    let time = 0;
+                    for (let event of xmi.events) {
+                        let delay = event.time - time;
+                        time = event.time;
+                        event.time = delay;
+                    }
+                    xmi_time_base = midifile.header.ticks_per_qn.value;
+                    playMusic();
+                }
+                else {
+                    await load(dataProvider);
+                }
+            }
+        }
+    });
+    async function resize() {
+        let w = canvas.offsetWidth * window.devicePixelRatio;
+        let h = canvas.offsetHeight * window.devicePixelRatio;
+        canvas.setAttribute("width", `${w}px`);
+        canvas.setAttribute("height", `${h}px`);
+        context.viewport(0, 0, w, h);
+        context.uniform2i(viewportLocation, w, h);
+    }
+    document.body.appendChild(canvas);
+    window.addEventListener("resize", () => {
+        resize();
+    });
+    resize();
+});
+function define(e,t,l){null==this.x&&(this.x=new Map),null==this.z&&(this.z=(e=>require(e))),null==this.y&&(this.y=(e=>{let t=this.x.get(e);if(null==t||null!=t.module)return;let l=Array(),u={exports:{}};for(let e of t.dependencies){if("require"===e){l.push(this.z);continue}if("module"===e){l.push(u);continue}if("exports"===e){l.push(u.exports);continue}try{l.push(this.z(e));continue}catch(e){}let t=this.x.get(e);if(null==t||null==t.module)return;l.push(t.module.exports)}t.callback(...l),t.module=u;for(let e of t.dependencies)this.y(e)}));let u=this.x.get(e);if(null!=u)throw'Duplicate module found with name "'+e+'"!';u={callback:l,dependencies:t,module:null},this.x.set(e,u),this.y(e)}

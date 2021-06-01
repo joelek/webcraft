@@ -17,6 +17,11 @@ export class Buffer {
 		return target;
 	}
 
+	fill(value: number): void {
+		IntegerAssert.between(0, value, 255);
+		this.array.fill(value);
+	}
+
 	get(index: number): number {
 		IntegerAssert.between(0, index, this.array.length - 1);
 		return this.array[index];

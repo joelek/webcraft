@@ -56,8 +56,10 @@ async function decompress(cursor: Cursor, reader: Reader): Promise<Buffer> {
 }
 
 (async () => {
-	let reader = new NodeFileReader("./private/records2/167");
+	let reader = new NodeFileReader("./private/records2/177");
 	let sprite = await wc2.Sprite.parse(reader, new Cursor());
-	let writer = new NodeFileWriter("./private/test.img");
-	await writer.write(new Cursor(), sprite.frames[0].image);
+	for (let [index, frame] of sprite.frames.entries()) {
+		let writer = new NodeFileWriter("./private/frame[" + index.toString().padStart(3, "0") + "]_" + frame.header.w.value + "x" + frame.header.h.value +".raw");
+		await writer.write(new Cursor(), frame.image);
+	}
 })();

@@ -1787,7 +1787,7 @@ async function load(dataProvider: DataProvider): Promise<void> {
 		} catch (error) {}
 	}
 	xmi = await new XmiFile().load(await archive.getRecord(0));
-	xmi_time_base = 60;
+	xmi_time_base = 68;
 	playMusic();
 	//setEntityColor("red");
 }
@@ -2172,6 +2172,7 @@ async function soundUpdate(): Promise<void> {
 					}
 				}
 				instruments[event.channel][1] = a;
+				document.querySelector(`select:nth-of-type(${event.channel}) > option:nth-of-type(${a})`)?.setAttribute("selected", "");
 			} else if (event.type === XMIEventType.CONTROLLER) {
 				let a = event.data[0];
 				let b = event.data[1];
@@ -2224,8 +2225,8 @@ async function soundUpdate(): Promise<void> {
 				let xmi_delay = xmi.events[xmi_offset].time;
 				if (xmi_delay > 0) {
 					// works nicely
-					let delay_s = (xmi_delay / xmi_time_base) * tempo_seconds_per_beat;
-					//let delay_s = (xmi_delay / xmi_time_base) * tempo_seconds_per_beat * signature_num / signature_den * 96 / signature_clicks * signature_quarts / 32;
+					//let delay_s = (xmi_delay / xmi_time_base) * tempo_seconds_per_beat;
+					let delay_s = (xmi_delay / xmi_time_base) * tempo_seconds_per_beat * signature_num / signature_den * 96 / signature_clicks * signature_quarts / 32;
 					//console.log({xmi_delay, xmi_time_base, tempo_seconds_per_beat, signature_num, signature_den, signature_clicks, signature_quarts});
 					//console.log(delay_s);
 					xmi_timer = window.setTimeout(soundUpdate, delay_s * 1000);

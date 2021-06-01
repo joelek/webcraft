@@ -61,6 +61,8 @@ function extract(source: string, target: string): void {
 			ext = ".voc";
 		} else if (buffer.slice(0, 4).toString("binary") === "FORM") {
 			ext = ".xmi";
+		} else if (buffer.length === 768) {
+			ext = ".pal";
 		}
 		libfs.writeFileSync(`${target}${i.toString().padStart(3, "0")}${ext}`, buffer);
 	}

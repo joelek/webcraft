@@ -6,6 +6,8 @@ function decompressRecord(archive: Buffer, cursor: number): Buffer {
 	let header = archive.readUInt32LE(cursor); cursor += 4;
 	let decompressedSize = (header >> 0) & 0xFFFFFF;
 	let isCompressed = (header >> 29) & 1;
+	if ((header >>> 24) !== 32 && (header >>> 24) !== 0)
+	console.log((header >>> 24).toString(2).padStart(8, "0"));
 	if (!isCompressed) {
 		return archive.slice(cursor, cursor + decompressedSize);
 	}
@@ -52,6 +54,7 @@ function extract(source: string, target: string): void {
 	let recordCount = archive.readUInt16LE(cursor); cursor += 2;
 	let id = archive.readUInt16LE(cursor); cursor += 2;
 	for (let i = 0; i < recordCount; i++) {
+		console.log("index", i);
 		let offset = archive.readUInt32LE(cursor); cursor += 4;
 		let buffer = decompressRecord(archive, offset);
 		let ext = "";

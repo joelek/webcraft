@@ -207,10 +207,10 @@ export const Bitmap = {
 		let header = new BitmapHeader();
 		let infoHeader = new BitmapInfoHeader();
 		header.fileIdentifier.value = "BM";
-		header.fileLength.value = header.sizeOf() + infoHeader.sizeOf() + bitmap.palette.size() + rowStride * bitmap.h;
+		header.fileLength.value = header.sizeOf() + infoHeader.sizeOf() + bitmap.palette.size() / 3 * 4 + rowStride * bitmap.h;
 		header.reservedOne.value = 0;
 		header.reservedTwo.value = 0;
-		header.pixelDataOffset.value = header.sizeOf() + infoHeader.sizeOf() + bitmap.palette.size();
+		header.pixelDataOffset.value = header.sizeOf() + infoHeader.sizeOf() + bitmap.palette.size() / 3 * 4;
 		infoHeader.headerLength.value = 40;
 		infoHeader.imageWidth.value = bitmap.w;
 		infoHeader.imageHeight.value = bitmap.h;
@@ -220,11 +220,18 @@ export const Bitmap = {
 		infoHeader.pixelArrayLength.value = rowStride * bitmap.h;
 		infoHeader.horizontalResolution.value = 2835;
 		infoHeader.verticalResolution.value = 2835;
-		infoHeader.paletteEntryCount.value = bitmap.palette.size() >> 2;
+		infoHeader.paletteEntryCount.value = bitmap.palette.size() / 3;
 		infoHeader.importantColorCount.value = 0;
 		await header.save(cursor, writer);
 		await infoHeader.save(cursor, writer);
-		await writer.write(cursor, bitmap.palette);
+		let paletteEntryStrided = Buffer.alloc(4);
+		for (let i = 0, o = 0; i < bitmap.palette.size() / 3; i++) {
+			paletteEntryStrided.set(2, bitmap.palette.get(o)); o += 1
+			paletteEntryStrided.set(1, bitmap.palette.get(o)); o += 1
+			paletteEntryStrided.set(0, bitmap.palette.get(o)); o += 1
+			paletteEntryStrided.set(3, 255);
+			await writer.write(cursor, paletteEntryStrided);
+		}
 		let imageRowStrided = Buffer.alloc(rowStride);
 		for (let y = bitmap.h - 1; y >= 0; y--) {
 			let imageRow = bitmap.image.window({

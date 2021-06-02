@@ -54,18 +54,34 @@ async function decompress(cursor: Cursor, reader: Reader): Promise<Buffer> {
 		reader.read(cursor, decompressed);
 	}
 	return decompressed;
-}
+};
+
+const MAINDAT = {
+	"LUMBER_MILL_A": 175,
+	"LUMBER_MILL_H": 176,
+	"OIL_PLATFORM_A": 177,
+	"OIL_PLATFORM_H": 178,
+	"GOLD_MINE": 179,
+	"OIL_PATCH": 180,
+	"RUNE_STONE": 181
+};
+
+async function loadPalette(string: string): Promise<wc2.Palette> {
+	let reader = new NodeFileReader(string);
+	return wc2.Palette.load(reader, new Cursor());
+};
 
 (async () => {
-	let reader = new NodeFileReader("./private/records2/177");
-	let sprite = await wc2.Sprite.parse(reader, new Cursor());
+	let palette = await loadPalette("./private/records2/010.pal");
+	let reader = new NodeFileReader("./private/records2/175");
+	let sprite = await wc2.Sprite.load(reader, new Cursor());
 	for (let [index, frame] of sprite.frames.entries()) {
-		let writer = new NodeFileWriter("./private/frame[" + index.toString().padStart(3, "0") + "]_" + frame.header.w.value + "x" + frame.header.h.value +".bmp");
+		let writer = new NodeFileWriter("./private/frame[" + index.toString().padStart(3, "0") + "].bmp");
 		let bitmap: bmp.Bitmap = {
 			w: frame.header.w.value,
 			h: frame.header.h.value,
 			image: frame.image,
-			palette: bmp.makeGrayscalePalette()
+			palette: palette
 		};
 		await bmp.Bitmap.save(bitmap, new Cursor(), writer);
 	}

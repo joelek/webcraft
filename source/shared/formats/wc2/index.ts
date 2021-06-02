@@ -161,12 +161,12 @@ export type Sprite = {
 };
 
 export const Sprite = {
-	async parse(reader: Reader, cursor: Cursor): Promise<Sprite> {
+	async load(reader: Reader, cursor: Cursor): Promise<Sprite> {
 		let spriteHeader = new SpriteHeader();
 		await spriteHeader.load(cursor, reader);
-		let spriteFrameHeader = new SpriteFrameHeader();
 		let frames = new Array<SpriteFrame>();
 		for (let i = 0; i < spriteHeader.spriteCount.value; i++) {
+			let spriteFrameHeader = new SpriteFrameHeader();
 			await spriteFrameHeader.load(cursor, reader);
 			let frame = await SpriteFrame.parse(spriteFrameHeader, { offset: spriteFrameHeader.offset.value}, reader);
 			frames.push(frame);
@@ -174,5 +174,20 @@ export const Sprite = {
 		return {
 			frames
 		};
+	}
+};
+
+export type Palette = Buffer;
+
+export const Palette = {
+	async load(reader: Reader, cursor: Cursor): Promise<Palette> {
+		let buffer = Buffer.alloc(256 * 3);
+		await reader.read(cursor, buffer);
+		for (let i = 0, o1 = 0; i < 256; i++) {
+			buffer.set(o1, buffer.get(o1) << 2); o1 += 1;
+			buffer.set(o1, buffer.get(o1) << 2); o1 += 1;
+			buffer.set(o1, buffer.get(o1) << 2); o1 += 1;
+		}
+		return buffer;
 	}
 };

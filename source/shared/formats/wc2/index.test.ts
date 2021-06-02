@@ -2,6 +2,7 @@ import { Buffer, Cursor, Reader } from "../../binary";
 import { Integer1, Integer2, PackedInteger2 } from "../../binary/chunks";
 import { NodeFileReader, NodeFileWriter } from "../../binary.node";
 import * as wc2 from "./";
+import { bmp } from "..";
 
 async function decompress(cursor: Cursor, reader: Reader): Promise<Buffer> {
 	let archiveRecordHeader = new wc2.ArchiveRecordHeader({ endian: "big" });
@@ -59,7 +60,13 @@ async function decompress(cursor: Cursor, reader: Reader): Promise<Buffer> {
 	let reader = new NodeFileReader("./private/records2/177");
 	let sprite = await wc2.Sprite.parse(reader, new Cursor());
 	for (let [index, frame] of sprite.frames.entries()) {
-		let writer = new NodeFileWriter("./private/frame[" + index.toString().padStart(3, "0") + "]_" + frame.header.w.value + "x" + frame.header.h.value +".raw");
-		await writer.write(new Cursor(), frame.image);
+		let writer = new NodeFileWriter("./private/frame[" + index.toString().padStart(3, "0") + "]_" + frame.header.w.value + "x" + frame.header.h.value +".bmp");
+		let bitmap: bmp.Bitmap = {
+			w: frame.header.w.value,
+			h: frame.header.h.value,
+			image: frame.image,
+			palette: bmp.makeGrayscalePalette()
+		};
+		await bmp.Bitmap.save(bitmap, new Cursor(), writer);
 	}
 })();

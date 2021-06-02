@@ -12,7 +12,7 @@ export class Buffer {
 	}
 
 	copy(target: Buffer): Buffer {
-		IntegerAssert.exactly(target.size(), this.size());
+		IntegerAssert.atLeast(this.size(), target.size());
 		target.array.set(this.array);
 		return target;
 	}

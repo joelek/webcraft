@@ -1,9 +1,7 @@
-import { decode } from "punycode";
 import { IntegerAssert } from "../../asserts";
 import { Buffer, Chunk, Cursor, Endian, Reader } from "../../binary";
 import { Integer1, Integer2, Integer4, PackedInteger1, PackedInteger4 } from "../../binary/chunks";
-
-const DEBUG = false;
+import { DEBUG } from "../config";
 
 export class ArchiveRecordHeader extends Chunk {
 	readonly uncompressedSize: PackedInteger4;

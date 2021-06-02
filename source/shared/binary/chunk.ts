@@ -1,3 +1,4 @@
+import { IntegerAssert } from "../asserts";
 import { Buffer } from "./buffer";
 import { Cursor } from "./cursor";
 import { Loadable } from "./loadable";
@@ -24,5 +25,11 @@ export class Chunk implements Loadable, Saveable {
 
 	sizeOf(): number {
 		return this.buffer.size();
+	}
+
+	static alloc(length: number): Chunk {
+		IntegerAssert.atLeast(0, length);
+		let buffer = new ArrayBuffer(length);
+		return new Chunk(new Buffer(buffer));
 	}
 };

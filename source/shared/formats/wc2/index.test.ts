@@ -57,6 +57,51 @@ async function decompress(cursor: Cursor, reader: Reader): Promise<Buffer> {
 };
 
 const MAINDAT = {
+	"DWARVEN_DEMOLITION_SQUAD": 33,
+	"GOBLIN_SAPPERS": 34,
+	"GRYPHON_RIDER": 35,
+	"DRAGON": 36,
+	"EYE_OF_KILLROGG": 37,
+	"GNOMISH_FLYING_MACHINE": 38,
+	"HUMAN_TRANSPORT": 39,
+	"ORC_TRANSPORT": 40,
+	"HUMAN_BATTLESHIP": 41,
+	"OGRE_JUGGERNAUT": 42,
+	"GNOMISH_SUBMARINE": 43,
+	"GIANT_TURTLE": 44,
+	"FOOTMAN": 45,
+	"GRUNT": 46,
+	"LUMBER_MILL_A_SNOW": 144,
+	"LUMBER_MILL_H_SNOW": 145,
+	"STABLES_A_SNOW": 146,
+	"OGRE_MOUND_H_SNOW": 147,
+	"BLACKSMITH_A_SNOW": 148,
+	"BLACKSMITH_H_SNOW": 149,
+	"SHIPYARD_A_SNOW": 150,
+	"SHIPYARD_H_SNOW": 151,
+	"FOUNDRY_A_SNOW": 152,
+	"FOUNDRY_H_SNOW": 153,
+	"OIL_REFINERY_A_SNOW": 154,
+	"OIL_REFINERY_H_SNOW": 155,
+	"OIL_PLATFORM_A_ALT": 156,
+	"OIL_PLATFORM_H_ALT": 157,
+	"CASTLE_A": 158,
+	"FORTRESS_H": 159,
+	"TEMPLE_A": 160,
+	"TEMPLE_H": 161,
+	"GOLD_MINE_ALT": 162,
+	"DEMOLISHED_STRUCTURE": 163,
+	"CROSS": 164,
+	"RING": 165,
+	"CIRCLE_OF_POWER": 166,
+	"DARK_PORTAL": 167,
+	"WALL": 168,
+	"GUARD_TOWER_A": 169,
+	"GUARD_TOWER_H": 170,
+	"CANNON_TOWER_A": 171,
+	"CANNON_TOWER_H": 172,
+	"FARM_A": 173,
+	"FARM_H": 174,
 	"LUMBER_MILL_A": 175,
 	"LUMBER_MILL_H": 176,
 	"OIL_PLATFORM_A": 177,
@@ -72,8 +117,8 @@ async function loadPalette(string: string): Promise<wc2.Palette> {
 };
 
 (async () => {
-	let palette = await loadPalette("./private/records2/010.pal");
-	let reader = new NodeFileReader("./private/records2/175");
+	let palette = await loadPalette("./private/records2/018.pal");
+	let reader = new NodeFileReader("./private/records2/046");
 	let sprite = await wc2.Sprite.load(reader, new Cursor());
 	for (let [index, frame] of sprite.frames.entries()) {
 		let writer = new NodeFileWriter("./private/frame[" + index.toString().padStart(3, "0") + "].bmp");

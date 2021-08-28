@@ -3,6 +3,18 @@ import * as binary from "../shared/binary.web";
 import { midi } from "../shared/formats";
 import { MidiChannel, WavetableSynth } from "./synth";
 
+let keysle = document.createElement("div");
+keysle.setAttribute("style", "position: absolute; z-index: 10; width: 100%; height: 100%; display: grid; grid-template-columns: repeat(auto-fill, 400px); pointer-events: none;");
+let keys = new Array<Element>();
+for (let i = 0; i < 16; i++) {
+	let key = document.createElement("h2");
+	key.setAttribute("style", "font-size: 60px; color: white;");
+	key.innerHTML = `[${i === 9 ? "D" : i}]:`;
+	keysle.appendChild(key);
+	keys.push(key);
+}
+document.body.appendChild(keysle);
+
 const ZOOM = 1;
 
 namespace is {
@@ -2100,6 +2112,11 @@ async function keyon(channel_index: number, midikey: number, velocity: number): 
 		channel = await program.makeChannel(audio_context, midikey, velocity, channel_mixers[channel_index], channel_index);
 		map.set(midikey, channel);
 		channel.start();
+		let noteString = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" ];
+		let octave = Math.floor(midikey / 12);
+		let noteIndex = (midikey % 12);
+		let note = noteString[noteIndex];
+		keys[channel_index].innerHTML = `[${channel_index === 9 ? "D" : channel_index}]: ${note}${octave}`;
 	} catch (error) {
 		console.log(error);
 	}
@@ -2110,6 +2127,7 @@ function keyoff(channel_index: number, midikey: number, velocity: number): void 
 	if (is.present(channel)) {
 		channel.release(midikey, velocity);
 		map.delete(midikey);
+		keys[channel_index].innerHTML = `[${channel_index === 9 ? "D" : channel_index}]:`;
 	}
 }
 function volume(channel_index: number, byte: number): void {

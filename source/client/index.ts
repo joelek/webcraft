@@ -2653,7 +2653,7 @@ fetch("gm.sf2").then(async (response) => {
 				if (is.present(program)) {
 					let option = document.createElement("option");
 					option.style.setProperty("font-size", "20px");
-					option.textContent = program.name;
+					option.textContent = bank_index + ":" + program_index + " - " + program.name;
 					option.value = "" + bank_index + ":" + program_index;
 					select.appendChild(option);
 				}

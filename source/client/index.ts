@@ -2382,6 +2382,7 @@ let keymap: Record<string, number> = {
 	o: 32,
 	p: 33
 };
+let current_channel = 0;
 let keysdown: Record<string, boolean | undefined> = {};
 window.addEventListener("keydown", async (event) => {
 	if (!(event.key in keymap)) {
@@ -2391,14 +2392,14 @@ window.addEventListener("keydown", async (event) => {
 		return;
 	}
 	keysdown[event.key] = true;
-	await keyon(0, keymap[event.key], 127);
+	await keyon(current_channel, keymap[event.key], 127);
 });
 window.addEventListener("keyup", async (event) => {
 	if (!(event.key in keymap)) {
 		return;
 	}
 	delete keysdown[event.key];
-	keyoff(0, keymap[event.key], 127);
+	keyoff(current_channel, keymap[event.key], 127);
 });
 window.addEventListener("keyup", async (event) => {
 

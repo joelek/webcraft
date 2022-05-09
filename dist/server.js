@@ -1,12 +1,15 @@
 define("index", ["require", "exports", "fs"], function (require, exports, libfs) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    Object.defineProperty(exports, "__esModule", { value: true });
     const DEBUG = true;
     function decompressRecord(archive, cursor) {
         let header = archive.readUInt32LE(cursor);
         cursor += 4;
         let decompressedSize = (header >> 0) & 0xFFFFFF;
         let isCompressed = (header >> 29) & 1;
+        if ((header >>> 24) !== 32 && (header >>> 24) !== 0)
+            console.log((header >>> 24).toString(2).padStart(8, "0"));
         if (!isCompressed) {
             return archive.slice(cursor, cursor + decompressedSize);
         }
@@ -59,6 +62,7 @@ define("index", ["require", "exports", "fs"], function (require, exports, libfs)
         let id = archive.readUInt16LE(cursor);
         cursor += 2;
         for (let i = 0; i < recordCount; i++) {
+            console.log("index", i);
             let offset = archive.readUInt32LE(cursor);
             cursor += 4;
             let buffer = decompressRecord(archive, offset);
@@ -71,6 +75,9 @@ define("index", ["require", "exports", "fs"], function (require, exports, libfs)
             }
             else if (buffer.slice(0, 4).toString("binary") === "FORM") {
                 ext = ".xmi";
+            }
+            else if (buffer.length === 768) {
+                ext = ".pal";
             }
             libfs.writeFileSync(`${target}${i.toString().padStart(3, "0")}${ext}`, buffer);
         }
@@ -510,4 +517,4 @@ define("index", ["require", "exports", "fs"], function (require, exports, libfs)
         console.log("Please specify command.");
     }
 });
-function define(e,t,l){null==this.x&&(this.x=new Map),null==this.z&&(this.z=(e=>require(e))),null==this.y&&(this.y=(e=>{let t=this.x.get(e);if(null==t||null!=t.module)return;let l=Array(),u={exports:{}};for(let e of t.dependencies){if("require"===e){l.push(this.z);continue}if("module"===e){l.push(u);continue}if("exports"===e){l.push(u.exports);continue}try{l.push(this.z(e));continue}catch(e){}let t=this.x.get(e);if(null==t||null==t.module)return;l.push(t.module.exports)}t.callback(...l),t.module=u;for(let e of t.dependencies)this.y(e)}));let u=this.x.get(e);if(null!=u)throw'Duplicate module found with name "'+e+'"!';u={callback:l,dependencies:t,module:null},this.x.set(e,u),this.y(e)}
+function define(e,t,l){let n=define;function u(e){return require(e)}null==n.moduleStates&&(n.moduleStates=new Map),null==n.dependentsMap&&(n.dependentsMap=new Map);let d=n.moduleStates.get(e);if(null!=d)throw"Duplicate module found with name "+e+"!";d={callback:l,dependencies:t,module:null},n.moduleStates.set(e,d);for(let l of t){let t=n.dependentsMap.get(l);null==t&&(t=new Set,n.dependentsMap.set(l,t)),t.add(e)}!function e(t){let l=n.moduleStates.get(t);if(null==l||null!=l.module)return;let d=Array(),o={exports:{}};for(let e of l.dependencies){if("require"===e){d.push(u);continue}if("module"===e){d.push(o);continue}if("exports"===e){d.push(o.exports);continue}try{d.push(u(e));continue}catch(e){}let t=n.moduleStates.get(e);if(null==t||null==t.module)return;d.push(t.module.exports)}l.callback(...d),l.module=o;let p=n.dependentsMap.get(t);if(null!=p)for(let t of p)e(t)}(e)}

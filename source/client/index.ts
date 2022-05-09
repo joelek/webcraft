@@ -3,19 +3,23 @@ import * as binary from "../shared/binary.web";
 import { midi } from "../shared/formats";
 import { MidiChannel, WavetableSynth } from "./synth";
 
+const OVERRIDE = false;
+const ZOOM = 1;
+
 let keysle = document.createElement("div");
 keysle.setAttribute("style", "position: absolute; z-index: 10; width: 100%; height: 100%; display: grid; grid-template-columns: repeat(auto-fill, 400px); pointer-events: none;");
 let keys = new Array<Element>();
 for (let i = 0; i < 16; i++) {
 	let key = document.createElement("h2");
-	key.setAttribute("style", "font-size: 60px; color: white;");
+	key.setAttribute("style", "font-size: 60px; color: white; white-space: nowrap;");
 	key.innerHTML = `[${i === 9 ? "D" : i}]:`;
 	keysle.appendChild(key);
 	keys.push(key);
 }
-document.body.appendChild(keysle);
 
-const ZOOM = 1;
+if (OVERRIDE) {
+	document.body.appendChild(keysle);
+}
 
 namespace is {
 	export function absent<A>(subject: A | null | undefined): subject is null | undefined {
@@ -2108,6 +2112,56 @@ async function keyon(channel_index: number, midikey: number, velocity: number): 
 		channel.stop();
 		map.delete(midikey);
 	}
+	let doff = 35;
+	let dnames = [
+		"Acoustic Bass Drum",
+		"Electric Bass Drum",
+		"Side Stick",
+		"Acoustic Snare",
+		"Hand Clap",
+		"Electric Snare",
+		"Low Floor Tom",
+		"Closed Hi-hat",
+		"High Floor Tom",
+		"Pedal Hi-hat",
+		"Low Tom",
+		"Open Hi-hat",
+		"Low-Mid Tom",
+		"Hi-Mid Tom",
+		"Crash Cymbal 1",
+		"High Tom",
+		"Ride Cymbal 1",
+		"Chinese Cymbal",
+		"Ride Bell",
+		"Tambourine",
+		"Splash Cymbal",
+		"Cowbell",
+		"Crash Cymbal 2",
+		"Vibraslap",
+		"Ride Cymbal 2",
+		"High Bongo",
+		"Low Bongo",
+		"Mute High Conga",
+		"Open High Conga",
+		"Low Conga",
+		"High Timbale",
+		"Low Timbale",
+		"High Agogô",
+		"Low Agogô",
+		"Cabasa",
+		"Maracas",
+		"Short Whistle",
+		"Long Whistle",
+		"Short Guiro",
+		"Long Guiro",
+		"Claves",
+		"High Woodblock",
+		"Low Woodblock",
+		"Mute Cuica",
+		"Open Cuica",
+		"Mute Triangle",
+		"Open Triangle"
+	];
 	try {
 		channel = await program.makeChannel(audio_context, midikey, velocity, channel_mixers[channel_index], channel_index);
 		map.set(midikey, channel);
@@ -2116,7 +2170,11 @@ async function keyon(channel_index: number, midikey: number, velocity: number): 
 		let octave = Math.floor(midikey / 12);
 		let noteIndex = (midikey % 12);
 		let note = noteString[noteIndex];
-		keys[channel_index].innerHTML = `[${channel_index === 9 ? "D" : channel_index}]: ${note}${octave}`;
+		if (channel_index === 9) {
+			keys[channel_index].innerHTML = `[D]: ${dnames[midikey-doff]}`;
+		} else {
+			keys[channel_index].innerHTML = `[${channel_index}]: ${note}${octave}`;
+		}
 	} catch (error) {
 		console.log(error);
 	}
@@ -2189,7 +2247,9 @@ async function soundUpdate(): Promise<void> {
 						break;
 					}
 				}
-				instruments[event.channel][1] = a;
+				if (!OVERRIDE) {
+					instruments[event.channel][1] = a;
+				}
 				document.querySelector(`select:nth-of-type(${event.channel}) > option:nth-of-type(${a})`)?.setAttribute("selected", "");
 			} else if (event.type === XMIEventType.CONTROLLER) {
 				let a = event.data[0];
@@ -2631,7 +2691,30 @@ function reset_synth(): void {
 			mc.stop();
 		}
 	}
+	if (OVERRIDE) {
+		let square: [number, number] = [0, 80];
+		let saw: [number, number] = [0, 81];
+		let fifth_saw: [number, number] = [0, 86];
+		let powerdrums: [number, number] = [128, 16];
+		instruments[0] = square;
+		instruments[1] = square;
+		instruments[2] = saw;
+		instruments[3] = saw;
+		instruments[4] = saw;
+		instruments[5] = square;
+		instruments[6] = square;
+		instruments[7] = square;
+		instruments[8] = square;
+		instruments[9] = powerdrums;
+		instruments[10] = saw;
+		instruments[11] = saw;
+		instruments[12] = saw;
+		instruments[13] = saw;
+		instruments[14] = saw;
+		instruments[15] = saw;
+	}
 }
+
 window.addEventListener("keydown", () => {
 	unlock_context();
 });

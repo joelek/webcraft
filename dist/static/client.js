@@ -66,14 +66,31 @@ define("shared/asserts/string", ["require", "exports"], function (require, expor
 define("shared/asserts/index", ["require", "exports", "shared/asserts/integer", "shared/asserts/string"], function (require, exports, integer_1, string_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    var __createBinding = (this && this.__createBinding) || (Object.create ? (function (o, m, k, k2) {
+        if (k2 === undefined)
+            k2 = k;
+        Object.defineProperty(o, k2, { enumerable: true, get: function () { return m[k]; } });
+    }) : (function (o, m, k, k2) {
+        if (k2 === undefined)
+            k2 = k;
+        o[k2] = m[k];
+    }));
+    var __exportStar = (this && this.__exportStar) || function (m, exports) {
+        for (var p in m)
+            if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p))
+                __createBinding(exports, m, p);
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
     __exportStar(integer_1, exports);
     __exportStar(string_1, exports);
 });
 define("shared/binary/buffer", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    Object.defineProperty(exports, "__esModule", { value: true });
     exports.Buffer = void 0;
     class Buffer {
+        array;
         constructor(buffer, options) {
             let offset = options?.offset ?? 0;
             let length = options?.length ?? buffer.byteLength - offset;
@@ -82,9 +99,13 @@ define("shared/binary/buffer", ["require", "exports", "shared/asserts/index"], f
             this.array = new Uint8Array(buffer, offset, length);
         }
         copy(target) {
-            asserts_1.IntegerAssert.exactly(target.size(), this.size());
+            asserts_1.IntegerAssert.atLeast(this.size(), target.size());
             target.array.set(this.array);
             return target;
+        }
+        fill(value) {
+            asserts_1.IntegerAssert.between(0, value, 255);
+            this.array.fill(value);
         }
         get(index) {
             asserts_1.IntegerAssert.between(0, index, this.array.length - 1);
@@ -119,11 +140,13 @@ define("shared/binary/buffer", ["require", "exports", "shared/asserts/index"], f
     exports.Buffer = Buffer;
     ;
 });
-define("shared/binary/chunk", ["require", "exports"], function (require, exports) {
+define("shared/binary/chunk", ["require", "exports", "shared/asserts/index", "shared/binary/buffer"], function (require, exports, asserts_1, buffer_1) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Chunk = void 0;
     class Chunk {
+        buffer;
         constructor(buffer) {
             this.buffer = buffer;
         }
@@ -138,12 +161,18 @@ define("shared/binary/chunk", ["require", "exports"], function (require, exports
         sizeOf() {
             return this.buffer.size();
         }
+        static alloc(length) {
+            asserts_1.IntegerAssert.atLeast(0, length);
+            let buffer = new ArrayBuffer(length);
+            return new Chunk(new buffer_1.Buffer(buffer));
+        }
     }
     exports.Chunk = Chunk;
     ;
 });
 define("shared/binary/chunks/bytestring", ["require", "exports", "shared/binary/buffer", "shared/binary/chunk"], function (require, exports, buffer_1, chunk_1) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.ByteString = void 0;
     class ByteString extends chunk_1.Chunk {
@@ -244,18 +273,13 @@ define("shared/binary/chunks/bytestring", ["require", "exports", "shared/binary/
     exports.ByteString = ByteString;
     ;
 });
-define("shared/binary/chunks/integer1", ["require", "exports", "shared/asserts/index", "shared/binary/buffer", "shared/binary/chunk"], function (require, exports, asserts_2, buffer_2, chunk_2) {
+define("shared/binary/chunks/integer1", ["require", "exports", "shared/asserts/index", "shared/binary/buffer", "shared/binary/chunk"], function (require, exports, asserts_1, buffer_1, chunk_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    Object.defineProperty(exports, "__esModule", { value: true });
     exports.Integer1 = void 0;
-    class Integer1 extends chunk_2.Chunk {
-        constructor(options) {
-            let buffer = options?.buffer ?? buffer_2.Buffer.alloc(1);
-            let complement = options?.complement ?? "none";
-            asserts_2.IntegerAssert.exactly(buffer.size(), 1);
-            super(buffer);
-            this.complement = complement;
-        }
+    class Integer1 extends chunk_1.Chunk {
+        complement;
         get value() {
             let value = this.buffer.get(0);
             if (false) {
@@ -289,27 +313,28 @@ define("shared/binary/chunks/integer1", ["require", "exports", "shared/asserts/i
                     value += 0xFF + 1;
                 }
             }
-            asserts_2.IntegerAssert.between(0, value, 0xFF);
+            asserts_1.IntegerAssert.between(0, value, 0xFF);
             this.buffer.set(0, value);
+        }
+        constructor(options) {
+            let buffer = options?.buffer ?? buffer_1.Buffer.alloc(1);
+            let complement = options?.complement ?? "none";
+            asserts_1.IntegerAssert.exactly(buffer.size(), 1);
+            super(buffer);
+            this.complement = complement;
         }
     }
     exports.Integer1 = Integer1;
     ;
 });
-define("shared/binary/chunks/integer2", ["require", "exports", "shared/asserts/index", "shared/binary/buffer", "shared/binary/chunk"], function (require, exports, asserts_3, buffer_3, chunk_3) {
+define("shared/binary/chunks/integer2", ["require", "exports", "shared/asserts/index", "shared/binary/buffer", "shared/binary/chunk"], function (require, exports, asserts_1, buffer_1, chunk_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    Object.defineProperty(exports, "__esModule", { value: true });
     exports.Integer2 = void 0;
-    class Integer2 extends chunk_3.Chunk {
-        constructor(options) {
-            let buffer = options?.buffer ?? buffer_3.Buffer.alloc(2);
-            let complement = options?.complement ?? "none";
-            let endian = options?.endian ?? "little";
-            asserts_3.IntegerAssert.exactly(buffer.size(), 2);
-            super(buffer);
-            this.complement = complement;
-            this.endian = endian;
-        }
+    class Integer2 extends chunk_1.Chunk {
+        complement;
+        endian;
         get value() {
             let a = this.buffer.get(0);
             let b = this.buffer.get(1);
@@ -353,7 +378,7 @@ define("shared/binary/chunks/integer2", ["require", "exports", "shared/asserts/i
                     value += 0xFFFF + 1;
                 }
             }
-            asserts_3.IntegerAssert.between(0, value, 0xFFFF);
+            asserts_1.IntegerAssert.between(0, value, 0xFFFF);
             if (false) {
             }
             else if (this.endian === "big") {
@@ -365,24 +390,27 @@ define("shared/binary/chunks/integer2", ["require", "exports", "shared/asserts/i
                 this.buffer.set(1, (value >>> 8) & 0xFF);
             }
         }
-    }
-    exports.Integer2 = Integer2;
-    ;
-});
-define("shared/binary/chunks/integer3", ["require", "exports", "shared/asserts/index", "shared/binary/buffer", "shared/binary/chunk"], function (require, exports, asserts_4, buffer_4, chunk_4) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.Integer3 = void 0;
-    class Integer3 extends chunk_4.Chunk {
         constructor(options) {
-            let buffer = options?.buffer ?? buffer_4.Buffer.alloc(3);
+            let buffer = options?.buffer ?? buffer_1.Buffer.alloc(2);
             let complement = options?.complement ?? "none";
             let endian = options?.endian ?? "little";
-            asserts_4.IntegerAssert.exactly(buffer.size(), 3);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 2);
             super(buffer);
             this.complement = complement;
             this.endian = endian;
         }
+    }
+    exports.Integer2 = Integer2;
+    ;
+});
+define("shared/binary/chunks/integer3", ["require", "exports", "shared/asserts/index", "shared/binary/buffer", "shared/binary/chunk"], function (require, exports, asserts_1, buffer_1, chunk_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Integer3 = void 0;
+    class Integer3 extends chunk_1.Chunk {
+        complement;
+        endian;
         get value() {
             let a = this.buffer.get(0);
             let b = this.buffer.get(1);
@@ -427,7 +455,7 @@ define("shared/binary/chunks/integer3", ["require", "exports", "shared/asserts/i
                     value += 0xFFFFFF + 1;
                 }
             }
-            asserts_4.IntegerAssert.between(0, value, 0xFFFFFF);
+            asserts_1.IntegerAssert.between(0, value, 0xFFFFFF);
             if (false) {
             }
             else if (this.endian === "big") {
@@ -441,24 +469,27 @@ define("shared/binary/chunks/integer3", ["require", "exports", "shared/asserts/i
                 this.buffer.set(2, (value >>> 16) & 0xFF);
             }
         }
-    }
-    exports.Integer3 = Integer3;
-    ;
-});
-define("shared/binary/chunks/integer4", ["require", "exports", "shared/asserts/index", "shared/binary/buffer", "shared/binary/chunk"], function (require, exports, asserts_5, buffer_5, chunk_5) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.Integer4 = void 0;
-    class Integer4 extends chunk_5.Chunk {
         constructor(options) {
-            let buffer = options?.buffer ?? buffer_5.Buffer.alloc(4);
+            let buffer = options?.buffer ?? buffer_1.Buffer.alloc(3);
             let complement = options?.complement ?? "none";
             let endian = options?.endian ?? "little";
-            asserts_5.IntegerAssert.exactly(buffer.size(), 4);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 3);
             super(buffer);
             this.complement = complement;
             this.endian = endian;
         }
+    }
+    exports.Integer3 = Integer3;
+    ;
+});
+define("shared/binary/chunks/integer4", ["require", "exports", "shared/asserts/index", "shared/binary/buffer", "shared/binary/chunk"], function (require, exports, asserts_1, buffer_1, chunk_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Integer4 = void 0;
+    class Integer4 extends chunk_1.Chunk {
+        complement;
+        endian;
         get value() {
             let a = this.buffer.get(0);
             let b = this.buffer.get(1);
@@ -504,7 +535,7 @@ define("shared/binary/chunks/integer4", ["require", "exports", "shared/asserts/i
                     value += 0xFFFFFFFF + 1;
                 }
             }
-            asserts_5.IntegerAssert.between(0, value, 0xFFFFFFFF);
+            asserts_1.IntegerAssert.between(0, value, 0xFFFFFFFF);
             if (false) {
             }
             else if (this.endian === "big") {
@@ -520,24 +551,28 @@ define("shared/binary/chunks/integer4", ["require", "exports", "shared/asserts/i
                 this.buffer.set(3, (value >>> 24) & 0xFF);
             }
         }
+        constructor(options) {
+            let buffer = options?.buffer ?? buffer_1.Buffer.alloc(4);
+            let complement = options?.complement ?? "none";
+            let endian = options?.endian ?? "little";
+            asserts_1.IntegerAssert.exactly(buffer.size(), 4);
+            super(buffer);
+            this.complement = complement;
+            this.endian = endian;
+        }
     }
     exports.Integer4 = Integer4;
     ;
 });
-define("shared/binary/chunks/packed_integer1", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_6) {
+define("shared/binary/chunks/packed_integer1", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_1) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.PackedInteger1 = void 0;
     class PackedInteger1 {
-        constructor(integer, options) {
-            let offset = options?.offset ?? 0;
-            let length = options?.length ?? 8 - offset;
-            asserts_6.IntegerAssert.between(0, offset, 8);
-            asserts_6.IntegerAssert.between(0, length, 8 - offset);
-            this.integer = integer;
-            this.offset = offset;
-            this.length = length;
-        }
+        integer;
+        offset;
+        length;
         get value() {
             let a = 32 - this.offset - this.length;
             let b = 32 - this.length;
@@ -548,27 +583,31 @@ define("shared/binary/chunks/packed_integer1", ["require", "exports", "shared/as
             let b = 32 - this.length;
             let c = 32 - this.offset - this.length;
             let m = ((0xFF >> a) << b) >>> c;
-            asserts_6.IntegerAssert.between(0, value, m >>> a);
+            asserts_1.IntegerAssert.between(0, value, m >>> a);
             this.integer.value = ((this.integer.value & ~m) | ((value << a) & m)) >>> 0;
+        }
+        constructor(integer, options) {
+            let offset = options?.offset ?? 0;
+            let length = options?.length ?? 8 - offset;
+            asserts_1.IntegerAssert.between(0, offset, 8);
+            asserts_1.IntegerAssert.between(0, length, 8 - offset);
+            this.integer = integer;
+            this.offset = offset;
+            this.length = length;
         }
     }
     exports.PackedInteger1 = PackedInteger1;
     ;
 });
-define("shared/binary/chunks/packed_integer2", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_7) {
+define("shared/binary/chunks/packed_integer2", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_1) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.PackedInteger2 = void 0;
     class PackedInteger2 {
-        constructor(integer, options) {
-            let offset = options?.offset ?? 0;
-            let length = options?.length ?? 16 - offset;
-            asserts_7.IntegerAssert.between(0, offset, 16);
-            asserts_7.IntegerAssert.between(0, length, 16 - offset);
-            this.integer = integer;
-            this.offset = offset;
-            this.length = length;
-        }
+        integer;
+        offset;
+        length;
         get value() {
             let a = 32 - this.offset - this.length;
             let b = 32 - this.length;
@@ -579,27 +618,31 @@ define("shared/binary/chunks/packed_integer2", ["require", "exports", "shared/as
             let b = 32 - this.length;
             let c = 32 - this.offset - this.length;
             let m = ((0xFFFF >> a) << b) >>> c;
-            asserts_7.IntegerAssert.between(0, value, m >>> a);
+            asserts_1.IntegerAssert.between(0, value, m >>> a);
             this.integer.value = ((this.integer.value & ~m) | ((value << a) & m)) >>> 0;
+        }
+        constructor(integer, options) {
+            let offset = options?.offset ?? 0;
+            let length = options?.length ?? 16 - offset;
+            asserts_1.IntegerAssert.between(0, offset, 16);
+            asserts_1.IntegerAssert.between(0, length, 16 - offset);
+            this.integer = integer;
+            this.offset = offset;
+            this.length = length;
         }
     }
     exports.PackedInteger2 = PackedInteger2;
     ;
 });
-define("shared/binary/chunks/packed_integer3", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_8) {
+define("shared/binary/chunks/packed_integer3", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_1) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.PackedInteger3 = void 0;
     class PackedInteger3 {
-        constructor(integer, options) {
-            let offset = options?.offset ?? 0;
-            let length = options?.length ?? 24 - offset;
-            asserts_8.IntegerAssert.between(0, offset, 24);
-            asserts_8.IntegerAssert.between(0, length, 24 - offset);
-            this.integer = integer;
-            this.offset = offset;
-            this.length = length;
-        }
+        integer;
+        offset;
+        length;
         get value() {
             let a = 32 - this.offset - this.length;
             let b = 32 - this.length;
@@ -610,27 +653,31 @@ define("shared/binary/chunks/packed_integer3", ["require", "exports", "shared/as
             let b = 32 - this.length;
             let c = 32 - this.offset - this.length;
             let m = ((0xFFFFFF >> a) << b) >>> c;
-            asserts_8.IntegerAssert.between(0, value, m >>> a);
+            asserts_1.IntegerAssert.between(0, value, m >>> a);
             this.integer.value = ((this.integer.value & ~m) | ((value << a) & m)) >>> 0;
+        }
+        constructor(integer, options) {
+            let offset = options?.offset ?? 0;
+            let length = options?.length ?? 24 - offset;
+            asserts_1.IntegerAssert.between(0, offset, 24);
+            asserts_1.IntegerAssert.between(0, length, 24 - offset);
+            this.integer = integer;
+            this.offset = offset;
+            this.length = length;
         }
     }
     exports.PackedInteger3 = PackedInteger3;
     ;
 });
-define("shared/binary/chunks/packed_integer4", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_9) {
+define("shared/binary/chunks/packed_integer4", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_1) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.PackedInteger4 = void 0;
     class PackedInteger4 {
-        constructor(integer, options) {
-            let offset = options?.offset ?? 0;
-            let length = options?.length ?? 32 - offset;
-            asserts_9.IntegerAssert.between(0, offset, 32);
-            asserts_9.IntegerAssert.between(0, length, 32 - offset);
-            this.integer = integer;
-            this.offset = offset;
-            this.length = length;
-        }
+        integer;
+        offset;
+        length;
         get value() {
             let a = 32 - this.offset - this.length;
             let b = 32 - this.length;
@@ -641,8 +688,17 @@ define("shared/binary/chunks/packed_integer4", ["require", "exports", "shared/as
             let b = 32 - this.length;
             let c = 32 - this.offset - this.length;
             let m = ((0xFFFFFFFF >> a) << b) >>> c;
-            asserts_9.IntegerAssert.between(0, value, m >>> a);
+            asserts_1.IntegerAssert.between(0, value, m >>> a);
             this.integer.value = ((this.integer.value & ~m) | ((value << a) & m)) >>> 0;
+        }
+        constructor(integer, options) {
+            let offset = options?.offset ?? 0;
+            let length = options?.length ?? 32 - offset;
+            asserts_1.IntegerAssert.between(0, offset, 32);
+            asserts_1.IntegerAssert.between(0, length, 32 - offset);
+            this.integer = integer;
+            this.offset = offset;
+            this.length = length;
         }
     }
     exports.PackedInteger4 = PackedInteger4;
@@ -650,6 +706,21 @@ define("shared/binary/chunks/packed_integer4", ["require", "exports", "shared/as
 });
 define("shared/binary/chunks/index", ["require", "exports", "shared/binary/chunks/bytestring", "shared/binary/chunks/integer1", "shared/binary/chunks/integer2", "shared/binary/chunks/integer3", "shared/binary/chunks/integer4", "shared/binary/chunks/packed_integer1", "shared/binary/chunks/packed_integer2", "shared/binary/chunks/packed_integer3", "shared/binary/chunks/packed_integer4"], function (require, exports, bytestring_1, integer1_1, integer2_1, integer3_1, integer4_1, packed_integer1_1, packed_integer2_1, packed_integer3_1, packed_integer4_1) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var __createBinding = (this && this.__createBinding) || (Object.create ? (function (o, m, k, k2) {
+        if (k2 === undefined)
+            k2 = k;
+        Object.defineProperty(o, k2, { enumerable: true, get: function () { return m[k]; } });
+    }) : (function (o, m, k, k2) {
+        if (k2 === undefined)
+            k2 = k;
+        o[k2] = m[k];
+    }));
+    var __exportStar = (this && this.__exportStar) || function (m, exports) {
+        for (var p in m)
+            if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p))
+                __createBinding(exports, m, p);
+    };
     Object.defineProperty(exports, "__esModule", { value: true });
     __exportStar(bytestring_1, exports);
     __exportStar(integer1_1, exports);
@@ -665,14 +736,16 @@ define("shared/binary/complement", ["require", "exports"], function (require, ex
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
 });
-define("shared/binary/cursor", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_10) {
+define("shared/binary/cursor", ["require", "exports", "shared/asserts/index"], function (require, exports, asserts_1) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Cursor = void 0;
     class Cursor {
+        offset;
         constructor(options) {
             let offset = options?.offset ?? 0;
-            asserts_10.IntegerAssert.atLeast(0, offset);
+            asserts_1.IntegerAssert.atLeast(0, offset);
             this.offset = offset;
         }
     }
@@ -692,6 +765,7 @@ define("shared/is", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.is = void 0;
+    var is;
     (function (is) {
         function absent(subject) {
             return subject == null;
@@ -703,17 +777,19 @@ define("shared/is", ["require", "exports"], function (require, exports) {
         }
         is.present = present;
         ;
-    })(exports.is || (exports.is = {}));
+    })(is = exports.is || (exports.is = {}));
     ;
 });
-define("shared/binary/reader", ["require", "exports", "shared/asserts/index", "shared/is", "shared/binary/buffer", "shared/binary/cursor"], function (require, exports, asserts_11, is_1, buffer_6, cursor_1) {
+define("shared/binary/reader", ["require", "exports", "shared/asserts/index", "shared/is", "shared/binary/buffer", "shared/binary/cursor"], function (require, exports, asserts_1, is_1, buffer_1, cursor_1) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.WindowedReader = exports.CachedReader = exports.BufferReader = void 0;
     ;
     class BufferReader {
+        buffer;
         constructor(options) {
-            let buffer = options?.buffer ?? buffer_6.Buffer.alloc(0);
+            let buffer = options?.buffer ?? buffer_1.Buffer.alloc(0);
             this.buffer = buffer;
         }
         async read(cursor, target) {
@@ -732,13 +808,15 @@ define("shared/binary/reader", ["require", "exports", "shared/asserts/index", "s
     exports.BufferReader = BufferReader;
     ;
     class CachedReader {
+        reader;
+        cached;
         constructor(reader) {
             this.reader = reader;
             this.cached = undefined;
         }
         async read(cursor, target) {
             if (is_1.is.absent(this.cached)) {
-                let buffer = buffer_6.Buffer.alloc(this.reader.size());
+                let buffer = buffer_1.Buffer.alloc(this.reader.size());
                 this.reader.read(new cursor_1.Cursor(), buffer);
                 this.cached = new BufferReader({
                     buffer: buffer
@@ -753,11 +831,14 @@ define("shared/binary/reader", ["require", "exports", "shared/asserts/index", "s
     exports.CachedReader = CachedReader;
     ;
     class WindowedReader {
+        reader;
+        offset;
+        length;
         constructor(reader, options) {
             let offset = options?.offset ?? 0;
             let length = options?.length ?? reader.size() - offset;
-            asserts_11.IntegerAssert.between(0, offset, reader.size());
-            asserts_11.IntegerAssert.between(0, length, reader.size() - offset);
+            asserts_1.IntegerAssert.between(0, offset, reader.size());
+            asserts_1.IntegerAssert.between(0, length, reader.size() - offset);
             this.reader = reader;
             this.offset = offset;
             this.length = length;
@@ -765,8 +846,8 @@ define("shared/binary/reader", ["require", "exports", "shared/asserts/index", "s
         async read(cursor, buffer) {
             let offset = cursor.offset;
             let length = buffer.size();
-            asserts_11.IntegerAssert.between(0, offset, this.length);
-            asserts_11.IntegerAssert.between(0, length, this.length);
+            asserts_1.IntegerAssert.between(0, offset, this.length);
+            asserts_1.IntegerAssert.between(0, length, this.length);
             await this.reader.read({ offset: this.offset + offset }, buffer);
             cursor.offset += length;
             return buffer;
@@ -788,29 +869,306 @@ define("shared/binary/writer", ["require", "exports"], function (require, export
     Object.defineProperty(exports, "__esModule", { value: true });
     ;
 });
-define("shared/binary/index", ["require", "exports", "shared/binary/chunks/index", "shared/binary/buffer", "shared/binary/chunk", "shared/binary/complement", "shared/binary/cursor", "shared/binary/endian", "shared/binary/loadable", "shared/binary/reader", "shared/binary/saveable", "shared/binary/writer"], function (require, exports, chunks, buffer_7, chunk_6, complement_1, cursor_2, endian_1, loadable_1, reader_1, saveable_1, writer_1) {
+define("shared/binary/index", ["require", "exports", "shared/binary/chunks/index", "shared/binary/buffer", "shared/binary/chunk", "shared/binary/complement", "shared/binary/cursor", "shared/binary/endian", "shared/binary/loadable", "shared/binary/reader", "shared/binary/saveable", "shared/binary/writer"], function (require, exports, chunks, buffer_1, chunk_1, complement_1, cursor_1, endian_1, loadable_1, reader_1, saveable_1, writer_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.chunks = void 0;
+    var __createBinding = (this && this.__createBinding) || (Object.create ? (function (o, m, k, k2) {
+        if (k2 === undefined)
+            k2 = k;
+        Object.defineProperty(o, k2, { enumerable: true, get: function () { return m[k]; } });
+    }) : (function (o, m, k, k2) {
+        if (k2 === undefined)
+            k2 = k;
+        o[k2] = m[k];
+    }));
+    var __exportStar = (this && this.__exportStar) || function (m, exports) {
+        for (var p in m)
+            if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p))
+                __createBinding(exports, m, p);
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.chunks = void 0;
     exports.chunks = chunks;
-    __exportStar(buffer_7, exports);
-    __exportStar(chunk_6, exports);
+    __exportStar(buffer_1, exports);
+    __exportStar(chunk_1, exports);
     __exportStar(complement_1, exports);
-    __exportStar(cursor_2, exports);
+    __exportStar(cursor_1, exports);
     __exportStar(endian_1, exports);
     __exportStar(loadable_1, exports);
     __exportStar(reader_1, exports);
     __exportStar(saveable_1, exports);
     __exportStar(writer_1, exports);
 });
-define("shared/formats/midi/index", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/binary/chunks/index", "shared/is"], function (require, exports, asserts_12, binary_1, chunks_1, is_2) {
+define("shared/formats/config", ["require", "exports"], function (require, exports) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.DEBUG = void 0;
+    exports.DEBUG = false;
+});
+define("shared/formats/bmp/index", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/binary/chunks/index", "shared/formats/config"], function (require, exports, asserts_1, binary_1, chunks_1, config_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Bitmap = exports.makeGrayscalePalette = exports.computeRowStride = exports.BitmapInfoHeader = exports.BitmapHeader = void 0;
+    class BitmapHeader extends binary_1.Chunk {
+        fileIdentifier;
+        fileLength;
+        reservedOne;
+        reservedTwo;
+        pixelDataOffset;
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(14);
+            if (config_1.DEBUG)
+                asserts_1.IntegerAssert.exactly(buffer.size(), 14);
+            super(buffer);
+            this.fileIdentifier = new chunks_1.ByteString({
+                buffer: buffer.window({
+                    offset: 0,
+                    length: 2
+                })
+            });
+            this.fileLength = new chunks_1.Integer4({
+                buffer: buffer.window({
+                    offset: 2,
+                    length: 4
+                })
+            });
+            this.reservedOne = new chunks_1.Integer2({
+                buffer: buffer.window({
+                    offset: 6,
+                    length: 2
+                })
+            });
+            this.reservedTwo = new chunks_1.Integer2({
+                buffer: buffer.window({
+                    offset: 8,
+                    length: 2
+                })
+            });
+            this.pixelDataOffset = new chunks_1.Integer4({
+                buffer: buffer.window({
+                    offset: 10,
+                    length: 4
+                })
+            });
+        }
+    }
+    exports.BitmapHeader = BitmapHeader;
+    ;
+    class BitmapInfoHeader extends binary_1.Chunk {
+        headerLength;
+        imageWidth;
+        imageHeight;
+        colorPlaneCount;
+        bitsPerPixel;
+        compressionMethod;
+        pixelArrayLength;
+        horizontalResolution;
+        verticalResolution;
+        paletteEntryCount;
+        importantColorCount;
+        constructor(options) {
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(40);
+            if (config_1.DEBUG)
+                asserts_1.IntegerAssert.exactly(buffer.size(), 40);
+            super(buffer);
+            this.headerLength = new chunks_1.Integer4({
+                buffer: buffer.window({
+                    offset: 0,
+                    length: 4
+                })
+            });
+            this.imageWidth = new chunks_1.Integer4({
+                buffer: buffer.window({
+                    offset: 4,
+                    length: 4
+                }),
+                complement: "twos"
+            });
+            this.imageHeight = new chunks_1.Integer4({
+                buffer: buffer.window({
+                    offset: 8,
+                    length: 4
+                }),
+                complement: "twos"
+            });
+            this.colorPlaneCount = new chunks_1.Integer2({
+                buffer: buffer.window({
+                    offset: 12,
+                    length: 2
+                })
+            });
+            this.bitsPerPixel = new chunks_1.Integer2({
+                buffer: buffer.window({
+                    offset: 14,
+                    length: 2
+                })
+            });
+            this.compressionMethod = new chunks_1.Integer4({
+                buffer: buffer.window({
+                    offset: 16,
+                    length: 4
+                })
+            });
+            this.pixelArrayLength = new chunks_1.Integer4({
+                buffer: buffer.window({
+                    offset: 20,
+                    length: 4
+                })
+            });
+            this.horizontalResolution = new chunks_1.Integer4({
+                buffer: buffer.window({
+                    offset: 24,
+                    length: 4
+                }),
+                complement: "twos"
+            });
+            this.verticalResolution = new chunks_1.Integer4({
+                buffer: buffer.window({
+                    offset: 28,
+                    length: 4
+                }),
+                complement: "twos"
+            });
+            this.paletteEntryCount = new chunks_1.Integer4({
+                buffer: buffer.window({
+                    offset: 32,
+                    length: 4
+                })
+            });
+            this.importantColorCount = new chunks_1.Integer4({
+                buffer: buffer.window({
+                    offset: 36,
+                    length: 4
+                })
+            });
+        }
+    }
+    exports.BitmapInfoHeader = BitmapInfoHeader;
+    ;
+    function computeRowStride(bitsPerPixel, imageWidth) {
+        return ((bitsPerPixel * imageWidth + 31) >> 5) << 2;
+    }
+    exports.computeRowStride = computeRowStride;
+    ;
+    function makeGrayscalePalette() {
+        let palette = binary_1.Buffer.alloc(256 * 4);
+        for (let i = 0, o = 0; i < 256; i++) {
+            palette.set(o++, i);
+            palette.set(o++, i);
+            palette.set(o++, i);
+            palette.set(o++, 255);
+        }
+        return palette;
+    }
+    exports.makeGrayscalePalette = makeGrayscalePalette;
+    ;
+    exports.Bitmap = {
+        async load(cursor, reader) {
+            let header = new BitmapHeader();
+            await header.load(cursor, reader);
+            if (config_1.DEBUG)
+                asserts_1.StringAssert.identical(header.fileIdentifier.value, "BM");
+            let infoHeader = new BitmapInfoHeader();
+            await infoHeader.load(cursor, reader);
+            if (config_1.DEBUG)
+                asserts_1.IntegerAssert.exactly(infoHeader.headerLength.value, 40);
+            let w = Math.abs(infoHeader.imageWidth.value);
+            let h = Math.abs(infoHeader.imageHeight.value);
+            let bitsPerPixel = infoHeader.bitsPerPixel.value;
+            if (config_1.DEBUG)
+                asserts_1.IntegerAssert.exactly(infoHeader.colorPlaneCount.value, 1);
+            if (config_1.DEBUG)
+                asserts_1.IntegerAssert.exactly(infoHeader.bitsPerPixel.value, 8);
+            if (config_1.DEBUG)
+                asserts_1.IntegerAssert.exactly(infoHeader.compressionMethod.value, 0);
+            let palette = binary_1.Buffer.alloc(256 * 4);
+            await reader.read(cursor, palette);
+            let image = binary_1.Buffer.alloc(w * h);
+            let rowStride = computeRowStride(bitsPerPixel, w);
+            let pixelDataOffset = header.pixelDataOffset.value;
+            if (infoHeader.imageWidth.value >= 0) {
+                for (let y = 0; y < h; y++) {
+                    let imageRow = image.window({
+                        offset: y * w,
+                        length: w
+                    });
+                    await reader.read({ offset: pixelDataOffset + rowStride * y }, imageRow);
+                }
+            }
+            else {
+                for (let y = h - 1; y >= 0; y--) {
+                    let imageRow = image.window({
+                        offset: y * w,
+                        length: w
+                    });
+                    await reader.read({ offset: pixelDataOffset + rowStride * (h - 1 - y) }, imageRow);
+                }
+            }
+            return {
+                w,
+                h,
+                image,
+                palette
+            };
+        },
+        async save(bitmap, cursor, writer) {
+            let rowStride = computeRowStride(8, bitmap.w);
+            let header = new BitmapHeader();
+            let infoHeader = new BitmapInfoHeader();
+            header.fileIdentifier.value = "BM";
+            header.fileLength.value = header.sizeOf() + infoHeader.sizeOf() + bitmap.palette.size() / 3 * 4 + rowStride * bitmap.h;
+            header.reservedOne.value = 0;
+            header.reservedTwo.value = 0;
+            header.pixelDataOffset.value = header.sizeOf() + infoHeader.sizeOf() + bitmap.palette.size() / 3 * 4;
+            infoHeader.headerLength.value = 40;
+            infoHeader.imageWidth.value = bitmap.w;
+            infoHeader.imageHeight.value = bitmap.h;
+            infoHeader.colorPlaneCount.value = 1;
+            infoHeader.bitsPerPixel.value = 8;
+            infoHeader.compressionMethod.value = 0;
+            infoHeader.pixelArrayLength.value = rowStride * bitmap.h;
+            infoHeader.horizontalResolution.value = 2835;
+            infoHeader.verticalResolution.value = 2835;
+            infoHeader.paletteEntryCount.value = bitmap.palette.size() / 3;
+            infoHeader.importantColorCount.value = 0;
+            await header.save(cursor, writer);
+            await infoHeader.save(cursor, writer);
+            let paletteEntryStrided = binary_1.Buffer.alloc(4);
+            for (let i = 0, o = 0; i < bitmap.palette.size() / 3; i++) {
+                paletteEntryStrided.set(2, bitmap.palette.get(o));
+                o += 1;
+                paletteEntryStrided.set(1, bitmap.palette.get(o));
+                o += 1;
+                paletteEntryStrided.set(0, bitmap.palette.get(o));
+                o += 1;
+                paletteEntryStrided.set(3, 255);
+                await writer.write(cursor, paletteEntryStrided);
+            }
+            let imageRowStrided = binary_1.Buffer.alloc(rowStride);
+            for (let y = bitmap.h - 1; y >= 0; y--) {
+                let imageRow = bitmap.image.window({
+                    offset: y * bitmap.w,
+                    length: bitmap.w
+                });
+                imageRow.copy(imageRowStrided);
+                await writer.write(cursor, imageRowStrided);
+            }
+        }
+    };
+});
+define("shared/formats/midi/index", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/binary/chunks/index", "shared/is"], function (require, exports, asserts_1, binary_1, chunks_1, is_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.File = exports.Track = exports.Control = exports.readVarlen = exports.Type = exports.Header = exports.ChunkHeader = void 0;
     class ChunkHeader extends binary_1.Chunk {
+        type;
+        size;
         constructor(options) {
             let buffer = options?.buffer ?? binary_1.Buffer.alloc(8);
-            asserts_12.IntegerAssert.exactly(buffer.size(), 8);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 8);
             super(buffer);
             this.type = new chunks_1.ByteString({
                 buffer: buffer.window({ offset: 0, length: 4 })
@@ -824,9 +1182,12 @@ define("shared/formats/midi/index", ["require", "exports", "shared/asserts/index
     exports.ChunkHeader = ChunkHeader;
     ;
     class Header extends binary_1.Chunk {
+        version;
+        track_count;
+        ticks_per_qn;
         constructor(options) {
             let buffer = options?.buffer ?? binary_1.Buffer.alloc(6);
-            asserts_12.IntegerAssert.exactly(buffer.size(), 6);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 6);
             super(buffer);
             this.version = new chunks_1.Integer2({
                 buffer: buffer.window({ offset: 0, length: 2 }),
@@ -840,11 +1201,12 @@ define("shared/formats/midi/index", ["require", "exports", "shared/asserts/index
                 buffer: buffer.window({ offset: 4, length: 2 }),
                 endian: "big"
             });
-            asserts_12.IntegerAssert.atMost(0x7FFF, this.ticks_per_qn.value);
+            asserts_1.IntegerAssert.atMost(0x7FFF, this.ticks_per_qn.value);
         }
     }
     exports.Header = Header;
     ;
+    var Type;
     (function (Type) {
         Type[Type["NOTE_OFF"] = 0] = "NOTE_OFF";
         Type[Type["NOTE_ON"] = 1] = "NOTE_ON";
@@ -854,7 +1216,7 @@ define("shared/formats/midi/index", ["require", "exports", "shared/asserts/index
         Type[Type["CHANNEL_PRESSURE"] = 5] = "CHANNEL_PRESSURE";
         Type[Type["PITCH_CHANGE"] = 6] = "PITCH_CHANGE";
         Type[Type["SYSEX"] = 7] = "SYSEX";
-    })(exports.Type || (exports.Type = {}));
+    })(Type = exports.Type || (exports.Type = {}));
     ;
     async function readVarlen(cursor, reader) {
         let value = 0;
@@ -873,6 +1235,9 @@ define("shared/formats/midi/index", ["require", "exports", "shared/asserts/index
     exports.readVarlen = readVarlen;
     ;
     class Control extends chunks_1.Integer1 {
+        channel;
+        type;
+        marker;
         constructor(options) {
             super(options);
             this.channel = new chunks_1.PackedInteger1(this, {
@@ -903,7 +1268,7 @@ define("shared/formats/midi/index", ["require", "exports", "shared/asserts/index
                 let delay = await readVarlen(cursor, reader);
                 let control = await new Control().load(cursor, reader);
                 if (control.marker.value === 0) {
-                    if (is_2.is.absent(last_control)) {
+                    if (is_1.is.absent(last_control)) {
                         throw `Expected last control byte to be set!`;
                     }
                     control = last_control;
@@ -912,28 +1277,28 @@ define("shared/formats/midi/index", ["require", "exports", "shared/asserts/index
                 let type = control.type.value;
                 let channel = control.channel.value;
                 let length = await (async () => {
-                    if (type === exports.Type.NOTE_OFF) {
+                    if (type === Type.NOTE_OFF) {
                         return 2;
                     }
-                    else if (type === exports.Type.NOTE_ON) {
+                    else if (type === Type.NOTE_ON) {
                         return 2;
                     }
-                    else if (type === exports.Type.KEY_PRESSURE) {
+                    else if (type === Type.KEY_PRESSURE) {
                         return 2;
                     }
-                    else if (type === exports.Type.CONTROL_CHANGE) {
+                    else if (type === Type.CONTROL_CHANGE) {
                         return 2;
                     }
-                    else if (type === exports.Type.PROGRAM_CHANGE) {
+                    else if (type === Type.PROGRAM_CHANGE) {
                         return 1;
                     }
-                    else if (type === exports.Type.CHANNEL_PRESSURE) {
+                    else if (type === Type.CHANNEL_PRESSURE) {
                         return 1;
                     }
-                    else if (type === exports.Type.PITCH_CHANGE) {
+                    else if (type === Type.PITCH_CHANGE) {
                         return 2;
                     }
-                    else if (type === exports.Type.SYSEX) {
+                    else if (type === Type.SYSEX) {
                         let length = binary_1.Buffer.alloc(1);
                         if (channel < 15) {
                             await new binary_1.Chunk(length).load({
@@ -959,7 +1324,7 @@ define("shared/formats/midi/index", ["require", "exports", "shared/asserts/index
                     data,
                 };
                 events.push(event);
-                if (type === exports.Type.SYSEX) {
+                if (type === Type.SYSEX) {
                     if (channel === 15 && data.get(0) === 0x2F) {
                         break;
                     }
@@ -981,12 +1346,12 @@ define("shared/formats/midi/index", ["require", "exports", "shared/asserts/index
         constructor() { }
         static async fromReader(cursor, reader) {
             let chunk_header = await new ChunkHeader().load(cursor, reader);
-            asserts_12.StringAssert.identical(chunk_header.type.value, "MThd");
+            asserts_1.StringAssert.identical(chunk_header.type.value, "MThd");
             let header = await new Header().load(cursor, reader);
             let tracks = new Array();
             for (let i = 0; i < header.track_count.value; i++) {
                 let chunk_header = await new ChunkHeader().load(cursor, reader);
-                asserts_12.StringAssert.identical(chunk_header.type.value, "MTrk");
+                asserts_1.StringAssert.identical(chunk_header.type.value, "MTrk");
                 let data = new binary_1.WindowedReader(reader, {
                     offset: cursor.offset,
                     length: chunk_header.size.value
@@ -1004,19 +1369,22 @@ define("shared/formats/midi/index", ["require", "exports", "shared/asserts/index
     exports.File = File;
     ;
 });
-define("shared/formats/riff/header", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/binary/chunks/index"], function (require, exports, asserts_13, binary_2, chunks_2) {
+define("shared/formats/riff/header", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/binary/chunks/index"], function (require, exports, asserts_1, binary_1, chunks_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    Object.defineProperty(exports, "__esModule", { value: true });
     exports.Header = void 0;
-    class Header extends binary_2.Chunk {
+    class Header extends binary_1.Chunk {
+        type;
+        size;
         constructor(options) {
-            let buffer = options?.buffer ?? binary_2.Buffer.alloc(8);
-            asserts_13.IntegerAssert.exactly(buffer.size(), 8);
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(8);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 8);
             super(buffer);
-            this.type = new chunks_2.ByteString({
+            this.type = new chunks_1.ByteString({
                 buffer: buffer.window({ offset: 0, length: 4 })
             });
-            this.size = new chunks_2.Integer4({
+            this.size = new chunks_1.Integer4({
                 buffer: buffer.window({ offset: 4, length: 4 })
             });
         }
@@ -1024,8 +1392,9 @@ define("shared/formats/riff/header", ["require", "exports", "shared/asserts/inde
     exports.Header = Header;
     ;
 });
-define("shared/formats/riff/file", ["require", "exports", "shared/formats/riff/header", "shared/binary/index"], function (require, exports, header_1, binary_3) {
+define("shared/formats/riff/file", ["require", "exports", "shared/formats/riff/header", "shared/binary/index"], function (require, exports, header_1, binary_1) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.File = void 0;
     class File {
@@ -1033,7 +1402,7 @@ define("shared/formats/riff/file", ["require", "exports", "shared/formats/riff/h
         static async parseChunk(cursor, reader) {
             let header = new header_1.Header();
             await header.load(cursor, reader);
-            let body = new binary_3.WindowedReader(reader, { offset: cursor.offset, length: header.size.value });
+            let body = new binary_1.WindowedReader(reader, { offset: cursor.offset, length: header.size.value });
             cursor.offset += header.size.value;
             cursor.offset += cursor.offset % 2;
             return {
@@ -1045,16 +1414,33 @@ define("shared/formats/riff/file", ["require", "exports", "shared/formats/riff/h
     exports.File = File;
     ;
 });
-define("shared/formats/riff/index", ["require", "exports", "shared/formats/riff/file", "shared/formats/riff/header"], function (require, exports, file_1, header_2) {
+define("shared/formats/riff/index", ["require", "exports", "shared/formats/riff/file", "shared/formats/riff/header"], function (require, exports, file_1, header_1) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var __createBinding = (this && this.__createBinding) || (Object.create ? (function (o, m, k, k2) {
+        if (k2 === undefined)
+            k2 = k;
+        Object.defineProperty(o, k2, { enumerable: true, get: function () { return m[k]; } });
+    }) : (function (o, m, k, k2) {
+        if (k2 === undefined)
+            k2 = k;
+        o[k2] = m[k];
+    }));
+    var __exportStar = (this && this.__exportStar) || function (m, exports) {
+        for (var p in m)
+            if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p))
+                __createBinding(exports, m, p);
+    };
     Object.defineProperty(exports, "__esModule", { value: true });
     __exportStar(file_1, exports);
-    __exportStar(header_2, exports);
+    __exportStar(header_1, exports);
 });
-define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/binary/chunks/index", "shared/formats/riff/index"], function (require, exports, asserts_14, binary_4, chunks_3, riff) {
+define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/binary/chunks/index", "shared/formats/riff/index"], function (require, exports, asserts_1, binary_1, chunks_1, riff) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    Object.defineProperty(exports, "__esModule", { value: true });
     exports.File = exports.SampleHeader = exports.InstrumentGenerator = exports.InstrumentModulator = exports.InstrumentBag = exports.Instrument = exports.PresetGenerator = exports.PresetModulator = exports.PresetBag = exports.PresetHeader = exports.Transform = exports.Generator = exports.Modulator = exports.GeneratorParameters = exports.GeneratorType = exports.SampleLink = void 0;
+    var SampleLink;
     (function (SampleLink) {
         SampleLink[SampleLink["MONO"] = 1] = "MONO";
         SampleLink[SampleLink["RIGHT"] = 2] = "RIGHT";
@@ -1064,8 +1450,9 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
         SampleLink[SampleLink["ROM_RIGHT"] = 32770] = "ROM_RIGHT";
         SampleLink[SampleLink["ROM_LEFT"] = 32772] = "ROM_LEFT";
         SampleLink[SampleLink["ROM_LINKED"] = 32776] = "ROM_LINKED";
-    })(exports.SampleLink || (exports.SampleLink = {}));
+    })(SampleLink = exports.SampleLink || (exports.SampleLink = {}));
     ;
+    var GeneratorType;
     (function (GeneratorType) {
         GeneratorType[GeneratorType["START_ADDRESS_OFFSET"] = 0] = "START_ADDRESS_OFFSET";
         GeneratorType[GeneratorType["END_ADDRESS_OFFSET"] = 1] = "END_ADDRESS_OFFSET";
@@ -1128,24 +1515,28 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
         GeneratorType[GeneratorType["OVERRIDING_ROOT_KEY"] = 58] = "OVERRIDING_ROOT_KEY";
         GeneratorType[GeneratorType["UNUSED_5"] = 59] = "UNUSED_5";
         GeneratorType[GeneratorType["END_OPERATOR"] = 60] = "END_OPERATOR";
-    })(exports.GeneratorType || (exports.GeneratorType = {}));
+    })(GeneratorType = exports.GeneratorType || (exports.GeneratorType = {}));
     ;
-    class GeneratorParameters extends binary_4.Chunk {
+    class GeneratorParameters extends binary_1.Chunk {
+        first;
+        second;
+        signed;
+        unsigned;
         constructor(options) {
-            let buffer = options?.buffer ?? binary_4.Buffer.alloc(2);
-            asserts_14.IntegerAssert.exactly(buffer.size(), 2);
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(2);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 2);
             super(buffer);
-            this.first = new chunks_3.Integer1({
+            this.first = new chunks_1.Integer1({
                 buffer: buffer.window({ offset: 0, length: 1 })
             });
-            this.second = new chunks_3.Integer1({
+            this.second = new chunks_1.Integer1({
                 buffer: buffer.window({ offset: 1, length: 1 })
             });
-            this.signed = new chunks_3.Integer2({
+            this.signed = new chunks_1.Integer2({
                 buffer: buffer.window({ offset: 0, length: 2 }),
                 complement: "twos"
             });
-            this.unsigned = new chunks_3.Integer2({
+            this.unsigned = new chunks_1.Integer2({
                 buffer: buffer.window({ offset: 0, length: 2 })
             });
         }
@@ -1160,26 +1551,31 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
     }
     exports.GeneratorParameters = GeneratorParameters;
     ;
-    class Modulator extends chunks_3.Integer2 {
+    class Modulator extends chunks_1.Integer2 {
+        index;
+        continuous;
+        direction;
+        polarity;
+        type;
         constructor(options) {
             super(options);
-            this.index = new chunks_3.PackedInteger2(this, {
+            this.index = new chunks_1.PackedInteger2(this, {
                 offset: 0,
                 length: 7
             });
-            this.continuous = new chunks_3.PackedInteger2(this, {
+            this.continuous = new chunks_1.PackedInteger2(this, {
                 offset: 7,
                 length: 1
             });
-            this.direction = new chunks_3.PackedInteger2(this, {
+            this.direction = new chunks_1.PackedInteger2(this, {
                 offset: 8,
                 length: 1
             });
-            this.polarity = new chunks_3.PackedInteger2(this, {
+            this.polarity = new chunks_1.PackedInteger2(this, {
                 offset: 9,
                 length: 1
             });
-            this.type = new chunks_3.PackedInteger2(this, {
+            this.type = new chunks_1.PackedInteger2(this, {
                 offset: 10,
                 length: 6
             });
@@ -1197,14 +1593,16 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
     exports.Modulator = Modulator;
     ;
     // TODO: Extend from chunk?
-    class Generator extends chunks_3.Integer2 {
+    class Generator extends chunks_1.Integer2 {
+        type;
+        link;
         constructor(options) {
             super(options);
-            this.type = new chunks_3.PackedInteger2(this, {
+            this.type = new chunks_1.PackedInteger2(this, {
                 offset: 0,
                 length: 15
             });
-            this.link = new chunks_3.PackedInteger2(this, {
+            this.link = new chunks_1.PackedInteger2(this, {
                 offset: 15,
                 length: 1
             });
@@ -1218,10 +1616,11 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
     }
     exports.Generator = Generator;
     ;
-    class Transform extends chunks_3.Integer2 {
+    class Transform extends chunks_1.Integer2 {
+        index;
         constructor(options) {
             super(options);
-            this.index = new chunks_3.PackedInteger2(this, {
+            this.index = new chunks_1.PackedInteger2(this, {
                 offset: 0,
                 length: 16
             });
@@ -1234,48 +1633,55 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
     }
     exports.Transform = Transform;
     ;
-    class PresetHeader extends binary_4.Chunk {
+    class PresetHeader extends binary_1.Chunk {
+        name;
+        preset;
+        bank;
+        pbag_index;
+        library;
+        genre;
+        morphology;
         constructor(options) {
-            let buffer = options?.buffer ?? binary_4.Buffer.alloc(38);
-            asserts_14.IntegerAssert.exactly(buffer.size(), 38);
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(38);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 38);
             super(buffer);
-            this.name = new chunks_3.ByteString({
+            this.name = new chunks_1.ByteString({
                 buffer: buffer.window({
                     offset: 0,
                     length: 20
                 })
             });
-            this.preset = new chunks_3.Integer2({
+            this.preset = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 20,
                     length: 2
                 })
             });
-            this.bank = new chunks_3.Integer2({
+            this.bank = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 22,
                     length: 2
                 })
             });
-            this.pbag_index = new chunks_3.Integer2({
+            this.pbag_index = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 24,
                     length: 2
                 })
             });
-            this.library = new chunks_3.Integer4({
+            this.library = new chunks_1.Integer4({
                 buffer: buffer.window({
                     offset: 26,
                     length: 4
                 })
             });
-            this.genre = new chunks_3.Integer4({
+            this.genre = new chunks_1.Integer4({
                 buffer: buffer.window({
                     offset: 30,
                     length: 4
                 })
             });
-            this.morphology = new chunks_3.Integer4({
+            this.morphology = new chunks_1.Integer4({
                 buffer: buffer.window({
                     offset: 34,
                     length: 4
@@ -1296,18 +1702,20 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
     }
     exports.PresetHeader = PresetHeader;
     ;
-    class PresetBag extends binary_4.Chunk {
+    class PresetBag extends binary_1.Chunk {
+        pgen_index;
+        pmod_index;
         constructor(options) {
-            let buffer = options?.buffer ?? binary_4.Buffer.alloc(4);
-            asserts_14.IntegerAssert.exactly(buffer.size(), 4);
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(4);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 4);
             super(buffer);
-            this.pgen_index = new chunks_3.Integer2({
+            this.pgen_index = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 0,
                     length: 2
                 })
             });
-            this.pmod_index = new chunks_3.Integer2({
+            this.pmod_index = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 2,
                     length: 2
@@ -1323,10 +1731,15 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
     }
     exports.PresetBag = PresetBag;
     ;
-    class PresetModulator extends binary_4.Chunk {
+    class PresetModulator extends binary_1.Chunk {
+        modulator_source_operator;
+        generator_destination_operator;
+        modulator_amount;
+        modulator_amount_source_operator;
+        modulator_transform_operator;
         constructor(options) {
-            let buffer = options?.buffer ?? binary_4.Buffer.alloc(10);
-            asserts_14.IntegerAssert.exactly(buffer.size(), 10);
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(10);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 10);
             super(buffer);
             this.modulator_source_operator = new Modulator({
                 buffer: buffer.window({
@@ -1340,7 +1753,7 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
                     length: 2
                 })
             });
-            this.modulator_amount = new chunks_3.Integer2({
+            this.modulator_amount = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 4,
                     length: 2
@@ -1372,10 +1785,12 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
     }
     exports.PresetModulator = PresetModulator;
     ;
-    class PresetGenerator extends binary_4.Chunk {
+    class PresetGenerator extends binary_1.Chunk {
+        generator;
+        parameters;
         constructor(options) {
-            let buffer = options?.buffer ?? binary_4.Buffer.alloc(4);
-            asserts_14.IntegerAssert.exactly(buffer.size(), 4);
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(4);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 4);
             super(buffer);
             this.generator = new Generator({
                 buffer: buffer.window({
@@ -1399,18 +1814,20 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
     }
     exports.PresetGenerator = PresetGenerator;
     ;
-    class Instrument extends binary_4.Chunk {
+    class Instrument extends binary_1.Chunk {
+        name;
+        ibag_index;
         constructor(options) {
-            let buffer = options?.buffer ?? binary_4.Buffer.alloc(22);
-            asserts_14.IntegerAssert.exactly(buffer.size(), 22);
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(22);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 22);
             super(buffer);
-            this.name = new chunks_3.ByteString({
+            this.name = new chunks_1.ByteString({
                 buffer: buffer.window({
                     offset: 0,
                     length: 20
                 })
             });
-            this.ibag_index = new chunks_3.Integer2({
+            this.ibag_index = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 20,
                     length: 2
@@ -1426,18 +1843,20 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
     }
     exports.Instrument = Instrument;
     ;
-    class InstrumentBag extends binary_4.Chunk {
+    class InstrumentBag extends binary_1.Chunk {
+        igen_index;
+        imod_index;
         constructor(options) {
-            let buffer = options?.buffer ?? binary_4.Buffer.alloc(4);
-            asserts_14.IntegerAssert.exactly(buffer.size(), 4);
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(4);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 4);
             super(buffer);
-            this.igen_index = new chunks_3.Integer2({
+            this.igen_index = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 0,
                     length: 2
                 })
             });
-            this.imod_index = new chunks_3.Integer2({
+            this.imod_index = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 2,
                     length: 2
@@ -1453,10 +1872,15 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
     }
     exports.InstrumentBag = InstrumentBag;
     ;
-    class InstrumentModulator extends binary_4.Chunk {
+    class InstrumentModulator extends binary_1.Chunk {
+        modulator_source_operator;
+        generator_destination_operator;
+        modulator_amount;
+        modulator_amount_source_operator;
+        modulator_transform_operator;
         constructor(options) {
-            let buffer = options?.buffer ?? binary_4.Buffer.alloc(10);
-            asserts_14.IntegerAssert.exactly(buffer.size(), 10);
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(10);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 10);
             super(buffer);
             this.modulator_source_operator = new Modulator({
                 buffer: buffer.window({
@@ -1470,7 +1894,7 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
                     length: 2
                 })
             });
-            this.modulator_amount = new chunks_3.Integer2({
+            this.modulator_amount = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 4,
                     length: 2
@@ -1502,10 +1926,12 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
     }
     exports.InstrumentModulator = InstrumentModulator;
     ;
-    class InstrumentGenerator extends binary_4.Chunk {
+    class InstrumentGenerator extends binary_1.Chunk {
+        generator;
+        parameters;
         constructor(options) {
-            let buffer = options?.buffer ?? binary_4.Buffer.alloc(4);
-            asserts_14.IntegerAssert.exactly(buffer.size(), 4);
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(4);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 4);
             super(buffer);
             this.generator = new Generator({
                 buffer: buffer.window({
@@ -1529,67 +1955,77 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
     }
     exports.InstrumentGenerator = InstrumentGenerator;
     ;
-    class SampleHeader extends binary_4.Chunk {
+    class SampleHeader extends binary_1.Chunk {
+        name;
+        start;
+        end;
+        loop_start;
+        loop_end;
+        sample_rate;
+        original_key;
+        correction;
+        link;
+        type;
         constructor(options) {
-            let buffer = options?.buffer ?? binary_4.Buffer.alloc(46);
-            asserts_14.IntegerAssert.exactly(buffer.size(), 46);
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(46);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 46);
             super(buffer);
-            this.name = new chunks_3.ByteString({
+            this.name = new chunks_1.ByteString({
                 buffer: buffer.window({
                     offset: 0,
                     length: 20
                 })
             });
-            this.start = new chunks_3.Integer4({
+            this.start = new chunks_1.Integer4({
                 buffer: buffer.window({
                     offset: 20,
                     length: 4
                 })
             });
-            this.end = new chunks_3.Integer4({
+            this.end = new chunks_1.Integer4({
                 buffer: buffer.window({
                     offset: 24,
                     length: 4
                 })
             });
-            this.loop_start = new chunks_3.Integer4({
+            this.loop_start = new chunks_1.Integer4({
                 buffer: buffer.window({
                     offset: 28,
                     length: 4
                 })
             });
-            this.loop_end = new chunks_3.Integer4({
+            this.loop_end = new chunks_1.Integer4({
                 buffer: buffer.window({
                     offset: 32,
                     length: 4
                 })
             });
-            this.sample_rate = new chunks_3.Integer4({
+            this.sample_rate = new chunks_1.Integer4({
                 buffer: buffer.window({
                     offset: 36,
                     length: 4
                 })
             });
-            this.original_key = new chunks_3.Integer1({
+            this.original_key = new chunks_1.Integer1({
                 buffer: buffer.window({
                     offset: 40,
                     length: 1
                 })
             });
-            this.correction = new chunks_3.Integer1({
+            this.correction = new chunks_1.Integer1({
                 buffer: buffer.window({
                     offset: 41,
                     length: 1
                 }),
                 complement: "twos"
             });
-            this.link = new chunks_3.Integer2({
+            this.link = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 42,
                     length: 2
                 })
             });
-            this.type = new chunks_3.Integer2({
+            this.type = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 44,
                     length: 2
@@ -1614,9 +2050,20 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
     exports.SampleHeader = SampleHeader;
     ;
     class File {
+        smpl;
+        sm24;
+        phdr;
+        pbag;
+        pmod;
+        pgen;
+        inst;
+        ibag;
+        imod;
+        igen;
+        shdr;
         constructor() {
-            this.smpl = new binary_4.BufferReader();
-            this.sm24 = new binary_4.BufferReader();
+            this.smpl = new binary_1.BufferReader();
+            this.sm24 = new binary_1.BufferReader();
             this.phdr = new Array();
             this.pbag = new Array();
             this.pmod = new Array();
@@ -1631,20 +2078,20 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
             // TODO: Reset state or make static.
             let chunk = await riff.File.parseChunk(cursor, reader);
             console.log("" + chunk.header.type.value + ": " + chunk.header.size.value);
-            asserts_14.StringAssert.identical(chunk.header.type.value, "RIFF");
+            asserts_1.StringAssert.identical(chunk.header.type.value, "RIFF");
             {
                 let reader = chunk.body;
-                let cursor = new binary_4.Cursor();
-                let type = await new chunks_3.ByteString({ buffer: binary_4.Buffer.alloc(4) }).load(cursor, reader);
-                asserts_14.StringAssert.identical(type.value, "sfbk");
+                let cursor = new binary_1.Cursor();
+                let type = await new chunks_1.ByteString({ buffer: binary_1.Buffer.alloc(4) }).load(cursor, reader);
+                asserts_1.StringAssert.identical(type.value, "sfbk");
                 while (cursor.offset < reader.size()) {
                     let chunk = await riff.File.parseChunk(cursor, reader);
                     console.log("\t" + chunk.header.type.value + ": " + chunk.header.size.value);
-                    asserts_14.StringAssert.identical(chunk.header.type.value, "LIST");
+                    asserts_1.StringAssert.identical(chunk.header.type.value, "LIST");
                     {
                         let reader = chunk.body;
-                        let cursor = new binary_4.Cursor();
-                        let type = await new chunks_3.ByteString({ buffer: binary_4.Buffer.alloc(4) }).load(cursor, reader);
+                        let cursor = new binary_1.Cursor();
+                        let type = await new chunks_1.ByteString({ buffer: binary_1.Buffer.alloc(4) }).load(cursor, reader);
                         if (false) {
                         }
                         else if (type.value === "INFO") {
@@ -1689,7 +2136,7 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
                                 }
                                 else if (chunk.header.type.value === "phdr") {
                                     let reader = chunk.body;
-                                    let cursor = new binary_4.Cursor();
+                                    let cursor = new binary_1.Cursor();
                                     while (cursor.offset < reader.size()) {
                                         let header = await new PresetHeader().load(cursor, reader);
                                         this.phdr.push(header);
@@ -1697,7 +2144,7 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
                                 }
                                 else if (chunk.header.type.value === "pbag") {
                                     let reader = chunk.body;
-                                    let cursor = new binary_4.Cursor();
+                                    let cursor = new binary_1.Cursor();
                                     while (cursor.offset < reader.size()) {
                                         let header = await new PresetBag().load(cursor, reader);
                                         this.pbag.push(header);
@@ -1705,7 +2152,7 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
                                 }
                                 else if (chunk.header.type.value === "pmod") {
                                     let reader = chunk.body;
-                                    let cursor = new binary_4.Cursor();
+                                    let cursor = new binary_1.Cursor();
                                     while (cursor.offset < reader.size()) {
                                         let header = await new PresetModulator().load(cursor, reader);
                                         this.pmod.push(header);
@@ -1713,7 +2160,7 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
                                 }
                                 else if (chunk.header.type.value === "pgen") {
                                     let reader = chunk.body;
-                                    let cursor = new binary_4.Cursor();
+                                    let cursor = new binary_1.Cursor();
                                     while (cursor.offset < reader.size()) {
                                         let header = await new PresetGenerator().load(cursor, reader);
                                         this.pgen.push(header);
@@ -1721,7 +2168,7 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
                                 }
                                 else if (chunk.header.type.value === "inst") {
                                     let reader = chunk.body;
-                                    let cursor = new binary_4.Cursor();
+                                    let cursor = new binary_1.Cursor();
                                     while (cursor.offset < reader.size()) {
                                         let header = await new Instrument().load(cursor, reader);
                                         this.inst.push(header);
@@ -1729,7 +2176,7 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
                                 }
                                 else if (chunk.header.type.value === "ibag") {
                                     let reader = chunk.body;
-                                    let cursor = new binary_4.Cursor();
+                                    let cursor = new binary_1.Cursor();
                                     while (cursor.offset < reader.size()) {
                                         let header = await new InstrumentBag().load(cursor, reader);
                                         this.ibag.push(header);
@@ -1737,7 +2184,7 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
                                 }
                                 else if (chunk.header.type.value === "imod") {
                                     let reader = chunk.body;
-                                    let cursor = new binary_4.Cursor();
+                                    let cursor = new binary_1.Cursor();
                                     while (cursor.offset < reader.size()) {
                                         let header = await new InstrumentModulator().load(cursor, reader);
                                         this.imod.push(header);
@@ -1745,7 +2192,7 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
                                 }
                                 else if (chunk.header.type.value === "igen") {
                                     let reader = chunk.body;
-                                    let cursor = new binary_4.Cursor();
+                                    let cursor = new binary_1.Cursor();
                                     while (cursor.offset < reader.size()) {
                                         let header = await new InstrumentGenerator().load(cursor, reader);
                                         this.igen.push(header);
@@ -1753,7 +2200,7 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
                                 }
                                 else if (chunk.header.type.value === "shdr") {
                                     let reader = chunk.body;
-                                    let cursor = new binary_4.Cursor();
+                                    let cursor = new binary_1.Cursor();
                                     while (cursor.offset < reader.size()) {
                                         let header = await new SampleHeader().load(cursor, reader);
                                         this.shdr.push(header);
@@ -1770,46 +2217,53 @@ define("shared/formats/soundfont/index", ["require", "exports", "shared/asserts/
     exports.File = File;
     ;
 });
-define("shared/formats/wave/header", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/binary/chunks/index"], function (require, exports, asserts_15, binary_5, chunks_4) {
+define("shared/formats/wave/header", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/binary/chunks/index"], function (require, exports, asserts_1, binary_1, chunks_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    Object.defineProperty(exports, "__esModule", { value: true });
     exports.Header = void 0;
-    class Header extends binary_5.Chunk {
+    class Header extends binary_1.Chunk {
+        audio_format;
+        channel_count;
+        sample_rate;
+        byte_rate;
+        block_align;
+        bits_per_sample;
         constructor(options) {
-            let buffer = options?.buffer ?? binary_5.Buffer.alloc(16);
-            asserts_15.IntegerAssert.exactly(buffer.size(), 16);
+            let buffer = options?.buffer ?? binary_1.Buffer.alloc(16);
+            asserts_1.IntegerAssert.exactly(buffer.size(), 16);
             super(buffer);
-            this.audio_format = new chunks_4.Integer2({
+            this.audio_format = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 0,
                     length: 2
                 })
             });
-            this.channel_count = new chunks_4.Integer2({
+            this.channel_count = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 2,
                     length: 2
                 })
             });
-            this.sample_rate = new chunks_4.Integer4({
+            this.sample_rate = new chunks_1.Integer4({
                 buffer: buffer.window({
                     offset: 4,
                     length: 4
                 })
             });
-            this.byte_rate = new chunks_4.Integer4({
+            this.byte_rate = new chunks_1.Integer4({
                 buffer: buffer.window({
                     offset: 8,
                     length: 4
                 })
             });
-            this.block_align = new chunks_4.Integer2({
+            this.block_align = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 12,
                     length: 2
                 })
             });
-            this.bits_per_sample = new chunks_4.Integer2({
+            this.bits_per_sample = new chunks_1.Integer2({
                 buffer: buffer.window({
                     offset: 14,
                     length: 2
@@ -1820,15 +2274,33 @@ define("shared/formats/wave/header", ["require", "exports", "shared/asserts/inde
     exports.Header = Header;
     ;
 });
-define("shared/formats/wave/index", ["require", "exports", "shared/formats/wave/header"], function (require, exports, header_3) {
+define("shared/formats/wave/index", ["require", "exports", "shared/formats/wave/header"], function (require, exports, header_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    __exportStar(header_3, exports);
+    var __createBinding = (this && this.__createBinding) || (Object.create ? (function (o, m, k, k2) {
+        if (k2 === undefined)
+            k2 = k;
+        Object.defineProperty(o, k2, { enumerable: true, get: function () { return m[k]; } });
+    }) : (function (o, m, k, k2) {
+        if (k2 === undefined)
+            k2 = k;
+        o[k2] = m[k];
+    }));
+    var __exportStar = (this && this.__exportStar) || function (m, exports) {
+        for (var p in m)
+            if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p))
+                __createBinding(exports, m, p);
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    __exportStar(header_2, exports);
 });
-define("shared/formats/index", ["require", "exports", "shared/formats/midi/index", "shared/formats/riff/index", "shared/formats/soundfont/index", "shared/formats/wave/index"], function (require, exports, midi, riff, soundfont, wave) {
+define("shared/formats/index", ["require", "exports", "shared/formats/bmp/index", "shared/formats/midi/index", "shared/formats/riff/index", "shared/formats/soundfont/index", "shared/formats/wave/index"], function (require, exports, bmp, midi, riff, soundfont, wave) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.wave = exports.soundfont = exports.riff = exports.midi = void 0;
+    exports.wave = exports.soundfont = exports.riff = exports.midi = exports.bmp = void 0;
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.wave = exports.soundfont = exports.riff = exports.midi = exports.bmp = void 0;
+    exports.bmp = bmp;
     exports.midi = midi;
     exports.riff = riff;
     exports.soundfont = soundfont;
@@ -2015,30 +2487,62 @@ define("shared/tables", ["require", "exports"], function (require, exports) {
         0x03, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x28
     ]);
 });
-define("shared/index", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/formats/index", "shared/tables", "shared/is"], function (require, exports, asserts, binary, formats, tables_1, is_3) {
+define("shared/index", ["require", "exports", "shared/asserts/index", "shared/binary/index", "shared/formats/index", "shared/tables", "shared/is"], function (require, exports, asserts, binary, formats, tables_1, is_1) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.formats = exports.binary = exports.asserts = void 0;
+    var __createBinding = (this && this.__createBinding) || (Object.create ? (function (o, m, k, k2) {
+        if (k2 === undefined)
+            k2 = k;
+        Object.defineProperty(o, k2, { enumerable: true, get: function () { return m[k]; } });
+    }) : (function (o, m, k, k2) {
+        if (k2 === undefined)
+            k2 = k;
+        o[k2] = m[k];
+    }));
+    var __exportStar = (this && this.__exportStar) || function (m, exports) {
+        for (var p in m)
+            if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p))
+                __createBinding(exports, m, p);
+    };
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.formats = exports.binary = exports.asserts = void 0;
     exports.asserts = asserts;
     exports.binary = binary;
     exports.formats = formats;
     __exportStar(tables_1, exports);
-    __exportStar(is_3, exports);
+    __exportStar(is_1, exports);
 });
-define("shared/binary.web/index", ["require", "exports", "shared/asserts/index", "shared/binary/index"], function (require, exports, asserts_16, binary_6) {
+define("shared/binary.web/index", ["require", "exports", "shared/asserts/index", "shared/binary/index"], function (require, exports, asserts_1, binary_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    var __createBinding = (this && this.__createBinding) || (Object.create ? (function (o, m, k, k2) {
+        if (k2 === undefined)
+            k2 = k;
+        Object.defineProperty(o, k2, { enumerable: true, get: function () { return m[k]; } });
+    }) : (function (o, m, k, k2) {
+        if (k2 === undefined)
+            k2 = k;
+        o[k2] = m[k];
+    }));
+    var __exportStar = (this && this.__exportStar) || function (m, exports) {
+        for (var p in m)
+            if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p))
+                __createBinding(exports, m, p);
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
     exports.WebFileReader = void 0;
-    __exportStar(binary_6, exports);
+    __exportStar(binary_1, exports);
     class WebFileReader {
+        file;
         constructor(file) {
             this.file = file;
         }
         async read(cursor, target) {
             let offset = cursor.offset;
             let length = target.size();
-            asserts_16.IntegerAssert.between(0, offset, this.file.size);
-            asserts_16.IntegerAssert.between(0, length, this.file.size - offset);
+            asserts_1.IntegerAssert.between(0, offset, this.file.size);
+            asserts_1.IntegerAssert.between(0, length, this.file.size - offset);
             let blob = this.file.slice(offset, offset + length);
             let source = new Uint8Array(await blob.arrayBuffer());
             target.place(source);
@@ -2052,11 +2556,16 @@ define("shared/binary.web/index", ["require", "exports", "shared/asserts/index",
     exports.WebFileReader = WebFileReader;
     ;
 });
-define("client/synth", ["require", "exports", "shared/index", "shared/binary/index", "shared/formats/soundfont/index"], function (require, exports, shared_1, binary_7, soundfont) {
+define("client/synth", ["require", "exports", "shared/index", "shared/binary/index", "shared/formats/soundfont/index"], function (require, exports, shared_1, binary_1, soundfont) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.WavetableSynth = exports.Bank = exports.Program = void 0;
     class Program {
+        name;
+        file;
+        igen_indices;
+        buffers;
         constructor() {
             this.name = "";
             this.file = new soundfont.File();
@@ -2267,11 +2776,11 @@ define("client/synth", ["require", "exports", "shared/index", "shared/binary/ind
             if (shared_1.is.absent(buffer)) {
                 let sample_count = sample_header.end.value - sample_header.start.value;
                 let reader = this.file.smpl;
-                let cursor = new binary_7.Cursor({ offset: sample_header.start.value * 2 });
+                let cursor = new binary_1.Cursor({ offset: sample_header.start.value * 2 });
                 buffer = context.createBuffer(1, sample_count, sample_header.sample_rate.value);
                 let ab = new ArrayBuffer(sample_count * 2);
-                let b = new binary_7.Buffer(ab);
-                await new binary_7.Chunk(b).load(cursor, reader);
+                let b = new binary_1.Buffer(ab);
+                await new binary_1.Chunk(b).load(cursor, reader);
                 let c = buffer.getChannelData(0);
                 let v = new Int16Array(ab);
                 for (let s = 0; s < sample_count; s++) {
@@ -2405,6 +2914,7 @@ define("client/synth", ["require", "exports", "shared/index", "shared/binary/ind
     exports.Program = Program;
     ;
     class Bank {
+        programs;
         constructor() {
             this.programs = new Array();
         }
@@ -2412,6 +2922,7 @@ define("client/synth", ["require", "exports", "shared/index", "shared/binary/ind
     exports.Bank = Bank;
     ;
     class WavetableSynth {
+        banks;
         constructor() {
             this.banks = new Array();
             for (let i = 0; i < 255; i++) {
@@ -2467,7 +2978,22 @@ define("client/synth", ["require", "exports", "shared/index", "shared/binary/ind
 define("client/index", ["require", "exports", "shared/index", "shared/binary.web/index", "shared/formats/index", "client/synth"], function (require, exports, shared, binary, formats_1, synth_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    Object.defineProperty(exports, "__esModule", { value: true });
+    const OVERRIDE = false;
     const ZOOM = 1;
+    let keysle = document.createElement("div");
+    keysle.setAttribute("style", "position: absolute; z-index: 10; width: 100%; height: 100%; display: grid; grid-template-columns: repeat(auto-fill, 400px); pointer-events: none;");
+    let keys = new Array();
+    for (let i = 0; i < 16; i++) {
+        let key = document.createElement("h2");
+        key.setAttribute("style", "font-size: 60px; color: white; white-space: nowrap;");
+        key.innerHTML = `[${i === 9 ? "D" : i}]:`;
+        keysle.appendChild(key);
+        keys.push(key);
+    }
+    if (OVERRIDE) {
+        document.body.appendChild(keysle);
+    }
     var is;
     (function (is) {
         function absent(subject) {
@@ -2504,6 +3030,8 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         assert_1.identical = identical;
     })(assert || (assert = {}));
     class BufferLike {
+        buffer;
+        endianness;
         constructor(buffer, endianness = "BigEndian") {
             this.buffer = buffer;
             this.endianness = endianness;
@@ -2513,6 +3041,7 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class BufferDataProvider {
+        buffer;
         constructor(buffer) {
             this.buffer = buffer;
         }
@@ -2530,6 +3059,7 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class FileDataProvider {
+        file;
         constructor(file) {
             this.file = file;
         }
@@ -2554,11 +3084,8 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class si08 {
-        constructor(endianness, buffer = new ArrayBuffer(1), offset = 0) {
-            assert.between(0, offset, buffer.byteLength - 1);
-            this.endianness = endianness;
-            this.view = new DataView(buffer, offset, 1);
-        }
+        endianness;
+        view;
         get value() {
             return this.view.getInt8(0);
         }
@@ -2570,6 +3097,11 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                 throw `Unexpectedly encoded ${next} as ${this.value}!`;
             }
         }
+        constructor(endianness, buffer = new ArrayBuffer(1), offset = 0) {
+            assert.between(0, offset, buffer.byteLength - 1);
+            this.endianness = endianness;
+            this.view = new DataView(buffer, offset, 1);
+        }
         async load(cursor, dataProvider) {
             let length = 0;
             length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
@@ -2577,11 +3109,8 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class si16 {
-        constructor(endianness, buffer = new ArrayBuffer(2), offset = 0) {
-            assert.between(0, offset, buffer.byteLength - 2);
-            this.endianness = endianness;
-            this.view = new DataView(buffer, offset, 2);
-        }
+        endianness;
+        view;
         get value() {
             return this.view.getInt16(0, this.endianness === "LittleEndian");
         }
@@ -2593,6 +3122,11 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                 throw `Unexpectedly encoded ${next} as ${this.value}!`;
             }
         }
+        constructor(endianness, buffer = new ArrayBuffer(2), offset = 0) {
+            assert.between(0, offset, buffer.byteLength - 2);
+            this.endianness = endianness;
+            this.view = new DataView(buffer, offset, 2);
+        }
         async load(cursor, dataProvider) {
             let length = 0;
             length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
@@ -2600,9 +3134,7 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class si24 {
-        constructor(endianness, buffer = new ArrayBuffer(3), offset = 0) {
-            this.integer = new ui24(endianness, buffer, offset);
-        }
+        integer;
         get value() {
             let value = this.integer.value;
             if (value > 0x7FFFFF) {
@@ -2616,16 +3148,16 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
             }
             this.integer.value = next;
         }
+        constructor(endianness, buffer = new ArrayBuffer(3), offset = 0) {
+            this.integer = new ui24(endianness, buffer, offset);
+        }
         async load(cursor, dataProvider) {
             return this.integer.load(cursor, dataProvider);
         }
     }
     class si32 {
-        constructor(endianness, buffer = new ArrayBuffer(4), offset = 0) {
-            assert.between(0, offset, buffer.byteLength - 4);
-            this.endianness = endianness;
-            this.view = new DataView(buffer, offset, 4);
-        }
+        endianness;
+        view;
         get value() {
             return this.view.getInt32(0, this.endianness === "LittleEndian");
         }
@@ -2637,6 +3169,11 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                 throw `Unexpectedly encoded ${next} as ${this.value}!`;
             }
         }
+        constructor(endianness, buffer = new ArrayBuffer(4), offset = 0) {
+            assert.between(0, offset, buffer.byteLength - 4);
+            this.endianness = endianness;
+            this.view = new DataView(buffer, offset, 4);
+        }
         async load(cursor, dataProvider) {
             let length = 0;
             length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
@@ -2644,11 +3181,8 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class ui08 {
-        constructor(endianness, buffer = new ArrayBuffer(1), offset = 0) {
-            assert.between(0, offset, buffer.byteLength - 1);
-            this.endianness = endianness;
-            this.view = new DataView(buffer, offset, 1);
-        }
+        endianness;
+        view;
         get value() {
             return this.view.getUint8(0);
         }
@@ -2660,6 +3194,11 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                 throw `Unexpectedly encoded ${next} as ${this.value}!`;
             }
         }
+        constructor(endianness, buffer = new ArrayBuffer(1), offset = 0) {
+            assert.between(0, offset, buffer.byteLength - 1);
+            this.endianness = endianness;
+            this.view = new DataView(buffer, offset, 1);
+        }
         async load(cursor, dataProvider) {
             let length = 0;
             length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
@@ -2667,11 +3206,8 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class ui16 {
-        constructor(endianness, buffer = new ArrayBuffer(2), offset = 0) {
-            assert.between(0, offset, buffer.byteLength - 2);
-            this.endianness = endianness;
-            this.view = new DataView(buffer, offset, 2);
-        }
+        endianness;
+        view;
         get value() {
             return this.view.getUint16(0, this.endianness === "LittleEndian");
         }
@@ -2683,6 +3219,11 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                 throw `Unexpectedly encoded ${next} as ${this.value}!`;
             }
         }
+        constructor(endianness, buffer = new ArrayBuffer(2), offset = 0) {
+            assert.between(0, offset, buffer.byteLength - 2);
+            this.endianness = endianness;
+            this.view = new DataView(buffer, offset, 2);
+        }
         async load(cursor, dataProvider) {
             let length = 0;
             length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
@@ -2690,11 +3231,8 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class ui24 {
-        constructor(endianness, buffer = new ArrayBuffer(3), offset = 0) {
-            assert.between(0, offset, buffer.byteLength - 3);
-            this.endianness = endianness;
-            this.view = new DataView(buffer, offset, 3);
-        }
+        endianness;
+        view;
         get value() {
             let a = this.view.getUint8(0);
             let b = this.view.getUint8(1);
@@ -2726,6 +3264,11 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                 throw `Unexpectedly encoded ${next} as ${this.value}!`;
             }
         }
+        constructor(endianness, buffer = new ArrayBuffer(3), offset = 0) {
+            assert.between(0, offset, buffer.byteLength - 3);
+            this.endianness = endianness;
+            this.view = new DataView(buffer, offset, 3);
+        }
         async load(cursor, dataProvider) {
             let length = 0;
             length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
@@ -2733,11 +3276,8 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class ui32 {
-        constructor(endianness, buffer = new ArrayBuffer(4), offset = 0) {
-            assert.between(0, offset, buffer.byteLength - 4);
-            this.endianness = endianness;
-            this.view = new DataView(buffer, offset, 4);
-        }
+        endianness;
+        view;
         get value() {
             return this.view.getUint32(0, this.endianness === "LittleEndian");
         }
@@ -2749,6 +3289,11 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                 throw `Unexpectedly encoded ${next} as ${this.value}!`;
             }
         }
+        constructor(endianness, buffer = new ArrayBuffer(4), offset = 0) {
+            assert.between(0, offset, buffer.byteLength - 4);
+            this.endianness = endianness;
+            this.view = new DataView(buffer, offset, 4);
+        }
         async load(cursor, dataProvider) {
             let length = 0;
             length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
@@ -2756,6 +3301,26 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class pi08 {
+        integer;
+        offset;
+        length;
+        get value() {
+            let a = 32 - (this.offset + this.length);
+            let b = 32 - (this.length);
+            return (this.integer.value << a) >>> b;
+        }
+        set value(next) {
+            let last = this.integer.value;
+            let a = this.offset;
+            let b = 32 - (this.length);
+            let c = 32 - (this.offset + this.length);
+            let m = ((0xFFFFFFFF >> a) << b) >>> c;
+            this.integer.value = ((this.integer.value & ~m) | ((next << a) & m)) >>> 0;
+            if (this.value !== next) {
+                this.integer.value = last;
+                throw `Unexpectedly encoded ${next} as ${this.value}!`;
+            }
+        }
         constructor(integer, offset, length) {
             assert.between(0, offset, 8 - 1);
             assert.between(1, length, 8 - offset);
@@ -2763,6 +3328,11 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
             this.offset = offset;
             this.length = length;
         }
+    }
+    class pi16 {
+        integer;
+        offset;
+        length;
         get value() {
             let a = 32 - (this.offset + this.length);
             let b = 32 - (this.length);
@@ -2780,8 +3350,6 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                 throw `Unexpectedly encoded ${next} as ${this.value}!`;
             }
         }
-    }
-    class pi16 {
         constructor(integer, offset, length) {
             assert.between(0, offset, 16 - 1);
             assert.between(1, length, 16 - offset);
@@ -2789,6 +3357,11 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
             this.offset = offset;
             this.length = length;
         }
+    }
+    class pi24 {
+        integer;
+        offset;
+        length;
         get value() {
             let a = 32 - (this.offset + this.length);
             let b = 32 - (this.length);
@@ -2806,8 +3379,6 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                 throw `Unexpectedly encoded ${next} as ${this.value}!`;
             }
         }
-    }
-    class pi24 {
         constructor(integer, offset, length) {
             assert.between(0, offset, 24 - 1);
             assert.between(1, length, 24 - offset);
@@ -2815,6 +3386,11 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
             this.offset = offset;
             this.length = length;
         }
+    }
+    class pi32 {
+        integer;
+        offset;
+        length;
         get value() {
             let a = 32 - (this.offset + this.length);
             let b = 32 - (this.length);
@@ -2832,8 +3408,6 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                 throw `Unexpectedly encoded ${next} as ${this.value}!`;
             }
         }
-    }
-    class pi32 {
         constructor(integer, offset, length) {
             assert.between(0, offset, 32 - 1);
             assert.between(1, length, 32 - offset);
@@ -2841,34 +3415,11 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
             this.offset = offset;
             this.length = length;
         }
-        get value() {
-            let a = 32 - (this.offset + this.length);
-            let b = 32 - (this.length);
-            return (this.integer.value << a) >>> b;
-        }
-        set value(next) {
-            let last = this.integer.value;
-            let a = this.offset;
-            let b = 32 - (this.length);
-            let c = 32 - (this.offset + this.length);
-            let m = ((0xFFFFFFFF >> a) << b) >>> c;
-            this.integer.value = ((this.integer.value & ~m) | ((next << a) & m)) >>> 0;
-            if (this.value !== next) {
-                this.integer.value = last;
-                throw `Unexpectedly encoded ${next} as ${this.value}!`;
-            }
-        }
     }
     class text {
-        constructor(buffer, offset, length) {
-            offset = offset ?? 0;
-            length = length ?? (buffer.byteLength - offset);
-            assert.between(0, offset, buffer.byteLength);
-            assert.between(0, length, buffer.byteLength - offset);
-            this.decoder = new TextDecoder();
-            this.encoder = new TextEncoder();
-            this.view = new Uint8Array(buffer, offset, length);
-        }
+        decoder;
+        encoder;
+        view;
         get value() {
             return this.decoder.decode(this.view).replace(/([\u0000]*)$/, "");
         }
@@ -2881,6 +3432,15 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                 throw `Unexpectedly encoded "${next}" as "${this.value}"!`;
             }
         }
+        constructor(buffer, offset, length) {
+            offset = offset ?? 0;
+            length = length ?? (buffer.byteLength - offset);
+            assert.between(0, offset, buffer.byteLength);
+            assert.between(0, length, buffer.byteLength - offset);
+            this.decoder = new TextDecoder();
+            this.encoder = new TextEncoder();
+            this.view = new Uint8Array(buffer, offset, length);
+        }
         async load(cursor, dataProvider) {
             let length = 0;
             length += await dataProvider.read(cursor + length, this.view.buffer, this.view.byteOffset, this.view.byteLength);
@@ -2888,6 +3448,9 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class ArchiveHeader {
+        buffer;
+        version;
+        recordCount;
         constructor(endianness) {
             this.buffer = new ArrayBuffer(8);
             this.version = new ui32(endianness, this.buffer, 0);
@@ -2900,6 +3463,9 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class RecordHeader {
+        buffer;
+        uncompressedSize;
+        isCompressed;
         constructor(endianness) {
             this.buffer = new ArrayBuffer(4);
             let integer = new ui32(endianness, this.buffer, 0);
@@ -2913,10 +3479,8 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class Archive {
-        constructor(dataProvider, endianness) {
-            this.dataProvider = dataProvider;
-            this.endianness = endianness;
-        }
+        dataProvider;
+        endianness;
         async decompress(cursor, buffer) {
             let array = new Uint8Array(buffer);
             let shift = 8;
@@ -2956,6 +3520,10 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                 }
             }
         }
+        constructor(dataProvider, endianness) {
+            this.dataProvider = dataProvider;
+            this.endianness = endianness;
+        }
         async getRecord(index) {
             let archiveHeader = new ArchiveHeader(this.endianness);
             let cursor = 0;
@@ -2978,6 +3546,11 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class VocHeader {
+        buffer;
+        identifier;
+        size;
+        version;
+        validity;
         constructor(endianness) {
             this.buffer = new ArrayBuffer(26);
             this.identifier = new text(this.buffer, 0, 20);
@@ -2992,6 +3565,9 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class VocSoundDataHeader {
+        buffer;
+        frequency;
+        codec;
         constructor(endianness) {
             this.buffer = new ArrayBuffer(2);
             this.frequency = new ui08(endianness, this.buffer, 0);
@@ -3030,6 +3606,9 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
     })(VocBlockType || (VocBlockType = {}));
     ;
     class VocFile {
+        endianness;
+        header;
+        blocks;
         constructor(endianness = "LittleEndian") {
             this.endianness = endianness;
             this.header = new VocHeader(endianness);
@@ -3123,6 +3702,9 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class RiffChunkHeader {
+        buffer;
+        id;
+        size;
         constructor(endianness) {
             this.buffer = new ArrayBuffer(8);
             this.id = new text(this.buffer, 0, 4);
@@ -3135,6 +3717,13 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class WavHeader {
+        buffer;
+        audioFormat;
+        numChannels;
+        sampleRate;
+        byteRate;
+        blockAlign;
+        bitsPerSample;
         constructor(endianness) {
             this.buffer = new ArrayBuffer(16);
             this.audioFormat = new ui16(endianness, this.buffer, 0);
@@ -3163,6 +3752,7 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
     })(XMIEventType || (XMIEventType = {}));
     ;
     class XmiFile {
+        events;
         constructor() {
             this.events = new Array();
         }
@@ -3396,6 +3986,9 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
     }
     class WavFile {
+        endianness;
+        header;
+        buffer;
         constructor(endianness = "LittleEndian") {
             this.endianness = endianness;
             this.header = new WavHeader(endianness);
@@ -3468,6 +4061,10 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
     var wc1;
     (function (wc1) {
         class MicrotileHeader {
+            buffer;
+            inverted;
+            mirrored;
+            index;
             constructor(endianness) {
                 this.buffer = new ArrayBuffer(2);
                 let integer = new ui16(endianness, this.buffer);
@@ -3484,6 +4081,7 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         wc1.MicrotileHeader = MicrotileHeader;
         ;
         class TileHeader {
+            layout;
             constructor(endianness) {
                 let a = new MicrotileHeader(endianness);
                 let b = new MicrotileHeader(endianness);
@@ -3507,6 +4105,13 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         wc1.TileHeader = TileHeader;
         ;
         class UnitScriptHeader {
+            buffer;
+            spawnOffset;
+            deathOffset;
+            idleOffset;
+            movementOffset;
+            actionOffset;
+            trainOffset;
             constructor(endianness) {
                 this.buffer = new ArrayBuffer(12);
                 this.spawnOffset = new ui16(endianness, this.buffer, 0);
@@ -3525,6 +4130,10 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         wc1.UnitScriptHeader = UnitScriptHeader;
         ;
         class ParticleScriptHeader {
+            buffer;
+            spawnOffset;
+            movementOffset;
+            hitOffset;
             constructor(endianness) {
                 this.buffer = new ArrayBuffer(6);
                 this.spawnOffset = new ui16(endianness, this.buffer, 0);
@@ -3540,6 +4149,10 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         wc1.ParticleScriptHeader = ParticleScriptHeader;
         ;
         class ScriptHeader {
+            buffer;
+            headerOffset;
+            unitScriptCount;
+            particleScriptCount;
             constructor(endianness) {
                 this.buffer = new ArrayBuffer(6);
                 this.headerOffset = new ui16(endianness, this.buffer, 0);
@@ -3555,6 +4168,11 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         wc1.ScriptHeader = ScriptHeader;
         ;
         class Script {
+            endianness;
+            header;
+            unitScriptHeaders;
+            particleScriptHeaders;
+            buffer;
             constructor(endianness) {
                 this.endianness = endianness;
                 this.header = new ScriptHeader(endianness);
@@ -3614,6 +4232,12 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         }
         wc1.Script = Script;
         class SpriteFrameHeader {
+            buffer;
+            x;
+            y;
+            w;
+            h;
+            offset;
             constructor(endianness) {
                 this.buffer = new ArrayBuffer(8);
                 this.x = new ui08(endianness, this.buffer, 0);
@@ -3631,6 +4255,8 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         wc1.SpriteFrameHeader = SpriteFrameHeader;
         ;
         class SpriteFrame {
+            header;
+            buffer;
             constructor(endianness) {
                 this.header = new SpriteFrameHeader(endianness);
                 this.buffer = new ArrayBuffer(0);
@@ -3665,6 +4291,10 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         wc1.SpriteFrame = SpriteFrame;
         ;
         class SpriteHeader {
+            buffer;
+            spriteCount;
+            w;
+            h;
             constructor(endianness) {
                 this.buffer = new ArrayBuffer(4);
                 this.spriteCount = new ui16(endianness, this.buffer, 0);
@@ -3680,6 +4310,9 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         wc1.SpriteHeader = SpriteHeader;
         ;
         class Sprite {
+            endianness;
+            header;
+            frames;
             constructor(endianness) {
                 this.endianness = endianness;
                 this.header = new SpriteHeader(endianness);
@@ -3710,6 +4343,7 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         wc1.Sprite = Sprite;
         ;
         class Map {
+            buffer;
             constructor(endianness) {
                 this.buffer = new ArrayBuffer(0);
             }
@@ -3723,6 +4357,11 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         wc1.Map = Map;
         ;
         class CursorHeader {
+            buffer;
+            x;
+            y;
+            w;
+            h;
             constructor(endianness) {
                 this.buffer = new ArrayBuffer(8);
                 this.x = new ui16(endianness, this.buffer, 0);
@@ -3739,6 +4378,8 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         wc1.CursorHeader = CursorHeader;
         ;
         class Cursor {
+            header;
+            buffer;
             constructor(endianness) {
                 this.header = new CursorHeader(endianness);
                 this.buffer = new ArrayBuffer(0);
@@ -3771,6 +4412,7 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         wc1.Cursor = Cursor;
         ;
         class Palette {
+            buffer;
             constructor(endianness) {
                 this.buffer = new ArrayBuffer(0);
             }
@@ -3810,6 +4452,9 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         wc1.Palette = Palette;
         ;
         class BitmapHeader {
+            buffer;
+            w;
+            h;
             constructor(endianness) {
                 this.buffer = new ArrayBuffer(4);
                 this.w = new ui16(endianness, this.buffer, 0);
@@ -3824,6 +4469,8 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         wc1.BitmapHeader = BitmapHeader;
         ;
         class Bitmap {
+            header;
+            buffer;
             constructor(endianness) {
                 this.header = new BitmapHeader(endianness);
                 this.buffer = new ArrayBuffer(0);
@@ -4302,10 +4949,70 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
             channel.stop();
             map.delete(midikey);
         }
+        let doff = 35;
+        let dnames = [
+            "Acoustic Bass Drum",
+            "Electric Bass Drum",
+            "Side Stick",
+            "Acoustic Snare",
+            "Hand Clap",
+            "Electric Snare",
+            "Low Floor Tom",
+            "Closed Hi-hat",
+            "High Floor Tom",
+            "Pedal Hi-hat",
+            "Low Tom",
+            "Open Hi-hat",
+            "Low-Mid Tom",
+            "Hi-Mid Tom",
+            "Crash Cymbal 1",
+            "High Tom",
+            "Ride Cymbal 1",
+            "Chinese Cymbal",
+            "Ride Bell",
+            "Tambourine",
+            "Splash Cymbal",
+            "Cowbell",
+            "Crash Cymbal 2",
+            "Vibraslap",
+            "Ride Cymbal 2",
+            "High Bongo",
+            "Low Bongo",
+            "Mute High Conga",
+            "Open High Conga",
+            "Low Conga",
+            "High Timbale",
+            "Low Timbale",
+            "High Agogô",
+            "Low Agogô",
+            "Cabasa",
+            "Maracas",
+            "Short Whistle",
+            "Long Whistle",
+            "Short Guiro",
+            "Long Guiro",
+            "Claves",
+            "High Woodblock",
+            "Low Woodblock",
+            "Mute Cuica",
+            "Open Cuica",
+            "Mute Triangle",
+            "Open Triangle"
+        ];
         try {
             channel = await program.makeChannel(audio_context, midikey, velocity, channel_mixers[channel_index], channel_index);
             map.set(midikey, channel);
             channel.start();
+            let noteString = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+            let octave = Math.floor(midikey / 12);
+            let noteIndex = (midikey % 12);
+            let note = noteString[noteIndex];
+            if (channel_index === 9) {
+                keys[channel_index].innerHTML = `[D]: ${dnames[midikey - doff]}`;
+            }
+            else {
+                keys[channel_index].innerHTML = `[${channel_index}]: ${note}${octave}`;
+            }
         }
         catch (error) {
             console.log(error);
@@ -4317,6 +5024,7 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         if (is.present(channel)) {
             channel.release(midikey, velocity);
             map.delete(midikey);
+            keys[channel_index].innerHTML = `[${channel_index === 9 ? "D" : channel_index}]:`;
         }
     }
     function volume(channel_index, byte) {
@@ -4381,7 +5089,9 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                             break;
                         }
                     }
-                    instruments[event.channel][1] = a;
+                    if (!OVERRIDE) {
+                        instruments[event.channel][1] = a;
+                    }
                     document.querySelector(`select:nth-of-type(${event.channel}) > option:nth-of-type(${a})`)?.setAttribute("selected", "");
                 }
                 else if (event.type === XMIEventType.CONTROLLER) {
@@ -4591,6 +5301,7 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
         o: 32,
         p: 33
     };
+    let current_channel = 0;
     let keysdown = {};
     window.addEventListener("keydown", async (event) => {
         if (!(event.key in keymap)) {
@@ -4600,14 +5311,14 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
             return;
         }
         keysdown[event.key] = true;
-        await keyon(0, keymap[event.key], 127);
+        await keyon(current_channel, keymap[event.key], 127);
     });
     window.addEventListener("keyup", async (event) => {
         if (!(event.key in keymap)) {
             return;
         }
         delete keysdown[event.key];
-        keyoff(0, keymap[event.key], 127);
+        keyoff(current_channel, keymap[event.key], 127);
     });
     window.addEventListener("keyup", async (event) => {
         if (false) {
@@ -4851,6 +5562,28 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                 mc.stop();
             }
         }
+        if (OVERRIDE) {
+            let square = [0, 80];
+            let saw = [0, 81];
+            let fifth_saw = [0, 86];
+            let powerdrums = [128, 16];
+            instruments[0] = square;
+            instruments[1] = square;
+            instruments[2] = saw;
+            instruments[3] = saw;
+            instruments[4] = saw;
+            instruments[5] = square;
+            instruments[6] = square;
+            instruments[7] = square;
+            instruments[8] = square;
+            instruments[9] = powerdrums;
+            instruments[10] = saw;
+            instruments[11] = saw;
+            instruments[12] = saw;
+            instruments[13] = saw;
+            instruments[14] = saw;
+            instruments[15] = saw;
+        }
     }
     window.addEventListener("keydown", () => {
         unlock_context();
@@ -4873,7 +5606,7 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
                     if (is.present(program)) {
                         let option = document.createElement("option");
                         option.style.setProperty("font-size", "20px");
-                        option.textContent = program.name;
+                        option.textContent = bank_index + ":" + program_index + " - " + program.name;
                         option.value = "" + bank_index + ":" + program_index;
                         select.appendChild(option);
                     }
@@ -4983,4 +5716,4 @@ define("client/index", ["require", "exports", "shared/index", "shared/binary.web
     });
     resize();
 });
-function define(e,t,l){null==this.x&&(this.x=new Map),null==this.z&&(this.z=(e=>require(e))),null==this.y&&(this.y=(e=>{let t=this.x.get(e);if(null==t||null!=t.module)return;let l=Array(),u={exports:{}};for(let e of t.dependencies){if("require"===e){l.push(this.z);continue}if("module"===e){l.push(u);continue}if("exports"===e){l.push(u.exports);continue}try{l.push(this.z(e));continue}catch(e){}let t=this.x.get(e);if(null==t||null==t.module)return;l.push(t.module.exports)}t.callback(...l),t.module=u;for(let e of t.dependencies)this.y(e)}));let u=this.x.get(e);if(null!=u)throw'Duplicate module found with name "'+e+'"!';u={callback:l,dependencies:t,module:null},this.x.set(e,u),this.y(e)}
+function define(e,t,l){let n=define;function u(e){return require(e)}null==n.moduleStates&&(n.moduleStates=new Map),null==n.dependentsMap&&(n.dependentsMap=new Map);let d=n.moduleStates.get(e);if(null!=d)throw"Duplicate module found with name "+e+"!";d={callback:l,dependencies:t,module:null},n.moduleStates.set(e,d);for(let l of t){let t=n.dependentsMap.get(l);null==t&&(t=new Set,n.dependentsMap.set(l,t)),t.add(e)}!function e(t){let l=n.moduleStates.get(t);if(null==l||null!=l.module)return;let d=Array(),o={exports:{}};for(let e of l.dependencies){if("require"===e){d.push(u);continue}if("module"===e){d.push(o);continue}if("exports"===e){d.push(o.exports);continue}try{d.push(u(e));continue}catch(e){}let t=n.moduleStates.get(e);if(null==t||null==t.module)return;d.push(t.module.exports)}l.callback(...d),l.module=o;let p=n.dependentsMap.get(t);if(null!=p)for(let t of p)e(t)}(e)}

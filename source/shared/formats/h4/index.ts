@@ -58,7 +58,7 @@ export const Archive = {
 	load(array: Uint8Array, cursor?: Cursor): Archive {
 		cursor = cursor ?? { offset: 0 };
 		let dw = makeDataView(array);
-		let identifier = toAsciiString(array.subarray(0, 0 + 3)); cursor.offset += 3;
+		let identifier = toAsciiString(array.subarray(cursor.offset, cursor.offset + 3)); cursor.offset += 3;
 		StringAssert.identical(identifier, "H4R");
 		let version = dw.getUint8(cursor.offset); cursor.offset += 1;
 		IntegerAssert.exactly(version, 5);

@@ -63,7 +63,7 @@ export const Archive = {
 		let version = dw.getUint8(cursor.offset); cursor.offset += 1;
 		IntegerAssert.exactly(version, 5);
 		let header_size = dw.getUint32(cursor.offset, true); cursor.offset += 4;
-		IntegerAssert.atLeast(header_size, cursor.offset);
+		IntegerAssert.atLeast(cursor.offset, header_size);
 		cursor.offset = header_size;
 		let number_of_records = dw.getUint32(cursor.offset, true); cursor.offset += 4;
 		let record_headers: Array<ArchiveRecordHeader> = [];

@@ -1,3 +1,5 @@
+import * as zlib from "zlib";
+import * as fs from "fs";
 import { IntegerAssert, StringAssert } from "../../asserts";
 
 function makeDataView(array: Uint8Array): DataView {
@@ -122,7 +124,7 @@ export enum BlockTableEntryFlags {
 	IS_ENCRYPTED = 0x00010000,
 	USES_ADJUSTED_KEY = 0x00020000,
 	IS_PATCH =  0x00100000,
-	USES_SINGLE_SECTOR = 0x01000000,
+	IS_MISSING_SECTOR_OFFSETS_TABLE = 0x01000000,
 	IS_DELETED = 0x02000000,
 	HAS_CHECKSUM = 0x04000000,
 	IS_FILE = 0x80000000
@@ -137,7 +139,7 @@ export type BlockTableEntry = {
 		is_compressed: boolean;
 		is_encrypted: boolean;
 		uses_adjusted_key: boolean;
-		uses_single_block: boolean;
+		is_missing_sector_offsets_table: boolean;
 		is_deleted: boolean;
 		has_checksum: boolean;
 		is_file: boolean;
@@ -161,7 +163,7 @@ export const BlockTableEntry = {
 				is_compressed: !!(flags & BlockTableEntryFlags.IS_COMPRESSED),
 				is_encrypted: !!(flags & BlockTableEntryFlags.IS_ENCRYPTED),
 				uses_adjusted_key: !!(flags & BlockTableEntryFlags.USES_ADJUSTED_KEY),
-				uses_single_block: !!(flags & BlockTableEntryFlags.USES_SINGLE_SECTOR),
+				is_missing_sector_offsets_table: !!(flags & BlockTableEntryFlags.IS_MISSING_SECTOR_OFFSETS_TABLE),
 				is_deleted: !!(flags & BlockTableEntryFlags.IS_DELETED),
 				has_checksum: !!(flags & BlockTableEntryFlags.HAS_CHECKSUM),
 				is_file: !!(flags & BlockTableEntryFlags.IS_FILE)
@@ -221,6 +223,16 @@ function findHashTableEntry(hash_table: Uint8Array, hash_table_slots: number, fi
 
 const SECTOR_SIZE = 512;
 
+export enum CompressionType {
+	SPARSE = 0x20,
+	IMA_ADPCM_MONO = 0x40,
+	IMA_ADPCM_STEREO = 0x80,
+	HUFFMAN = 0x01,
+	DEFLATED = 0x02,
+	IMPLODED = 0x08,
+	BZIP2 = 0x10
+};
+
 export type Archive = {
 	header_size: number;
 	file_size: number;
@@ -254,15 +266,7 @@ export const Archive = {
 		let block_size = SECTOR_SIZE << sectors_per_block_log2;
 		decryptData(hash_table, HASH_TABLE_KEY);
 		decryptData(block_table, BLOCK_TABLE_KEY);
-/* 		for (let i = 0; i < hash_table_slots; i++) {
-			let entry = HashTableEntry.load(hash_table, { offset: i * 16 });
-			console.log(entry);
-		} */
-/* 		for (let i = 0; i < block_table_slots; i++) {
-			let entry = BlockTableEntry.load(block_table, { offset: i * 16 });
-			console.log(entry);
-		} */
-		// let file_name= "data\\global\\music\\Act1\\tristram.wav";
+		//let file_name = "data\\global\\music\\Act1\\tristram.wav";
 		let file_name = LISTFILE;
 		let hash_table_entry = findHashTableEntry(hash_table, hash_table_slots, file_name);
 		if (hash_table_entry != null) {
@@ -270,19 +274,67 @@ export const Archive = {
 			let block_table_entry = BlockTableEntry.load(block_table, { offset: hash_table_entry.block_index * 16 });
 			console.log(block_table_entry);
 			let number_of_blocks = Math.ceil(block_table_entry.block_length / block_size);
-			let block = array.slice(block_table_entry.block_offset, block_table_entry.block_offset + block_table_entry.block_length);
-			let dw = makeDataView(block);
+			let block = array.subarray(block_table_entry.block_offset, block_table_entry.block_offset + block_table_entry.block_length);
 			let key = getKeyForFileName(file_name);
 			if (block_table_entry.flags.uses_adjusted_key) {
 				key = adjustKey(key, block_table_entry);
 			}
-
-			if (block_table_entry.flags.is_encrypted) {
-				decryptData(block, getSectorKey(key, -1));
+			let sector_offsets: Array<number> = [];
+			if (block_table_entry.flags.is_missing_sector_offsets_table) {
+				sector_offsets.push(0, block_table_entry.block_length);
+			} else {
+				let slice = block.slice(0, (number_of_blocks + 1) * 4);
+				let dw = makeDataView(slice);
+				if (block_table_entry.flags.is_encrypted) {
+					decryptData(slice, getSectorKey(key, -1));
+				}
+				for (let i = 0, o = 0; i < number_of_blocks + 1; i += 1, o += 4) {
+					sector_offsets.push(dw.getUint32(o, true));
+				}
 			}
-console.log({number_of_blocks}, dw.getUint32(0, true), dw.getUint32(4, true));
+			let blocks: Array<Uint8Array> = [];
+			let blocks_size = 0;
+			for (let i = 0; i < number_of_blocks; i++) {
+				let slice = block.slice(sector_offsets[i], sector_offsets[i + 1]);
+				if (block_table_entry.flags.is_encrypted) {
+					decryptData(slice, getSectorKey(key, i));
+				}
+				if (slice.length < block_size) {
+					let compression_type = slice[0] as CompressionType;
+					if (compression_type & CompressionType.BZIP2) {
+						throw new Error(`Compression not supported!`);
+					}
+					if (compression_type & CompressionType.IMPLODED) {
+						throw new Error(`Compression not supported!`);
+					}
+					if (compression_type & CompressionType.DEFLATED) {
+						throw new Error(`Compression not supported!`);
+					}
+					if (compression_type & CompressionType.HUFFMAN) {
+						throw new Error(`Compression not supported!`);
+					}
+					if (compression_type & CompressionType.IMA_ADPCM_STEREO) {
+						throw new Error(`Compression not supported!`);
+					}
+					if (compression_type & CompressionType.IMA_ADPCM_MONO) {
+						throw new Error(`Compression not supported!`);
+					}
+					if (compression_type & CompressionType.SPARSE) {
+						throw new Error(`Compression not supported!`);
+					}
+				} else {
+					blocks.push(slice);
+					blocks_size += slice.length;
+				}
+			}
+			let data = new Uint8Array(blocks_size);
+			let offset = 0;
+			for (let block of blocks) {
+				data.set(block, offset);
+				offset += block.length;
+			}/*
+			fs.writeFileSync("./private/d2/test.wav", data); */
 		}
-
 		return {
 			header_size,
 			file_size,

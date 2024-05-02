@@ -32,9 +32,9 @@ function initialize(): void {
 initialize();
 
 export enum KeySet {
-	NORMAL = 0,
-	NAME_A = 1,
-	NAME_B = 2,
+	HASH_TABLE = 0,
+	FILE_NAME_A = 1,
+	FILE_NAME_B = 2,
 	FILE_KEY = 3,
 	BLOCK_DATA = 4
 };
@@ -59,12 +59,16 @@ export function getKeyForFileName(string: string): number {
 	return key;
 };
 
-export function adjustKey(key: number, block_header: BlockTableEntry): number {
-	if (block_header.flags & BlockTableEntryFlags.USES_ADJUSTED_KEY) {
-		key = (key + block_header.block_offset) >>> 0;
-		key = (key ^ block_header.uncompressed_size) >>> 0;
+export function adjustKey(key: number, block_table_entry: BlockTableEntry): number {
+	if (block_table_entry.flags.uses_adjusted_key) {
+		key = (key + block_table_entry.block_offset) >>> 0;
+		key = (key ^ block_table_entry.uncompressed_size) >>> 0;
 	}
 	return key;
+};
+
+export function getSectorKey(key: number, sector: number): number {
+	return (key + sector) >>> 0;
 };
 
 export function encryptData(array: Uint8Array, key: number): void {
@@ -91,7 +95,7 @@ export function decryptData(array: Uint8Array, key: number): void {
 	let dw = new DataView(array.buffer, array.byteOffset, array.byteLength);
 	let seed = 0xEEEEEEEE;
 	let offset = KeySet.BLOCK_DATA * 256;
-	for (let o = 0, l = array.byteLength; o < l; o += 4) {
+	for (let o = 0, l = array.byteLength - 3; o < l; o += 4) {
 		let encrypted = dw.getUint32(o, true);
 		seed = (seed + TABLE[offset + (key & 0xFF)]) >>> 0;
 		let a = (key + seed) >>> 0;
@@ -117,7 +121,8 @@ export enum BlockTableEntryFlags {
 	IS_COMPRESSED = 0x00000200,
 	IS_ENCRYPTED = 0x00010000,
 	USES_ADJUSTED_KEY = 0x00020000,
-	USES_SINGLE_BLOCK = 0x01000000,
+	IS_PATCH =  0x00100000,
+	USES_SINGLE_SECTOR = 0x01000000,
 	IS_DELETED = 0x02000000,
 	HAS_CHECKSUM = 0x04000000,
 	IS_FILE = 0x80000000
@@ -127,7 +132,16 @@ export type BlockTableEntry = {
 	block_offset: number;
 	block_length: number;
 	uncompressed_size: number;
-	flags: number;
+	flags: {
+		is_imploded: boolean;
+		is_compressed: boolean;
+		is_encrypted: boolean;
+		uses_adjusted_key: boolean;
+		uses_single_block: boolean;
+		is_deleted: boolean;
+		has_checksum: boolean;
+		is_file: boolean;
+	};
 };
 
 export const BlockTableEntry = {
@@ -142,7 +156,16 @@ export const BlockTableEntry = {
 			block_offset,
 			block_length,
 			uncompressed_size,
-			flags
+			flags: {
+				is_imploded: !!(flags & BlockTableEntryFlags.IS_IMPLODED),
+				is_compressed: !!(flags & BlockTableEntryFlags.IS_COMPRESSED),
+				is_encrypted: !!(flags & BlockTableEntryFlags.IS_ENCRYPTED),
+				uses_adjusted_key: !!(flags & BlockTableEntryFlags.USES_ADJUSTED_KEY),
+				uses_single_block: !!(flags & BlockTableEntryFlags.USES_SINGLE_SECTOR),
+				is_deleted: !!(flags & BlockTableEntryFlags.IS_DELETED),
+				has_checksum: !!(flags & BlockTableEntryFlags.HAS_CHECKSUM),
+				is_file: !!(flags & BlockTableEntryFlags.IS_FILE)
+			}
 		};
 	}
 };
@@ -179,41 +202,30 @@ export const HashTableEntry = {
 };
 
 function findHashTableEntry(hash_table: Uint8Array, hash_table_slots: number, filename: string): HashTableEntry | undefined {
-	let hash_a = computeStringHash(filename, KeySet.NAME_A);
-	let hash_b = computeStringHash(filename, KeySet.NAME_B);
-	{
-		let index = hash_a % hash_table_slots;
-		while (true) {
-			let entry = HashTableEntry.load(hash_table, { offset: index * 16 });
+	let hash_a = computeStringHash(filename, KeySet.FILE_NAME_A);
+	let hash_b = computeStringHash(filename, KeySet.FILE_NAME_B);
+	let index = computeStringHash(filename, KeySet.HASH_TABLE) % hash_table_slots;
+	while (true) {
+		let entry = HashTableEntry.load(hash_table, { offset: index * 16 });
+		if (entry.block_index === BLOCK_INDEX_EMPTY_STOP_SEARCH) {
+			break;
+		}
+		if (entry.block_index !== BLOCK_INDEX_EMPTY_CONTINUE_SEARCH) {
 			if (entry.hash_using_name_a === hash_a && entry.hash_using_name_b === hash_b) {
 				return entry;
 			}
-			if (entry.block_index === BLOCK_INDEX_EMPTY_STOP_SEARCH) {
-				break;
-			}
-			index = (index + 1) % hash_table_slots;
 		}
-	}
-	{
-		let index = hash_b % hash_table_slots;
-		while (true) {
-			let entry = HashTableEntry.load(hash_table, { offset: index * 16 });
-			if (entry.hash_using_name_a === hash_a && entry.hash_using_name_b === hash_b) {
-				return entry;
-			}
-			if (entry.block_index === BLOCK_INDEX_EMPTY_STOP_SEARCH) {
-				break;
-			}
-			index = (index + 1) % hash_table_slots;
-		}
+		index = (index + 1) % hash_table_slots;
 	}
 };
+
+const SECTOR_SIZE = 512;
 
 export type Archive = {
 	header_size: number;
 	file_size: number;
 	version: number;
-	block_factor_log2: number;
+	sectors_per_block_log2: number;
 	hash_table_offset: number;
 	block_table_offset: number;
 	hash_table_slots: number;
@@ -232,35 +244,50 @@ export const Archive = {
 		IntegerAssert.atLeast(32, header_size);
 		let file_size = dw.getUint32(cursor.offset, true); cursor.offset += 4;
 		let version = dw.getUint16(cursor.offset, true); cursor.offset += 2;
-		let block_factor_log2 = dw.getUint16(cursor.offset, true); cursor.offset += 2;
+		let sectors_per_block_log2 = dw.getUint16(cursor.offset, true); cursor.offset += 2;
 		let hash_table_offset = dw.getUint32(cursor.offset, true); cursor.offset += 4;
 		let block_table_offset = dw.getUint32(cursor.offset, true); cursor.offset += 4;
 		let hash_table_slots = dw.getUint32(cursor.offset, true); cursor.offset += 4;
 		let block_table_slots = dw.getUint32(cursor.offset, true); cursor.offset += 4;
 		let hash_table = array.subarray(hash_table_offset, hash_table_offset + hash_table_slots * 16);
 		let block_table = array.subarray(block_table_offset, block_table_offset + block_table_slots * 16);
+		let block_size = SECTOR_SIZE << sectors_per_block_log2;
 		decryptData(hash_table, HASH_TABLE_KEY);
 		decryptData(block_table, BLOCK_TABLE_KEY);
-		for (let i = 0; i < hash_table_slots; i++) {/*
+/* 		for (let i = 0; i < hash_table_slots; i++) {
 			let entry = HashTableEntry.load(hash_table, { offset: i * 16 });
-			console.log(entry); */
-		}
-		for (let i = 0; i < block_table_slots; i++) {
+			console.log(entry);
+		} */
+/* 		for (let i = 0; i < block_table_slots; i++) {
 			let entry = BlockTableEntry.load(block_table, { offset: i * 16 });
 			console.log(entry);
-		}
-/*
-console.log(block_table);
-console.log(hash_table); */
+		} */
+		// let file_name= "data\\global\\music\\Act1\\tristram.wav";
+		let file_name = LISTFILE;
+		let hash_table_entry = findHashTableEntry(hash_table, hash_table_slots, file_name);
+		if (hash_table_entry != null) {
+			console.log(hash_table_entry);
+			let block_table_entry = BlockTableEntry.load(block_table, { offset: hash_table_entry.block_index * 16 });
+			console.log(block_table_entry);
+			let number_of_blocks = Math.ceil(block_table_entry.block_length / block_size);
+			let block = array.slice(block_table_entry.block_offset, block_table_entry.block_offset + block_table_entry.block_length);
+			let dw = makeDataView(block);
+			let key = getKeyForFileName(file_name);
+			if (block_table_entry.flags.uses_adjusted_key) {
+				key = adjustKey(key, block_table_entry);
+			}
 
-		let filelist = findHashTableEntry(hash_table, hash_table_slots, "data\\global\\music\\Act1\\tristram.wav");
-console.log(filelist)
+			if (block_table_entry.flags.is_encrypted) {
+				decryptData(block, getSectorKey(key, -1));
+			}
+console.log({number_of_blocks}, dw.getUint32(0, true), dw.getUint32(4, true));
+		}
 
 		return {
 			header_size,
 			file_size,
 			version,
-			block_factor_log2,
+			sectors_per_block_log2,
 			hash_table_offset,
 			block_table_offset,
 			hash_table_slots,

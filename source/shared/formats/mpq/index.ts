@@ -302,25 +302,25 @@ export const Archive = {
 				if (slice.length < block_size) {
 					let compression_type = slice[0] as CompressionType;
 					if (compression_type & CompressionType.BZIP2) {
-						throw new Error(`Compression not supported!`);
+						throw new Error(`Compression type BZIP2 not supported!`);
 					}
 					if (compression_type & CompressionType.IMPLODED) {
-						throw new Error(`Compression not supported!`);
+						throw new Error(`Compression type IMPLODED not supported!`);
 					}
 					if (compression_type & CompressionType.DEFLATED) {
-						throw new Error(`Compression not supported!`);
+						throw new Error(`Compression type DEFLATED not supported!`);
 					}
 					if (compression_type & CompressionType.HUFFMAN) {
-						throw new Error(`Compression not supported!`);
+						throw new Error(`Compression type HUFFMAN not supported!`);
 					}
 					if (compression_type & CompressionType.IMA_ADPCM_STEREO) {
-						throw new Error(`Compression not supported!`);
+						throw new Error(`Compression type IMA_ADPCM_STEREO not supported!`);
 					}
 					if (compression_type & CompressionType.IMA_ADPCM_MONO) {
-						throw new Error(`Compression not supported!`);
+						throw new Error(`Compression type IMA_ADPCM_MONO not supported!`);
 					}
 					if (compression_type & CompressionType.SPARSE) {
-						throw new Error(`Compression not supported!`);
+						throw new Error(`Compression type SPARSE not supported!`);
 					}
 				} else {
 					blocks.push(slice);

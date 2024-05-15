@@ -1,3 +1,5 @@
+import * as libcrypto from "crypto";
+
 function makeDataView(array: Uint8Array): DataView {
 	return new DataView(array.buffer, array.byteOffset, array.byteLength);
 };
@@ -27,6 +29,15 @@ export const ArchiveRecordHeader = {
 	}
 };
 
+let PUBLIC_KEY = libcrypto.createPublicKey({
+	format: "jwk",
+	key: {
+		"kty": "RSA",
+		"n": "AihRvNoIbTn85FZRYNZRcT-i6KpU-maCsEqr3Q5q-LDB5tH7Tz2qQ38V",
+		"e": "AQAB"
+	}
+} as any);
+
 export type Archive = {
 	record_headers: Array<ArchiveRecordHeader>;
 	header_size: number;
@@ -37,6 +48,13 @@ export const Archive = {
 		cursor = cursor ?? { offset: 0 };
 		let dw = makeDataView(array);
 		let number_of_records = dw.getUint16(cursor.offset, true); cursor.offset += 2;
+		if (number_of_records === 0) {
+			let flags = dw.getUint16(cursor.offset, true); cursor.offset += 2;
+			let has_sha1_checksum = (flags & 0x0001) !== 0;
+			let is_encrypted = (flags & 0x0002) !== 0;
+			let initialization_data = array.subarray(cursor.offset, cursor.offset + 80); cursor.offset += 80;
+			throw new Error(`Expected an unencrypted file!`);
+		}
 		let data_size = dw.getUint32(cursor.offset, true); cursor.offset += 4;
 		let record_headers: Array<ArchiveRecordHeader> = [];
 		for (let i = 0; i < number_of_records; i++) {
